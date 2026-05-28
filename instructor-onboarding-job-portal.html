@@ -1,0 +1,995 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Skunkworks Academy Instructor Portal</title>
+  <style>
+    :root {
+      --ink: #17212b;
+      --muted: #5e6975;
+      --line: #d9e0e7;
+      --panel: #ffffff;
+      --bg: #f5f7f9;
+      --teal: #0f766e;
+      --teal-soft: #dff4ef;
+      --gold: #b7791f;
+      --gold-soft: #fff4d6;
+      --red: #b42318;
+      --red-soft: #fee4e2;
+      --blue: #245b89;
+      --blue-soft: #e3eef8;
+      --green: #1f7a4d;
+      --green-soft: #e3f5ea;
+      --shadow: 0 12px 30px rgba(31, 45, 61, .09);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(180deg, rgba(15, 118, 110, .09), rgba(245, 247, 249, 0) 320px),
+        var(--bg);
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button {
+      border: 1px solid transparent;
+      cursor: pointer;
+      border-radius: 6px;
+      min-height: 38px;
+      padding: 0 13px;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    .shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 248px 1fr;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      padding: 22px 16px;
+      background: #111a22;
+      color: #f8fafc;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 2px 6px 12px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+
+    .brand-mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #13a89e, #e6a933);
+      color: #071018;
+      font-weight: 850;
+      letter-spacing: 0;
+    }
+
+    .brand strong { display: block; font-size: 14px; line-height: 1.2; }
+    .brand span { color: #aab7c4; font-size: 12px; }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .nav button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      justify-content: flex-start;
+      color: #d9e4ef;
+      background: transparent;
+      border-color: transparent;
+      padding: 0 10px;
+    }
+
+    .nav button.active {
+      color: #fff;
+      background: rgba(255,255,255,.1);
+      border-color: rgba(255,255,255,.12);
+    }
+
+    .nav svg, .icon {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 auto;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .sidebar-note {
+      margin-top: auto;
+      padding: 14px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 8px;
+      color: #c7d3df;
+      font-size: 12px;
+      line-height: 1.45;
+      background: rgba(255,255,255,.05);
+    }
+
+    main {
+      min-width: 0;
+      padding: 28px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 24px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(26px, 4vw, 38px);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      max-width: 760px;
+      line-height: 1.55;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .primary {
+      color: #fff;
+      background: var(--teal);
+      border-color: var(--teal);
+    }
+
+    .secondary {
+      border-color: var(--line);
+      box-shadow: 0 1px 0 rgba(31,45,61,.04);
+    }
+
+    .danger {
+      color: var(--red);
+      border-color: #f7c4bd;
+      background: #fff7f6;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, .8fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .section {
+      margin-bottom: 18px;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 0 0 10px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .toolbar input, .toolbar select {
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0 10px;
+      background: #fff;
+      min-width: 150px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    th, td {
+      padding: 13px 14px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      background: #fbfcfd;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .person {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      min-width: 180px;
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--blue-soft);
+      color: var(--blue);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+
+    .pill.screening { color: var(--blue); background: var(--blue-soft); }
+    .pill.interview { color: var(--gold); background: var(--gold-soft); }
+    .pill.offer { color: var(--green); background: var(--green-soft); }
+    .pill.blocked { color: var(--red); background: var(--red-soft); }
+    .pill.live { color: var(--green); background: var(--green-soft); }
+    .pill.draft { color: var(--muted); background: #eef2f6; }
+
+    .kanban {
+      display: grid;
+      gap: 12px;
+    }
+
+    .lane {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .lane header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background: #fbfcfd;
+      border-bottom: 1px solid var(--line);
+      font-weight: 750;
+    }
+
+    .lane-list {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+    }
+
+    .task {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .task strong { display: block; margin-bottom: 5px; }
+    .task p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.4; }
+
+    .form {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+      display: grid;
+      gap: 12px;
+    }
+
+    .fields {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    label {
+      display: grid;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      padding: 10px;
+      min-height: 40px;
+      outline: none;
+    }
+
+    textarea { min-height: 92px; resize: vertical; }
+    label.full { grid-column: 1 / -1; }
+
+    .jobs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .job {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .job h3 { margin: 0; font-size: 17px; }
+    .job p { margin: 0; color: var(--muted); line-height: 1.45; }
+    .job-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .empty {
+      padding: 22px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .tab { display: none; }
+    .tab.active { display: block; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 20, 30, .46);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      z-index: 30;
+    }
+
+    .modal.open { display: flex; }
+    .dialog {
+      width: min(760px, 100%);
+      max-height: 90vh;
+      overflow: auto;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.28);
+    }
+
+    .dialog header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .dialog .form {
+      border: 0;
+      box-shadow: none;
+      border-radius: 0;
+    }
+
+    @media (max-width: 980px) {
+      .shell { grid-template-columns: 1fr; }
+      .sidebar {
+        position: static;
+        height: auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .brand { border-bottom: 0; padding-bottom: 2px; }
+      .nav { grid-template-columns: repeat(4, minmax(0, 1fr)); flex: 1 1 520px; }
+      .sidebar-note { display: none; }
+      .topbar, .section-head { align-items: flex-start; flex-direction: column; }
+      .actions { justify-content: flex-start; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid, .jobs { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 620px) {
+      main { padding: 18px; }
+      .nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metrics { grid-template-columns: 1fr; }
+      .fields { grid-template-columns: 1fr; }
+      .toolbar input, .toolbar select { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">SA</div>
+        <div>
+          <strong>Skunkworks Academy</strong>
+          <span>Instructor Operations</span>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Portal sections">
+        <button class="active" data-tab-button="dashboard" title="Dashboard">
+          <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3z"></path><path d="M13 21h8V11h-8z"></path><path d="M13 3v6h8V3z"></path><path d="M3 21h8v-6H3z"></path></svg>
+          Dashboard
+        </button>
+        <button data-tab-button="instructors" title="Instructor pipeline">
+          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          Instructors
+        </button>
+        <button data-tab-button="jobs" title="Job postings">
+          <svg viewBox="0 0 24 24"><path d="M10 6V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v1"></path><rect x="3" y="6" width="18" height="15" rx="2"></rect><path d="M3 12h18"></path></svg>
+          Jobs
+        </button>
+        <button data-tab-button="sharepoint" title="SharePoint handoff">
+          <svg viewBox="0 0 24 24"><path d="M12 3v18"></path><path d="M3 12h18"></path><path d="M5 5h5v5H5z"></path><path d="M14 5h5v5h-5z"></path><path d="M5 14h5v5H5z"></path><path d="M14 14h5v5h-5z"></path></svg>
+          SharePoint
+        </button>
+      </nav>
+      <div class="sidebar-note">
+        Records are stored locally in this prototype. Export CSV or JSON to seed SharePoint Lists, Power Automate flows, or a Dataverse-backed version.
+      </div>
+    </aside>
+
+    <main>
+      <section class="tab active" id="dashboard">
+        <div class="topbar">
+          <div>
+            <h1>Instructor onboarding and job posting portal</h1>
+            <p class="subtitle">Manage open teaching roles, review instructor candidates, track compliance tasks, and prepare structured data for SharePoint operations.</p>
+          </div>
+          <div class="actions">
+            <button class="secondary" id="exportJsonBtn" title="Export portal data">Export JSON</button>
+            <button class="primary" data-open-modal="candidate" title="Add instructor candidate">Add Candidate</button>
+          </div>
+        </div>
+
+        <div class="metrics" id="metrics"></div>
+
+        <div class="grid">
+          <section class="section">
+            <div class="section-head">
+              <h2>Candidate Pipeline</h2>
+              <div class="toolbar">
+                <input id="candidateSearch" type="search" placeholder="Search candidates">
+                <select id="candidateFilter" aria-label="Filter candidates by status">
+                  <option value="all">All statuses</option>
+                  <option value="Screening">Screening</option>
+                  <option value="Interview">Interview</option>
+                  <option value="Offer">Offer</option>
+                  <option value="Blocked">Blocked</option>
+                </select>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Candidate</th>
+                    <th>Role Fit</th>
+                    <th>Status</th>
+                    <th>Next Step</th>
+                    <th>Owner</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="candidateRows"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="section">
+            <div class="section-head">
+              <h2>Onboarding Tasks</h2>
+              <button class="secondary" id="completeTaskBtn" title="Mark next task complete">Complete Next</button>
+            </div>
+            <div class="kanban" id="taskLanes"></div>
+          </section>
+        </div>
+      </section>
+
+      <section class="tab" id="instructors">
+        <div class="topbar">
+          <div>
+            <h1>Instructor Intake</h1>
+            <p class="subtitle">Capture candidate details, teaching disciplines, required checks, and the operational owner responsible for moving the onboarding forward.</p>
+          </div>
+          <button class="primary" data-open-modal="candidate">Add Candidate</button>
+        </div>
+        <section class="section">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Instructor</th>
+                  <th>Discipline</th>
+                  <th>Availability</th>
+                  <th>Checks</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="instructorRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section class="tab" id="jobs">
+        <div class="topbar">
+          <div>
+            <h1>Job Postings</h1>
+            <p class="subtitle">Create live and draft instructor roles with programme, modality, rate band, closing date, and applicant counts.</p>
+          </div>
+          <button class="primary" data-open-modal="job">Create Posting</button>
+        </div>
+        <section class="section">
+          <div class="section-head">
+            <h2>Open Roles</h2>
+            <div class="toolbar">
+              <select id="jobFilter" aria-label="Filter jobs by status">
+                <option value="all">All postings</option>
+                <option value="Live">Live</option>
+                <option value="Draft">Draft</option>
+              </select>
+              <button class="secondary" id="exportCsvBtn">Export CSV</button>
+            </div>
+          </div>
+          <div class="jobs" id="jobCards"></div>
+        </section>
+      </section>
+
+      <section class="tab" id="sharepoint">
+        <div class="topbar">
+          <div>
+            <h1>SharePoint Handoff</h1>
+            <p class="subtitle">A practical list model for moving this prototype into Microsoft 365 with SharePoint Lists, document libraries, and Power Automate approvals.</p>
+          </div>
+          <button class="secondary" id="copySchemaBtn">Copy Schema</button>
+        </div>
+        <div class="grid">
+          <section class="section">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>List</th>
+                    <th>Purpose</th>
+                    <th>Key Columns</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Instructor Candidates</strong></td>
+                    <td>Recruitment and onboarding pipeline</td>
+                    <td>Name, Email, Discipline, Availability, Status, Checks, Owner, Next Step</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Instructor Job Postings</strong></td>
+                    <td>Published and draft teaching roles</td>
+                    <td>Title, Programme, Modality, Rate Band, Closing Date, Status, Applicants</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Onboarding Tasks</strong></td>
+                    <td>Compliance and readiness workflow</td>
+                    <td>Task, Candidate, Due Date, Stage, Owner, Completed</td>
+                  </tr>
+                  <tr>
+                    <td><strong>Instructor Documents</strong></td>
+                    <td>Contracts, certificates, IDs, and payroll files</td>
+                    <td>Candidate Lookup, Document Type, Expiry Date, Approval Status</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+          <section class="section">
+            <form class="form">
+              <h2>Recommended Automations</h2>
+              <div class="task">
+                <strong>Candidate submitted</strong>
+                <p>Create folder, assign screening owner, and notify recruitment channel.</p>
+              </div>
+              <div class="task">
+                <strong>Checks completed</strong>
+                <p>Generate contract packet and route approval to programme lead.</p>
+              </div>
+              <div class="task">
+                <strong>Job closing soon</strong>
+                <p>Send applicant summary three days before closing date.</p>
+              </div>
+            </form>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal" id="candidateModal" role="dialog" aria-modal="true" aria-labelledby="candidateTitle">
+    <div class="dialog">
+      <header>
+        <h2 id="candidateTitle">Add Instructor Candidate</h2>
+        <button class="secondary" data-close-modal title="Close">Close</button>
+      </header>
+      <form class="form" id="candidateForm">
+        <div class="fields">
+          <label>Name<input required name="name" placeholder="Full name"></label>
+          <label>Email<input required name="email" type="email" placeholder="name@example.com"></label>
+          <label>Discipline<input required name="discipline" placeholder="Cybersecurity, AI, Cloud"></label>
+          <label>Availability<select name="availability"><option>Weekdays</option><option>Evenings</option><option>Weekends</option><option>Flexible</option></select></label>
+          <label>Status<select name="status"><option>Screening</option><option>Interview</option><option>Offer</option><option>Blocked</option></select></label>
+          <label>Owner<input name="owner" placeholder="Programme lead"></label>
+          <label class="full">Next Step<textarea name="nextStep" placeholder="Schedule demo lesson, request certificates, prepare contract"></textarea></label>
+        </div>
+        <div class="actions">
+          <button type="button" class="secondary" data-close-modal>Cancel</button>
+          <button class="primary" type="submit">Save Candidate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal" id="jobModal" role="dialog" aria-modal="true" aria-labelledby="jobTitle">
+    <div class="dialog">
+      <header>
+        <h2 id="jobTitle">Create Job Posting</h2>
+        <button class="secondary" data-close-modal title="Close">Close</button>
+      </header>
+      <form class="form" id="jobForm">
+        <div class="fields">
+          <label>Title<input required name="title" placeholder="Part-time AI Instructor"></label>
+          <label>Programme<input required name="programme" placeholder="AI Bootcamp"></label>
+          <label>Modality<select name="modality"><option>Hybrid</option><option>Remote</option><option>On campus</option></select></label>
+          <label>Rate Band<input name="rate" placeholder="R450-R650/hour"></label>
+          <label>Closing Date<input name="closing" type="date"></label>
+          <label>Status<select name="status"><option>Live</option><option>Draft</option></select></label>
+          <label class="full">Description<textarea name="description" placeholder="Role expectations, experience, certifications, and schedule"></textarea></label>
+        </div>
+        <div class="actions">
+          <button type="button" class="secondary" data-close-modal>Cancel</button>
+          <button class="primary" type="submit">Save Posting</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const seed = {
+      candidates: [
+        { id: crypto.randomUUID(), name: "Amina Dlamini", email: "amina@example.com", discipline: "AI Foundations", availability: "Evenings", status: "Interview", checks: "ID pending", owner: "M. Jacobs", nextStep: "Confirm demo lesson panel" },
+        { id: crypto.randomUUID(), name: "Daniel Mokoena", email: "daniel@example.com", discipline: "Cloud Engineering", availability: "Weekends", status: "Screening", checks: "References requested", owner: "T. Naidoo", nextStep: "Review AWS certification" },
+        { id: crypto.randomUUID(), name: "Priya Govender", email: "priya@example.com", discipline: "Cybersecurity", availability: "Flexible", status: "Offer", checks: "Complete", owner: "R. Petersen", nextStep: "Send contract pack" },
+        { id: crypto.randomUUID(), name: "Lebo Nkosi", email: "lebo@example.com", discipline: "Data Analytics", availability: "Weekdays", status: "Blocked", checks: "Tax details missing", owner: "K. Adams", nextStep: "Follow up on payroll forms" }
+      ],
+      jobs: [
+        { id: crypto.randomUUID(), title: "Cybersecurity Instructor", programme: "Security Analyst Academy", modality: "Hybrid", rate: "R550-R750/hour", closing: "2026-06-14", status: "Live", applicants: 18, description: "Lead practical labs, mentor cohorts, and assess capstone readiness." },
+        { id: crypto.randomUUID(), title: "AI Tools Facilitator", programme: "Applied AI Short Course", modality: "Remote", rate: "R450-R600/hour", closing: "2026-06-07", status: "Live", applicants: 11, description: "Teach prompt engineering, workflow automation, and responsible AI practices." },
+        { id: crypto.randomUUID(), title: "Cloud Labs Coach", programme: "Cloud Practitioner Track", modality: "On campus", rate: "R400-R520/hour", closing: "2026-06-28", status: "Draft", applicants: 0, description: "Support learners through cloud fundamentals and hands-on deployment labs." }
+      ],
+      tasks: [
+        { id: crypto.randomUUID(), title: "Verify identity documents", candidate: "Amina Dlamini", stage: "Due", detail: "Upload ID copy and proof of address to document library." },
+        { id: crypto.randomUUID(), title: "Collect banking and tax forms", candidate: "Lebo Nkosi", stage: "Due", detail: "Required before contract can be activated." },
+        { id: crypto.randomUUID(), title: "Prepare demo lesson review", candidate: "Amina Dlamini", stage: "In Progress", detail: "Panel scorecard and recording link needed." },
+        { id: crypto.randomUUID(), title: "Issue instructor contract", candidate: "Priya Govender", stage: "Ready", detail: "All checks complete. Route for digital signature." }
+      ]
+    };
+
+    const storeKey = "skunkworksInstructorPortal";
+    let state = JSON.parse(localStorage.getItem(storeKey) || "null") || seed;
+
+    const save = () => localStorage.setItem(storeKey, JSON.stringify(state));
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => [...document.querySelectorAll(selector)];
+
+    function initials(name) {
+      return name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0].toUpperCase()).join("");
+    }
+
+    function statusClass(status) {
+      return status.toLowerCase().replace(/\s+/g, "-");
+    }
+
+    function renderMetrics() {
+      const liveJobs = state.jobs.filter(job => job.status === "Live").length;
+      const activeCandidates = state.candidates.filter(candidate => candidate.status !== "Blocked").length;
+      const offers = state.candidates.filter(candidate => candidate.status === "Offer").length;
+      const dueTasks = state.tasks.filter(task => task.stage === "Due").length;
+      $("#metrics").innerHTML = [
+        ["Live postings", liveJobs],
+        ["Active candidates", activeCandidates],
+        ["Offers pending", offers],
+        ["Tasks due", dueTasks]
+      ].map(([label, value]) => `<div class="metric"><span>${label}</span><strong>${value}</strong></div>`).join("");
+    }
+
+    function renderCandidates() {
+      const query = $("#candidateSearch")?.value.toLowerCase() || "";
+      const filter = $("#candidateFilter")?.value || "all";
+      const rows = state.candidates
+        .filter(candidate => filter === "all" || candidate.status === filter)
+        .filter(candidate => [candidate.name, candidate.email, candidate.discipline, candidate.owner].join(" ").toLowerCase().includes(query));
+      const markup = rows.map(candidate => `
+        <tr>
+          <td>
+            <div class="person"><div class="avatar">${initials(candidate.name)}</div><div><strong>${candidate.name}</strong><div class="small">${candidate.email}</div></div></div>
+          </td>
+          <td>${candidate.discipline}<div class="small">${candidate.availability}</div></td>
+          <td><span class="pill ${statusClass(candidate.status)}">${candidate.status}</span></td>
+          <td>${candidate.nextStep || "No next step set"}</td>
+          <td>${candidate.owner || "Unassigned"}</td>
+          <td><button class="secondary" data-advance-candidate="${candidate.id}">Advance</button></td>
+        </tr>`).join("");
+      $("#candidateRows").innerHTML = markup || `<tr><td colspan="6" class="empty">No candidates match the current filters.</td></tr>`;
+      $("#instructorRows").innerHTML = state.candidates.map(candidate => `
+        <tr>
+          <td><div class="person"><div class="avatar">${initials(candidate.name)}</div><div><strong>${candidate.name}</strong><div class="small">${candidate.email}</div></div></div></td>
+          <td>${candidate.discipline}</td>
+          <td>${candidate.availability}</td>
+          <td>${candidate.checks || "New intake"}</td>
+          <td><span class="pill ${statusClass(candidate.status)}">${candidate.status}</span></td>
+          <td><button class="danger" data-remove-candidate="${candidate.id}">Remove</button></td>
+        </tr>`).join("");
+    }
+
+    function renderJobs() {
+      const filter = $("#jobFilter")?.value || "all";
+      const jobs = state.jobs.filter(job => filter === "all" || job.status === filter);
+      $("#jobCards").innerHTML = jobs.map(job => `
+        <article class="job">
+          <div class="section-head">
+            <h3>${job.title}</h3>
+            <span class="pill ${statusClass(job.status)}">${job.status}</span>
+          </div>
+          <p>${job.description || "No description yet."}</p>
+          <div class="job-meta">
+            <span class="pill draft">${job.programme}</span>
+            <span class="pill draft">${job.modality}</span>
+            <span class="pill draft">${job.rate || "Rate TBD"}</span>
+            <span class="pill draft">${job.applicants || 0} applicants</span>
+          </div>
+          <div class="section-head">
+            <span class="small">Closing ${job.closing || "not set"}</span>
+            <button class="danger" data-remove-job="${job.id}">Remove</button>
+          </div>
+        </article>`).join("") || `<div class="empty">No job postings match this filter.</div>`;
+    }
+
+    function renderTasks() {
+      const stages = ["Due", "In Progress", "Ready"];
+      $("#taskLanes").innerHTML = stages.map(stage => {
+        const tasks = state.tasks.filter(task => task.stage === stage);
+        return `<div class="lane">
+          <header><span>${stage}</span><span class="pill draft">${tasks.length}</span></header>
+          <div class="lane-list">
+            ${tasks.map(task => `<div class="task"><strong>${task.title}</strong><p>${task.candidate}: ${task.detail}</p></div>`).join("") || `<div class="empty">No tasks</div>`}
+          </div>
+        </div>`;
+      }).join("");
+    }
+
+    function renderAll() {
+      renderMetrics();
+      renderCandidates();
+      renderJobs();
+      renderTasks();
+      save();
+    }
+
+    function openModal(type) {
+      $(`#${type}Modal`).classList.add("open");
+      $(`#${type}Modal input, #${type}Modal select, #${type}Modal textarea`)?.focus();
+    }
+
+    function closeModals() {
+      $$(".modal").forEach(modal => modal.classList.remove("open"));
+    }
+
+    function download(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function toCsv(rows) {
+      const headers = Object.keys(rows[0] || {});
+      const escape = value => `"${String(value ?? "").replaceAll('"', '""')}"`;
+      return [headers.join(","), ...rows.map(row => headers.map(header => escape(row[header])).join(","))].join("\n");
+    }
+
+    document.addEventListener("click", event => {
+      const tabButton = event.target.closest("[data-tab-button]");
+      if (tabButton) {
+        $$(".nav button").forEach(button => button.classList.remove("active"));
+        tabButton.classList.add("active");
+        $$(".tab").forEach(tab => tab.classList.remove("active"));
+        $(`#${tabButton.dataset.tabButton}`).classList.add("active");
+      }
+
+      const modalButton = event.target.closest("[data-open-modal]");
+      if (modalButton) openModal(modalButton.dataset.openModal);
+      if (event.target.closest("[data-close-modal]") || event.target.classList.contains("modal")) closeModals();
+
+      const advanceId = event.target.closest("[data-advance-candidate]")?.dataset.advanceCandidate;
+      if (advanceId) {
+        const order = ["Screening", "Interview", "Offer", "Blocked"];
+        const candidate = state.candidates.find(item => item.id === advanceId);
+        const next = order[Math.min(order.indexOf(candidate.status) + 1, order.length - 2)];
+        candidate.status = next;
+        candidate.nextStep = next === "Interview" ? "Schedule technical interview" : next === "Offer" ? "Prepare contract pack" : "Finalize onboarding";
+        renderAll();
+      }
+
+      const removeCandidateId = event.target.closest("[data-remove-candidate]")?.dataset.removeCandidate;
+      if (removeCandidateId) {
+        state.candidates = state.candidates.filter(candidate => candidate.id !== removeCandidateId);
+        renderAll();
+      }
+
+      const removeJobId = event.target.closest("[data-remove-job]")?.dataset.removeJob;
+      if (removeJobId) {
+        state.jobs = state.jobs.filter(job => job.id !== removeJobId);
+        renderAll();
+      }
+    });
+
+    $("#candidateForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(event.currentTarget));
+      state.candidates.unshift({ id: crypto.randomUUID(), checks: "New intake", ...data });
+      event.currentTarget.reset();
+      closeModals();
+      renderAll();
+    });
+
+    $("#jobForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const data = Object.fromEntries(new FormData(event.currentTarget));
+      state.jobs.unshift({ id: crypto.randomUUID(), applicants: 0, ...data });
+      event.currentTarget.reset();
+      closeModals();
+      renderAll();
+    });
+
+    $("#candidateSearch").addEventListener("input", renderCandidates);
+    $("#candidateFilter").addEventListener("change", renderCandidates);
+    $("#jobFilter").addEventListener("change", renderJobs);
+    $("#exportJsonBtn").addEventListener("click", () => download("instructor-portal-data.json", JSON.stringify(state, null, 2), "application/json"));
+    $("#exportCsvBtn").addEventListener("click", () => download("instructor-job-postings.csv", toCsv(state.jobs), "text/csv"));
+    $("#copySchemaBtn").addEventListener("click", async (event) => {
+      const schema = {
+        lists: {
+          instructorCandidates: ["name", "email", "discipline", "availability", "status", "checks", "owner", "nextStep"],
+          instructorJobPostings: ["title", "programme", "modality", "rate", "closing", "status", "applicants", "description"],
+          onboardingTasks: ["title", "candidate", "stage", "detail", "owner", "dueDate"],
+          instructorDocuments: ["candidate", "documentType", "expiryDate", "approvalStatus", "fileLink"]
+        }
+      };
+      const schemaText = JSON.stringify(schema, null, 2);
+      if (navigator.clipboard) {
+        await navigator.clipboard.writeText(schemaText);
+      } else {
+        const helper = document.createElement("textarea");
+        helper.value = schemaText;
+        document.body.appendChild(helper);
+        helper.select();
+        document.execCommand("copy");
+        helper.remove();
+      }
+      event.target.textContent = "Copied";
+      setTimeout(() => event.target.textContent = "Copy Schema", 1400);
+    });
+    $("#completeTaskBtn").addEventListener("click", () => {
+      const task = state.tasks.find(item => item.stage === "Due") || state.tasks.find(item => item.stage === "In Progress");
+      if (!task) return;
+      task.stage = task.stage === "Due" ? "In Progress" : "Ready";
+      renderAll();
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>
