@@ -3,7 +3,7 @@ import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { loginRequest, skunkworksTenantId } from "./authConfig";
 import { portalApi } from "./api";
-import type { ApplicationRecord, ApplicationStatus, JobInput, JobPosting, NewApplication, OnboardingTask, UserProfile } from "./types";
+import type { ApplicationRecord, ApplicationStatus, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, UserProfile } from "./types";
 
 type Tab = "jobs" | "apply" | "my" | "admin";
 
@@ -104,6 +104,7 @@ export function App() {
   const [jobDraft, setJobDraft] = useState<JobInput>(emptyJob);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
+  const [health, setHealth] = useState<PortalHealth | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function refreshJobs() {
@@ -138,6 +139,12 @@ export function App() {
     if (message.includes("404")) {
       return "The portal API endpoint was not found. Confirm the Azure Functions API deployment succeeded and that the Function App shows the getJobs route.";
     }
+    if (message.includes("Missing required setting")) {
+      return "The portal API is online but missing a required Azure Function App setting. Check /api/health for the missing setting name.";
+    }
+    if (message.includes("SharePoint list") || message.includes("SharePoint library")) {
+      return "SharePoint is connected, but the required portal list or library is missing. Run the SharePoint provisioning step.";
+    }
     return message;
   }
 
@@ -157,6 +164,7 @@ export function App() {
 
   useEffect(() => {
     run(refreshJobs);
+    portalApi.health().then(setHealth).catch(() => undefined);
   }, []);
 
   useEffect(() => {
@@ -280,6 +288,11 @@ export function App() {
         </header>
 
         {(notice || error) && <div className={error ? "alert error" : "alert"}>{error || notice}</div>}
+        {health && health.missingSettings.length > 0 && (
+          <div className="alert warning">
+            API setup is almost complete. Missing Azure setting: {health.missingSettings.join(", ")}.
+          </div>
+        )}
 
         {tab === "jobs" && (
           <section>

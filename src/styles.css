@@ -124,6 +124,7 @@ main { min-width: 0; padding: 28px; }
   border-radius: 8px;
 }
 .alert.error { color: #b42318; background: #fee4e2; border-color: #f7c4bd; }
+.alert.warning { color: #875300; background: #fff4d6; border-color: #e9c46a; }
 .section-head, .card-title {
   display: flex;
   align-items: center;

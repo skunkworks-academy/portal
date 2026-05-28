@@ -78,6 +78,33 @@ Build Azure Functions:
 npm run build:api
 ```
 
+## Production Checks
+
+After deploying the API workflow, verify that the Function App has indexed routes:
+
+```text
+https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api/health
+```
+
+The response should include:
+
+```json
+{
+  "ok": true,
+  "missingSettings": []
+}
+```
+
+If `missingSettings` includes `apiClientSecret`, create a new client secret in the `Skunkworks Academy Portal API` app registration and add the secret value to the Function App setting `API_CLIENT_SECRET`. Restart the Function App after saving.
+
+The public jobs endpoint is:
+
+```text
+https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api/jobs
+```
+
+If SharePoint is not provisioned yet, the API returns preset public jobs so the portal remains usable while setup finishes. Admin and application submission flows still require the SharePoint site, lists, libraries, Graph permissions, and `API_CLIENT_SECRET`.
+
 ## GitHub Secrets
 
 Frontend deployment requires:

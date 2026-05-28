@@ -1,6 +1,6 @@
 import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser";
 import { apiScope } from "./authConfig";
-import type { ApplicationRecord, JobInput, JobPosting, NewApplication, OnboardingTask } from "./types";
+import type { ApplicationRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth } from "./types";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -42,6 +42,7 @@ async function request<T>(
 }
 
 export const portalApi = {
+  health: () => request<PortalHealth>("/health"),
   jobs: () => request<JobPosting[]>("/jobs"),
   submitApplication: (
     payload: NewApplication,

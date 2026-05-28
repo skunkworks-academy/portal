@@ -1,6 +1,7 @@
 import { app, type HttpRequest, type InvocationContext } from "@azure/functions";
 import { config, missingSettings } from "./config.js";
 import { requireAdmin, requireUser } from "./auth.js";
+import { fallbackJobs } from "./fallbackData.js";
 import { empty, failure, json, readJson } from "./http.js";
 import {
   createApplication,
@@ -38,7 +39,19 @@ app.http("health", {
       "sharePointHostname",
       "sharePointSitePath"
     ]),
-    allowedOrigins: config.allowedOrigins
+    allowedOrigins: config.allowedOrigins,
+    routes: [
+      "GET /api/health",
+      "GET /api/jobs",
+      "POST /api/applications",
+      "GET /api/me/applications",
+      "GET /api/admin/applications",
+      "PATCH /api/admin/applications/{id}",
+      "POST /api/admin/jobs",
+      "PATCH /api/admin/jobs/{id}",
+      "GET /api/admin/tasks",
+      "PATCH /api/admin/tasks/{id}"
+    ]
   })
 });
 
@@ -46,7 +59,14 @@ app.http("getJobs", {
   methods: ["GET"],
   authLevel: "anonymous",
   route: "jobs",
-  handler: async (request, context) => handle(request, context, async () => json(request, await getLiveJobs()))
+  handler: async (request, context) => {
+    try {
+      return json(request, await getLiveJobs());
+    } catch (error) {
+      context.warn("Falling back to preset jobs because SharePoint jobs could not be loaded.", error);
+      return json(request, fallbackJobs);
+    }
+  }
 });
 
 app.http("submitApplication", {

@@ -69,3 +69,11 @@ export interface UserProfile {
   roles: string[];
   isAdmin: boolean;
 }
+
+export interface PortalHealth {
+  ok: boolean;
+  service: string;
+  missingSettings: string[];
+  allowedOrigins: string[];
+  routes?: string[];
+}
