@@ -7,6 +7,55 @@ import type { ApplicationRecord, ApplicationStatus, JobInput, JobPosting, NewApp
 
 type Tab = "jobs" | "apply" | "my" | "admin";
 
+const fallbackJobs: JobPosting[] = [
+  {
+    id: "preset-ai-facilitator",
+    title: "AI Tools Facilitator",
+    programme: "Applied AI Short Course",
+    modality: "Remote",
+    rateBand: "To be confirmed",
+    closingDate: "",
+    status: "Live",
+    description: "Guide learners through practical AI tools, prompt workflows, responsible use, and workplace automation.",
+    applicants: 0
+  },
+  {
+    id: "preset-cybersecurity-instructor",
+    title: "Cybersecurity Instructor",
+    programme: "Security Analyst Academy",
+    modality: "Hybrid",
+    rateBand: "To be confirmed",
+    closingDate: "",
+    status: "Live",
+    description: "Lead security fundamentals, labs, incident response exercises, and learner capstone assessment.",
+    applicants: 0
+  },
+  {
+    id: "preset-cloud-labs-coach",
+    title: "Cloud Labs Coach",
+    programme: "Cloud Practitioner Track",
+    modality: "On campus",
+    rateBand: "To be confirmed",
+    closingDate: "",
+    status: "Live",
+    description: "Support learners through cloud fundamentals, hands-on deployments, and practical troubleshooting labs.",
+    applicants: 0
+  }
+];
+
+const disciplineOptions = [
+  "AI Foundations",
+  "Applied AI Tools",
+  "Cybersecurity",
+  "Cloud Engineering",
+  "Data Analytics",
+  "Software Development",
+  "Project Management",
+  "Business Analysis",
+  "DevOps",
+  "UI/UX Design"
+];
+
 const emptyJob: JobInput = {
   title: "",
   programme: "",
@@ -51,13 +100,15 @@ export function App() {
   const [adminApplications, setAdminApplications] = useState<ApplicationRecord[]>([]);
   const [tasks, setTasks] = useState<OnboardingTask[]>([]);
   const [selectedJobId, setSelectedJobId] = useState("");
+  const [discipline, setDiscipline] = useState("");
   const [jobDraft, setJobDraft] = useState<JobInput>(emptyJob);
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function refreshJobs() {
-    const nextJobs = await portalApi.jobs();
+    let nextJobs = await portalApi.jobs();
+    if (nextJobs.length === 0) nextJobs = fallbackJobs;
     setJobs(nextJobs);
     if (!selectedJobId && nextJobs[0]) setSelectedJobId(nextJobs[0].id);
   }
@@ -77,6 +128,14 @@ export function App() {
     setTasks(nextTasks);
   }
 
+  function friendlyError(err: unknown) {
+    const message = err instanceof Error ? err.message : "Something went wrong.";
+    if (message.includes("404")) {
+      return "The portal API endpoint was not found. Confirm the Azure Functions API deployment succeeded and that the Function App shows the getJobs route.";
+    }
+    return message;
+  }
+
   async function run(action: () => Promise<void>, success?: string) {
     setLoading(true);
     setError("");
@@ -85,7 +144,7 @@ export function App() {
       await action();
       if (success) setNotice(success);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong.");
+      setError(friendlyError(err));
     } finally {
       setLoading(false);
     }
@@ -167,6 +226,7 @@ export function App() {
 
   const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? jobs[0];
   const liveJobs = jobs.filter((job) => job.status === "Live");
+  const displayJobs = liveJobs.length ? liveJobs : fallbackJobs;
 
   return (
     <div className="app-shell">
@@ -223,7 +283,7 @@ export function App() {
               <button onClick={() => setTab("apply")}>Apply now</button>
             </div>
             <div className="card-grid">
-              {liveJobs.map((job) => (
+              {displayJobs.map((job) => (
                 <article className="card" key={job.id}>
                   <div className="card-title">
                     <h3>{job.title}</h3>
@@ -249,17 +309,27 @@ export function App() {
               {!profile && <button onClick={signIn}>Sign in to submit</button>}
             </div>
             <form onSubmit={submitApplication}>
-              <label>Role<select name="jobId" value={selectedJob?.id ?? ""} onChange={(event) => setSelectedJobId(event.target.value)} required>
-                {liveJobs.map((job) => <option key={job.id} value={job.id}>{job.title}</option>)}
+              <label>Role<select name="jobId" value={selectedJob?.id ?? displayJobs[0]?.id ?? ""} onChange={(event) => setSelectedJobId(event.target.value)} required>
+                {displayJobs.map((job) => <option key={job.id} value={job.id}>{job.title} - {job.programme}</option>)}
               </select></label>
-              <label>Name<input name="applicantName" defaultValue={profile?.name ?? ""} required /></label>
-              <label>Email<input name="applicantEmail" type="email" defaultValue={profile?.username ?? ""} required /></label>
-              <label>Phone<input name="phone" required /></label>
-              <label>Discipline<input name="discipline" required /></label>
+              <label>Name<input name="applicantName" autoComplete="name" defaultValue={profile?.name ?? ""} required /></label>
+              <label>Email<input name="applicantEmail" type="email" autoComplete="email" defaultValue={profile?.username ?? ""} required /></label>
+              <label>Phone<input name="phone" autoComplete="tel" required /></label>
+              <label>Discipline<input name="discipline" list="discipline-options" value={discipline} onChange={(event) => setDiscipline(event.target.value)} autoComplete="organization-title" required /></label>
+              <datalist id="discipline-options">
+                {disciplineOptions.map((option) => <option value={option} key={option} />)}
+              </datalist>
               <label>Availability<select name="availability"><option>Weekdays</option><option>Evenings</option><option>Weekends</option><option>Flexible</option></select></label>
+              <div className="discipline-picks full" aria-label="Common disciplines">
+                {disciplineOptions.map((option) => (
+                  <button type="button" className={discipline === option ? "selected" : ""} onClick={() => setDiscipline(option)} key={option}>
+                    {option}
+                  </button>
+                ))}
+              </div>
               <label className="full">Experience<textarea name="experience" required placeholder="Summarize teaching experience, certifications, and learner groups." /></label>
               <label className="full">Resume or certificate<input name="resume" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" /></label>
-              <button disabled={loading || liveJobs.length === 0}>{loading ? "Working..." : "Submit application"}</button>
+              <button disabled={loading || displayJobs.length === 0}>{loading ? "Working..." : "Submit application"}</button>
             </form>
           </section>
         )}
@@ -279,10 +349,10 @@ export function App() {
             <div className="form-panel">
               <h2>Create job posting</h2>
               <form onSubmit={createJob}>
-                <label>Title<input value={jobDraft.title} onChange={(event) => setJobDraft({ ...jobDraft, title: event.target.value })} required /></label>
-                <label>Programme<input value={jobDraft.programme} onChange={(event) => setJobDraft({ ...jobDraft, programme: event.target.value })} required /></label>
+                <label>Title<input autoComplete="off" value={jobDraft.title} onChange={(event) => setJobDraft({ ...jobDraft, title: event.target.value })} required /></label>
+                <label>Programme<input autoComplete="off" value={jobDraft.programme} onChange={(event) => setJobDraft({ ...jobDraft, programme: event.target.value })} required /></label>
                 <label>Modality<select value={jobDraft.modality} onChange={(event) => setJobDraft({ ...jobDraft, modality: event.target.value })}><option>Hybrid</option><option>Remote</option><option>On campus</option></select></label>
-                <label>Rate band<input value={jobDraft.rateBand} onChange={(event) => setJobDraft({ ...jobDraft, rateBand: event.target.value })} /></label>
+                <label>Rate band<input autoComplete="off" value={jobDraft.rateBand} onChange={(event) => setJobDraft({ ...jobDraft, rateBand: event.target.value })} /></label>
                 <label>Closing date<input type="date" value={jobDraft.closingDate} onChange={(event) => setJobDraft({ ...jobDraft, closingDate: event.target.value })} /></label>
                 <label>Status<select value={jobDraft.status} onChange={(event) => setJobDraft({ ...jobDraft, status: event.target.value as JobInput["status"] })}><option>Draft</option><option>Live</option><option>Closed</option></select></label>
                 <label className="full">Description<textarea value={jobDraft.description} onChange={(event) => setJobDraft({ ...jobDraft, description: event.target.value })} required /></label>
@@ -304,7 +374,7 @@ export function App() {
                       <select defaultValue={item.status} id={`status-${item.id}`}>
                         <option>Submitted</option><option>Screening</option><option>Interview</option><option>Offer</option><option>Rejected</option>
                       </select>
-                      <input defaultValue={item.owner} placeholder="Owner" id={`owner-${item.id}`} />
+                      <input autoComplete="off" defaultValue={item.owner} placeholder="Owner" id={`owner-${item.id}`} />
                       <button onClick={() => updateApplication(
                         item.id,
                         (document.getElementById(`status-${item.id}`) as HTMLSelectElement).value as ApplicationStatus,
