@@ -1,0 +1,36 @@
+{
+  "name": "skunkworks-instructor-portal",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "api-dist/api/functions.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "build:api": "tsc -p tsconfig.api.json",
+    "provision:sharepoint": "tsx scripts/provision-sharepoint.ts",
+    "preview": "vite preview",
+    "api:start": "func start --typescript",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@azure/functions": "^4.5.0",
+    "@azure/identity": "^4.5.0",
+    "@azure/msal-browser": "^3.26.1",
+    "@azure/msal-react": "^2.1.1",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "@vitejs/plugin-react": "^4.3.3",
+    "jose": "^5.9.6",
+    "vite": "^5.4.11",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "^5.6.3",
+    "tsx": "^4.19.2",
+    "vitest": "^2.1.4"
+  }
+}
