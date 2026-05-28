@@ -1,4 +1,5 @@
 import { app, type HttpRequest, type InvocationContext } from "@azure/functions";
+import { config, missingSettings } from "./config.js";
 import { requireAdmin, requireUser } from "./auth.js";
 import { empty, failure, json, readJson } from "./http.js";
 import {
@@ -19,6 +20,26 @@ app.http("cors", {
   authLevel: "anonymous",
   route: "{*path}",
   handler: async (request) => empty(request)
+});
+
+app.http("health", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "health",
+  handler: async (request) => json(request, {
+    ok: true,
+    service: "skunkworks-instructor-portal-api",
+    missingSettings: missingSettings([
+      "entraTenantId",
+      "apiClientId",
+      "apiClientSecret",
+      "spaClientId",
+      "graphTenantId",
+      "sharePointHostname",
+      "sharePointSitePath"
+    ]),
+    allowedOrigins: config.allowedOrigins
+  })
 });
 
 app.http("getJobs", {

@@ -31,10 +31,12 @@ jobs:
       - name: Package API
         run: |
           mkdir package
-          cp -r api-dist package/api-dist
           cp host.json package/host.json
           cp package.json package/package.json
           cp package-lock.json package/package-lock.json 2>/dev/null || true
+          cp -r api-dist/api package/api
+          cp -r api-dist/src package/src
+          node -e "const fs = require('node:fs'); const pkg = JSON.parse(fs.readFileSync('package/package.json', 'utf8')); pkg.main = 'api/functions.js'; fs.writeFileSync('package/package.json', JSON.stringify(pkg, null, 2) + '\n');"
           cd package
           npm install --omit=dev
           zip -r ../release.zip .

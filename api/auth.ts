@@ -1,6 +1,6 @@
 import type { HttpRequest } from "@azure/functions";
 import { createRemoteJWKSet, jwtVerify } from "jose";
-import { config } from "./config.js";
+import { config, requireSettings } from "./config.js";
 import { HttpError } from "./http.js";
 
 const jwks = createRemoteJWKSet(new URL("https://login.microsoftonline.com/common/discovery/v2.0/keys"));
@@ -14,6 +14,7 @@ export interface Principal {
 }
 
 export async function requireUser(request: HttpRequest): Promise<Principal> {
+  requireSettings(["apiClientId"]);
   const authorization = request.headers.get("authorization") ?? "";
   const token = authorization.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : "";
   if (!token) {

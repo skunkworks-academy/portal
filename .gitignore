@@ -1,0 +1,11 @@
+node_modules/
+dist/
+api-dist/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+local.settings.json
+.env
+.env.local
+.env.*.local
+npm-debug.log*

@@ -1,16 +1,18 @@
 import { ClientSecretCredential } from "@azure/identity";
-import { config } from "./config.js";
+import { config, requireSettings } from "./config.js";
 import { HttpError } from "./http.js";
 import type { ApplicationRecord, JobInput, JobPosting, NewApplication, OnboardingTask } from "../src/types.js";
 import type { Principal } from "./auth.js";
 
 const graphRoot = "https://graph.microsoft.com/v1.0";
-const credential = new ClientSecretCredential(config.graphTenantId, config.apiClientId, config.apiClientSecret);
+let credential: ClientSecretCredential | undefined;
 let siteIdCache: string | undefined;
 const listIdCache = new Map<string, string>();
 const driveIdCache = new Map<string, string>();
 
 async function graph<T>(path: string, init: RequestInit = {}): Promise<T> {
+  requireSettings(["graphTenantId", "apiClientId", "apiClientSecret"]);
+  credential ??= new ClientSecretCredential(config.graphTenantId, config.apiClientId, config.apiClientSecret);
   const token = await credential.getToken("https://graph.microsoft.com/.default");
   if (!token) throw new HttpError(500, "Unable to acquire Microsoft Graph token.");
   const headers = new Headers(init.headers);
@@ -27,6 +29,7 @@ async function graph<T>(path: string, init: RequestInit = {}): Promise<T> {
 }
 
 async function siteId() {
+  requireSettings(["sharePointHostname", "sharePointSitePath"]);
   if (siteIdCache) return siteIdCache;
   const site = await graph<{ id: string }>(`/sites/${config.sharePointHostname}:${config.sharePointSitePath}`);
   siteIdCache = site.id;
