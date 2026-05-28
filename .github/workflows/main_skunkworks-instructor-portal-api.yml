@@ -45,3 +45,4 @@ jobs:
           app-name: skunkworks-instructor-portal-api
           package: release.zip
           publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+          sku: flexconsumption
