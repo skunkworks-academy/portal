@@ -107,7 +107,12 @@ export function App() {
   const [loading, setLoading] = useState(false);
 
   async function refreshJobs() {
-    let nextJobs = await portalApi.jobs();
+    let nextJobs: JobPosting[];
+    try {
+      nextJobs = await portalApi.jobs();
+    } catch {
+      nextJobs = fallbackJobs;
+    }
     if (nextJobs.length === 0) nextJobs = fallbackJobs;
     setJobs(nextJobs);
     if (!selectedJobId && nextJobs[0]) setSelectedJobId(nextJobs[0].id);
@@ -155,12 +160,12 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (account) run(refreshUserData);
-  }, [account?.homeAccountId]);
+    if (account && tab === "my") run(refreshUserData);
+  }, [account?.homeAccountId, tab]);
 
   useEffect(() => {
-    if (profile?.isAdmin) run(refreshAdminData);
-  }, [profile?.isAdmin, account?.homeAccountId]);
+    if (profile?.isAdmin && tab === "admin") run(refreshAdminData);
+  }, [profile?.isAdmin, account?.homeAccountId, tab]);
 
   async function signIn() {
     await instance.loginRedirect(loginRequest);
@@ -224,9 +229,9 @@ export function App() {
     }, "Task updated.");
   }
 
-  const selectedJob = jobs.find((job) => job.id === selectedJobId) ?? jobs[0];
   const liveJobs = jobs.filter((job) => job.status === "Live");
   const displayJobs = liveJobs.length ? liveJobs : fallbackJobs;
+  const selectedJob = displayJobs.find((job) => job.id === selectedJobId) ?? displayJobs[0];
 
   return (
     <div className="app-shell">
