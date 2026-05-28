@@ -187,6 +187,19 @@ label {
 table { width: 100%; border-collapse: collapse; min-width: 620px; }
 th, td { padding: 13px 14px; border-bottom: 1px solid var(--line); text-align: left; }
 th { color: var(--muted); background: #fbfcfd; text-transform: uppercase; letter-spacing: .06em; font-size: 12px; }
+.legal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 34px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.legal-footer a {
+  color: var(--teal);
+  font-weight: 750;
+  text-decoration: none;
+}
 
 @media (max-width: 980px) {
   .app-shell { grid-template-columns: 1fr; }

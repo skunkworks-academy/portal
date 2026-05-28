@@ -333,6 +333,10 @@ export function App() {
             </div>
           </section>
         )}
+        <footer className="legal-footer">
+          <a href="/termsofservice/">Terms of Service</a>
+          <a href="/privacystatement/">Privacy Statement</a>
+        </footer>
       </main>
     </div>
   );
