@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canAccess, roleDefinitions, type Tab } from "../src/roles";
+import { canAccess, roleDefinitions, roleFromClaims, type Tab } from "../src/roles";
 import type { PortalRole } from "../src/types";
 
 const forbiddenTabs: Record<PortalRole, Tab[]> = {
@@ -32,5 +32,13 @@ describe("role access configuration", () => {
       expect(canAccess("Student", tab, true)).toBe(true);
       expect(canAccess("Staff", tab, false)).toBe(true);
     }
+  });
+
+  it("resolves workspaces from Entra app roles with student as the least-privilege default", () => {
+    expect(roleFromClaims([], false)).toBe("Student");
+    expect(roleFromClaims(["Portal.Student"], false)).toBe("Student");
+    expect(roleFromClaims(["Portal.Instructor"], false)).toBe("Instructor");
+    expect(roleFromClaims(["Portal.Staff"], true)).toBe("Staff");
+    expect(roleFromClaims(["Portal.Admin"], true)).toBe("Staff");
   });
 });
