@@ -86,6 +86,13 @@ export const roleDefinitions: Record<PortalRole, RoleDefinition> = {
   }
 };
 
+export function roleFromClaims(roles: string[], hasStaffAccess: boolean): PortalRole {
+  const normalizedRoles = roles.map((role) => role.toLowerCase());
+  if (hasStaffAccess || normalizedRoles.includes("portal.admin") || normalizedRoles.includes("portal.staff")) return "Staff";
+  if (normalizedRoles.includes("portal.instructor")) return "Instructor";
+  return "Student";
+}
+
 export function canAccess(role: PortalRole, tab: Tab, isAdmin: boolean) {
   if (tab === "staff" || tab === "instructors" || tab === "students" || tab === "settings") return role === "Staff" || isAdmin;
   return roleDefinitions[role].nav.some((item) => item.tab === tab);
