@@ -3,9 +3,8 @@ import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { loginRequest, skunkworksTenantId } from "./authConfig";
 import { portalApi } from "./api";
+import { canAccess, classSchedule, courseCatalog, landingRoles, roleDefinitions, type Tab } from "./roles";
 import type { ApplicationRecord, ApplicationStatus, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalRole, UserProfile } from "./types";
-
-type Tab = "dashboard" | "jobs" | "apply" | "my" | "profile" | "updates" | "resources" | "settings" | "admin";
 
 const fallbackJobs: JobPosting[] = [
   {
@@ -56,75 +55,13 @@ const disciplineOptions = [
   "UI/UX Design"
 ];
 
-const onboardingResources = [
-  {
-    title: "Instructor readiness checklist",
-    detail: "Contracts, profile details, banking, tax, identity checks, and teaching availability."
-  },
-  {
-    title: "Demo lesson scorecard",
-    detail: "Use a consistent review frame for technical depth, learner empathy, pacing, and lab readiness."
-  },
-  {
-    title: "Programme handoff pack",
-    detail: "Share cohort calendar, lesson plan, assessment rubrics, classroom links, and escalation contacts."
-  }
-];
-
 const setupSteps = [
   "Microsoft sign-in configured",
   "Azure Functions API deployed",
   "SharePoint site connected",
   "Admin roles assigned",
-  "Application intake tested"
+  "Teams app package prepared"
 ];
-
-const roleContent: Record<PortalRole, {
-  headline: string;
-  quickActions: Array<{ label: string; tab: Tab }>;
-  focus: string[];
-  updates: Array<{ title: string; detail: string }>;
-}> = {
-  Student: {
-    headline: "Student learning portal",
-    quickActions: [
-      { label: "Browse learning roles", tab: "jobs" },
-      { label: "Track applications", tab: "my" },
-      { label: "View resources", tab: "resources" }
-    ],
-    focus: ["Course readiness", "Instructor applications", "Learning support"],
-    updates: [
-      { title: "Application guidance", detail: "Students can prepare instructor assistant profiles and track application status." },
-      { title: "Learning pathways", detail: "Resources now highlight readiness steps before applying for programme support roles." }
-    ]
-  },
-  Instructor: {
-    headline: "Instructor onboarding portal",
-    quickActions: [
-      { label: "Submit instructor profile", tab: "apply" },
-      { label: "Saved opportunities", tab: "dashboard" },
-      { label: "Onboarding resources", tab: "resources" }
-    ],
-    focus: ["Teaching opportunities", "Onboarding tasks", "Document readiness"],
-    updates: [
-      { title: "Profile intake expanded", detail: "Instructor applications collect discipline, availability, experience, and attachments." },
-      { title: "Role saving added", detail: "Save instructor roles and return to them from the dashboard." }
-    ]
-  },
-  Staff: {
-    headline: "Staff operations portal",
-    quickActions: [
-      { label: "Review pipeline", tab: "admin" },
-      { label: "Create job posting", tab: "admin" },
-      { label: "Check API status", tab: "settings" }
-    ],
-    focus: ["Applicant review", "Job posting operations", "SharePoint readiness"],
-    updates: [
-      { title: "API health online", detail: "Staff can verify deployed API routes and missing configuration from Settings." },
-      { title: "Fallback roles active", detail: "Public roles stay visible while SharePoint list provisioning is completed." }
-    ]
-  }
-};
 
 const emptyJob: JobInput = {
   title: "",
@@ -136,25 +73,35 @@ const emptyJob: JobInput = {
   description: ""
 };
 
-function roleFromClaims(roles: string[], isAdmin: boolean): PortalRole {
-  if (isAdmin || roles.includes("Portal.Staff")) return "Staff";
-  if (roles.includes("Portal.Student")) return "Student";
+interface EditableProfile {
+  displayName: string;
+  phone: string;
+  location: string;
+  bio: string;
+  cvFileName: string;
+}
+
+function roleFromClaims(roles: string[], groups: string[], isAdmin: boolean): PortalRole {
+  const claims = [...roles, ...groups].map((claim) => claim.toLowerCase());
+  if (isAdmin || claims.some((claim) => claim.includes("portal.staff") || claim.includes("staff"))) return "Staff";
+  if (claims.some((claim) => claim.includes("portal.student") || claim.includes("student"))) return "Student";
   return "Instructor";
 }
 
-function getProfile(account?: AccountInfo | null, selectedRole?: PortalRole): UserProfile | null {
+function getProfile(account?: AccountInfo | null): UserProfile | null {
   if (!account) return null;
   const claims = account.idTokenClaims as Record<string, unknown> | undefined;
   const roles = Array.isArray(claims?.roles) ? (claims.roles as string[]) : [];
+  const groups = Array.isArray(claims?.groups) ? (claims.groups as string[]) : [];
   const tenantId = typeof claims?.tid === "string" ? claims.tid : account.tenantId;
-  const isAdmin = tenantId === skunkworksTenantId && roles.includes("Portal.Admin");
+  const isAdmin = tenantId === skunkworksTenantId && (roles.includes("Portal.Admin") || roles.includes("Portal.Staff"));
   return {
     name: account.name ?? account.username,
     username: account.username,
     tenantId,
     roles,
     isAdmin,
-    portalRole: selectedRole ?? roleFromClaims(roles, isAdmin)
+    portalRole: roleFromClaims(roles, groups, isAdmin)
   };
 }
 
@@ -167,16 +114,24 @@ function readFileAsBase64(file: File): Promise<string> {
   });
 }
 
+function loadJson<T>(key: string, fallback: T): T {
+  try {
+    return JSON.parse(localStorage.getItem(key) ?? "") as T;
+  } catch {
+    return fallback;
+  }
+}
+
 export function App() {
   const { instance, accounts } = useMsal();
   const account = accounts[0];
-  const [selectedRole, setSelectedRole] = useState<PortalRole>(() => {
-    const stored = localStorage.getItem("portalRole");
+  const profile = useMemo(() => getProfile(account), [account]);
+  const [roleOverride, setRoleOverride] = useState<PortalRole>(() => {
+    const stored = localStorage.getItem("portalRoleOverride");
     return stored === "Student" || stored === "Instructor" || stored === "Staff" ? stored : "Instructor";
   });
-  const profile = useMemo(() => getProfile(account, selectedRole), [account, selectedRole]);
-  const activeRole = profile?.portalRole ?? selectedRole;
-  const currentRoleContent = roleContent[activeRole];
+  const activeRole = import.meta.env.DEV ? roleOverride : profile?.portalRole ?? roleOverride;
+  const roleContent = roleDefinitions[activeRole];
   const auth = account ? { instance, account } : undefined;
   const [tab, setTab] = useState<Tab>("dashboard");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -190,13 +145,11 @@ export function App() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [health, setHealth] = useState<PortalHealth | null>(null);
-  const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem("savedInstructorJobs") ?? "[]") as string[];
-    } catch {
-      return [];
-    }
-  });
+  const [savedJobIds, setSavedJobIds] = useState<string[]>(() => loadJson<string[]>("savedInstructorJobs", []));
+  const [enrolledClassIds, setEnrolledClassIds] = useState<string[]>(() => loadJson<string[]>("studentClassIds", ["cls-ai-june"]));
+  const [editableProfile, setEditableProfile] = useState<EditableProfile>(() =>
+    loadJson<EditableProfile>("editableProfile", { displayName: "", phone: "", location: "", bio: "", cvFileName: "" })
+  );
   const [loading, setLoading] = useState(false);
 
   async function refreshJobs() {
@@ -228,15 +181,9 @@ export function App() {
 
   function friendlyError(err: unknown) {
     const message = err instanceof Error ? err.message : "Something went wrong.";
-    if (message.includes("404")) {
-      return "The portal API endpoint was not found. Confirm the Azure Functions API deployment succeeded and that the Function App shows the getJobs route.";
-    }
-    if (message.includes("Missing required setting")) {
-      return "The portal API is online but missing a required Azure Function App setting. Check /api/health for the missing setting name.";
-    }
-    if (message.includes("SharePoint list") || message.includes("SharePoint library")) {
-      return "SharePoint is connected, but the required portal list or library is missing. Run the SharePoint provisioning step.";
-    }
+    if (message.includes("404")) return "The portal API endpoint was not found. Confirm the Azure Functions deployment and route indexing.";
+    if (message.includes("Missing required setting")) return "The portal API is online but missing a required Azure Function App setting. Check /api/health.";
+    if (message.includes("SharePoint list") || message.includes("SharePoint library")) return "SharePoint is connected, but the required portal list or library is missing. Run provisioning.";
     return message;
   }
 
@@ -260,14 +207,19 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (account && tab === "my") run(refreshUserData);
-  }, [account?.homeAccountId, tab]);
+    if (!canAccess(activeRole, tab, Boolean(profile?.isAdmin))) setTab("dashboard");
+  }, [activeRole, profile?.isAdmin, tab]);
 
   useEffect(() => {
-    if (profile?.isAdmin && tab === "admin") run(refreshAdminData);
+    if (account && activeRole === "Instructor" && tab === "applications") run(refreshUserData);
+  }, [account?.homeAccountId, activeRole, tab]);
+
+  useEffect(() => {
+    if (profile?.isAdmin && (tab === "staff" || tab === "applications")) run(refreshAdminData);
   }, [profile?.isAdmin, account?.homeAccountId, tab]);
 
-  async function signIn() {
+  async function signIn(nextRole?: PortalRole) {
+    if (nextRole) changeRole(nextRole);
     await instance.loginRedirect(loginRequest);
   }
 
@@ -276,8 +228,14 @@ export function App() {
   }
 
   function openTab(nextTab: Tab) {
-    setTab(nextTab);
+    if (canAccess(activeRole, nextTab, Boolean(profile?.isAdmin))) setTab(nextTab);
     setMenuOpen(false);
+  }
+
+  function changeRole(role: PortalRole) {
+    localStorage.setItem("portalRoleOverride", role);
+    setRoleOverride(role);
+    setTab("dashboard");
   }
 
   function toggleSavedJob(jobId: string) {
@@ -288,16 +246,19 @@ export function App() {
     });
   }
 
-  function changeRole(role: PortalRole) {
-    localStorage.setItem("portalRole", role);
-    setSelectedRole(role);
-    setTab("dashboard");
+  function registerForClass(classId: string) {
+    setEnrolledClassIds((current) => {
+      const next = current.includes(classId) ? current : [...current, classId];
+      localStorage.setItem("studentClassIds", JSON.stringify(next));
+      setNotice("Class registration saved.");
+      return next;
+    });
   }
 
   async function submitApplication(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!auth) {
-      await signIn();
+      await signIn("Instructor");
       return;
     }
     const form = event.currentTarget;
@@ -323,7 +284,7 @@ export function App() {
 
   async function createJob(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!auth) return;
+    if (!auth || !profile?.isAdmin) return;
     await run(async () => {
       await portalApi.createJob(jobDraft, auth);
       setJobDraft(emptyJob);
@@ -332,7 +293,7 @@ export function App() {
   }
 
   async function updateApplication(id: string, status: ApplicationStatus, owner: string) {
-    if (!auth) return;
+    if (!auth || !profile?.isAdmin) return;
     await run(async () => {
       await portalApi.updateApplication(id, { status, owner }, auth);
       await refreshAdminData();
@@ -340,7 +301,7 @@ export function App() {
   }
 
   async function advanceTask(task: OnboardingTask) {
-    if (!auth) return;
+    if (!auth || !profile?.isAdmin) return;
     const nextStatus = task.status === "Due" ? "InProgress" : task.status === "InProgress" ? "Ready" : "Complete";
     await run(async () => {
       await portalApi.updateTask(task.id, { status: nextStatus }, auth);
@@ -348,387 +309,100 @@ export function App() {
     }, "Task updated.");
   }
 
+  function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    localStorage.setItem("editableProfile", JSON.stringify(editableProfile));
+    setNotice("Profile updated locally. Connect this form to the profile API when the backend endpoint is available.");
+  }
+
   const liveJobs = jobs.filter((job) => job.status === "Live");
   const displayJobs = liveJobs.length ? liveJobs : fallbackJobs;
   const selectedJob = displayJobs.find((job) => job.id === selectedJobId) ?? displayJobs[0];
   const savedJobs = displayJobs.filter((job) => savedJobIds.includes(job.id));
   const setupComplete = health ? setupSteps.length - health.missingSettings.length : 2;
+  const enrolledClasses = classSchedule.filter((item) => enrolledClassIds.includes(item.id));
   const pipelineCount = profile?.isAdmin ? adminApplications.length : applications.length;
+
+  if (!profile) {
+    return <LandingPage signIn={signIn} selectRole={changeRole} selectedRole={roleOverride} liveJobs={displayJobs.length} />;
+  }
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">SA</div>
+          <div className="brand-mark" aria-hidden="true">SA</div>
           <div>
             <strong>Skunkworks Academy</strong>
-            <span>Instructor Portal</span>
+            <span>Portal</span>
           </div>
         </div>
-        <button className="menu-toggle" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen}>
-          Menu
-        </button>
+        <button className="menu-toggle" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen}>Menu</button>
         <nav className={menuOpen ? "open" : ""}>
-          <button className={tab === "dashboard" ? "active" : ""} onClick={() => openTab("dashboard")}>Dashboard</button>
-          <button className={tab === "jobs" ? "active" : ""} onClick={() => openTab("jobs")}>Jobs</button>
-          <button className={tab === "apply" ? "active" : ""} onClick={() => openTab("apply")}>Apply</button>
-          {profile && <button className={tab === "my" ? "active" : ""} onClick={() => openTab("my")}>My Applications</button>}
-          <button className={tab === "profile" ? "active" : ""} onClick={() => openTab("profile")}>Profile</button>
-          <button className={tab === "updates" ? "active" : ""} onClick={() => openTab("updates")}>Updates</button>
-          <button className={tab === "resources" ? "active" : ""} onClick={() => openTab("resources")}>Resources</button>
-          <button className={tab === "settings" ? "active" : ""} onClick={() => openTab("settings")}>Settings</button>
-          {(profile?.isAdmin || activeRole === "Staff") && <button className={tab === "admin" ? "active" : ""} onClick={() => openTab("admin")}>Staff</button>}
+          {roleContent.nav.map((item) => (
+            <button className={tab === item.tab ? "active" : ""} onClick={() => openTab(item.tab)} key={item.tab}>{item.label}</button>
+          ))}
         </nav>
         <div className="identity">
-          {profile ? (
-            <>
-              <strong>{profile.name}</strong>
-              <span>{profile.username}</span>
-              <em>{profile.isAdmin ? "Portal.Admin" : activeRole}</em>
-              <button onClick={signOut}>Sign out</button>
-            </>
-          ) : (
-            <>
-              <strong>Applicant access</strong>
-              <span>Sign in with a Microsoft work, school, or personal account.</span>
-              <button onClick={signIn}>Sign in</button>
-            </>
-          )}
+          <strong>{profile.name}</strong>
+          <span>{profile.username}</span>
+          <em>{profile.isAdmin ? "Portal.Admin" : activeRole}</em>
+          <button onClick={signOut}>Sign out</button>
         </div>
       </aside>
+
       <main>
         <header className="hero">
           <div>
             <p>{activeRole} workspace</p>
-            <h1>{currentRoleContent.headline}</h1>
-            <span className="hero-copy">Recruit, approve, and onboard instructors with Microsoft identity, Azure Functions, and SharePoint records.</span>
+            <h1>{roleContent.headline}</h1>
+            <span className="hero-copy">{roleContent.summary}</span>
           </div>
           <div className="hero-metrics">
-            <div><span>Live roles</span><strong>{liveJobs.length}</strong></div>
-            <div><span>Pipeline</span><strong>{pipelineCount}</strong></div>
-            <div><span>Saved</span><strong>{savedJobIds.length}</strong></div>
+            <div><span>Courses</span><strong>{courseCatalog.length}</strong></div>
+            <div><span>{activeRole === "Student" ? "My classes" : "Pipeline"}</span><strong>{activeRole === "Student" ? enrolledClasses.length : pipelineCount}</strong></div>
+            <div><span>{activeRole === "Instructor" ? "Saved jobs" : "Live jobs"}</span><strong>{activeRole === "Instructor" ? savedJobIds.length : liveJobs.length}</strong></div>
           </div>
         </header>
 
         {(notice || error) && <div className={error ? "alert error" : "alert"}>{error || notice}</div>}
-        {health && health.missingSettings.length > 0 && (
-          <div className="alert warning">
-            API setup is almost complete. Missing Azure setting: {health.missingSettings.join(", ")}.
-          </div>
-        )}
+        {health && health.missingSettings.length > 0 && <div className="alert warning">API setup is almost complete. Missing Azure setting: {health.missingSettings.join(", ")}.</div>}
 
         {tab === "dashboard" && (
           <section className="dashboard-grid">
             <div className="command-panel">
-              <div className="section-head">
-                <h2>Today</h2>
-                <button onClick={() => openTab("apply")}>Start application</button>
-              </div>
-              <div className="role-switcher" aria-label="Portal role">
-                {(["Student", "Instructor", "Staff"] as PortalRole[]).map((role) => (
-                  <button className={activeRole === role ? "selected" : ""} onClick={() => changeRole(role)} key={role}>
-                    {role}
-                  </button>
-                ))}
-              </div>
+              <div className="section-head"><h2>Role Access</h2><span className="pill">{activeRole}</span></div>
               <div className="timeline">
-                {currentRoleContent.focus.map((item) => (
-                  <div key={item}><strong>{item}</strong><span>{displayJobs.length} live opportunities and portal actions are available for this role.</span></div>
-                ))}
+                {roleContent.capabilities.map((item) => <div key={item}><strong>{item}</strong><span>Available in the {activeRole.toLowerCase()} workspace.</span></div>)}
               </div>
             </div>
             <div className="command-panel">
-              <div className="section-head">
-                <h2>Setup Status</h2>
-                <span className="pill">{setupComplete}/{setupSteps.length}</span>
-              </div>
+              <div className="section-head"><h2>Setup Status</h2><span className="pill">{setupComplete}/{setupSteps.length}</span></div>
               <div className="setup-list">
-                {setupSteps.map((step, index) => (
-                  <div className={index < setupComplete ? "complete" : ""} key={step}>
-                    <span>{index + 1}</span>
-                    <strong>{step}</strong>
-                  </div>
-                ))}
+                {setupSteps.map((step, index) => <div className={index < setupComplete ? "complete" : ""} key={step}><span>{index + 1}</span><strong>{step}</strong></div>)}
               </div>
             </div>
-            <div className="command-panel wide">
-              <div className="section-head">
-                <h2>Quick actions</h2>
-                <button onClick={() => openTab("jobs")}>Browse roles</button>
+            {import.meta.env.DEV && (
+              <div className="command-panel wide">
+                <div className="section-head"><h2>Development Role Preview</h2><span className="pill">Not production auth</span></div>
+                <div className="role-switcher">
+                  {(["Student", "Instructor", "Staff"] as PortalRole[]).map((role) => <button className={activeRole === role ? "selected" : ""} onClick={() => changeRole(role)} key={role}>{role}</button>)}
+                </div>
               </div>
-              <div className="mini-grid">
-                {currentRoleContent.quickActions.map((action) => (
-                  <article className="mini-card" key={action.label}>
-                    <strong>{action.label}</strong>
-                    <span>{activeRole} workspace</span>
-                    <button onClick={() => openTab(action.tab)}>Open</button>
-                  </article>
-                ))}
-              </div>
-            </div>
+            )}
           </section>
         )}
 
-        {tab === "jobs" && (
-          <section>
-            <div className="section-head">
-              <h2>Open instructor roles</h2>
-              <button onClick={() => setTab("apply")}>Apply now</button>
-            </div>
-            <div className="card-grid">
-              {displayJobs.map((job) => (
-                <article className="card" key={job.id}>
-                  <div className="card-title">
-                    <h3>{job.title}</h3>
-                    <span className="pill">{job.modality}</span>
-                  </div>
-                  <p>{job.description}</p>
-                  <dl>
-                    <div><dt>Programme</dt><dd>{job.programme}</dd></div>
-                    <div><dt>Rate</dt><dd>{job.rateBand || "To be confirmed"}</dd></div>
-                    <div><dt>Closing</dt><dd>{job.closingDate || "Open until filled"}</dd></div>
-                  </dl>
-                  <div className="button-row">
-                    <button onClick={() => { setSelectedJobId(job.id); openTab("apply"); }}>Apply for this role</button>
-                    <button className="secondary-action" onClick={() => toggleSavedJob(job.id)}>
-                      {savedJobIds.includes(job.id) ? "Saved" : "Save"}
-                    </button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
+        {tab === "courses" && <CourseCatalog />}
+        {tab === "classes" && <ClassWorkspace activeRole={activeRole} enrolledClassIds={enrolledClassIds} registerForClass={registerForClass} />}
+        {tab === "register" && <ClassRegistration enrolledClassIds={enrolledClassIds} registerForClass={registerForClass} />}
+        {tab === "jobs" && <Jobs jobs={displayJobs} savedJobIds={savedJobIds} toggleSavedJob={toggleSavedJob} selectJob={(id) => { setSelectedJobId(id); openTab(activeRole === "Staff" ? "staff" : "applications"); }} activeRole={activeRole} />}
+        {tab === "applications" && activeRole === "Instructor" && <InstructorApplications profile={profile} applications={applications} displayJobs={displayJobs} selectedJob={selectedJob} selectedJobId={selectedJob?.id ?? ""} setSelectedJobId={setSelectedJobId} discipline={discipline} setDiscipline={setDiscipline} loading={loading} submitApplication={submitApplication} refresh={() => run(refreshUserData)} />}
+        {tab === "applications" && activeRole === "Staff" && <StaffApplications profile={profile} applications={adminApplications} updateApplication={updateApplication} refresh={() => run(refreshAdminData)} />}
+        {tab === "staff" && <StaffOperations profile={profile} jobDraft={jobDraft} setJobDraft={setJobDraft} createJob={createJob} tasks={tasks} advanceTask={advanceTask} loading={loading} />}
+        {tab === "resources" && <Resources activeRole={activeRole} />}
+        {tab === "profile" && <ProfileEditor activeRole={activeRole} profile={profile} editableProfile={editableProfile} setEditableProfile={setEditableProfile} saveProfile={saveProfile} />}
 
-        {tab === "apply" && (
-          <section className="form-panel">
-            <div className="section-head">
-              <h2>Submit instructor application</h2>
-              {!profile && <button onClick={signIn}>Sign in to submit</button>}
-            </div>
-            <form onSubmit={submitApplication}>
-              <label>Role<select name="jobId" value={selectedJob?.id ?? displayJobs[0]?.id ?? ""} onChange={(event) => setSelectedJobId(event.target.value)} required>
-                {displayJobs.map((job) => <option key={job.id} value={job.id}>{job.title} - {job.programme}</option>)}
-              </select></label>
-              <label>Name<input name="applicantName" autoComplete="name" defaultValue={profile?.name ?? ""} required /></label>
-              <label>Email<input name="applicantEmail" type="email" autoComplete="email" defaultValue={profile?.username ?? ""} required /></label>
-              <label>Phone<input name="phone" autoComplete="tel" required /></label>
-              <label>Discipline<input name="discipline" list="discipline-options" value={discipline} onChange={(event) => setDiscipline(event.target.value)} autoComplete="organization-title" required /></label>
-              <datalist id="discipline-options">
-                {disciplineOptions.map((option) => <option value={option} key={option} />)}
-              </datalist>
-              <label>Availability<select name="availability"><option>Weekdays</option><option>Evenings</option><option>Weekends</option><option>Flexible</option></select></label>
-              <div className="discipline-picks full" aria-label="Common disciplines">
-                {disciplineOptions.map((option) => (
-                  <button type="button" className={discipline === option ? "selected" : ""} onClick={() => setDiscipline(option)} key={option}>
-                    {option}
-                  </button>
-                ))}
-              </div>
-              <label className="full">Experience<textarea name="experience" required placeholder="Summarize teaching experience, certifications, and learner groups." /></label>
-              <label className="full">Resume or certificate<input name="resume" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" /></label>
-              <button disabled={loading || displayJobs.length === 0}>{loading ? "Working..." : "Submit application"}</button>
-            </form>
-          </section>
-        )}
-
-        {tab === "my" && (
-          <section>
-            <div className="section-head">
-              <h2>My applications</h2>
-              <button onClick={() => run(refreshUserData)}>Refresh</button>
-            </div>
-            <DataTable
-              headers={["Role", "Status", "Submitted", "Owner"]}
-              rows={applications.map((item) => [item.jobTitle, item.status, new Date(item.submittedAt).toLocaleDateString(), item.owner || "Unassigned"])}
-            />
-          </section>
-        )}
-
-        {tab === "resources" && (
-          <section>
-            <div className="section-head">
-              <h2>Instructor resources</h2>
-              <button onClick={() => openTab("apply")}>Apply</button>
-            </div>
-            <div className="card-grid">
-              {onboardingResources.map((item) => (
-                <article className="card compact" key={item.title}>
-                  <h3>{item.title}</h3>
-                  <p>{item.detail}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {tab === "profile" && (
-          <section className="dashboard-grid">
-            <div className="command-panel">
-              <h2>User profile</h2>
-              <dl>
-                <div><dt>Name</dt><dd>{profile?.name ?? "Guest applicant"}</dd></div>
-                <div><dt>Email</dt><dd>{profile?.username ?? "Sign in to connect profile"}</dd></div>
-                <div><dt>Portal role</dt><dd>{activeRole}</dd></div>
-                <div><dt>Tenant</dt><dd>{profile?.tenantId ?? "Not signed in"}</dd></div>
-              </dl>
-            </div>
-            <div className="command-panel">
-              <h2>Role preferences</h2>
-              <div className="role-switcher vertical">
-                {(["Student", "Instructor", "Staff"] as PortalRole[]).map((role) => (
-                  <button className={activeRole === role ? "selected" : ""} onClick={() => changeRole(role)} key={role}>
-                    {role}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="command-panel wide">
-              <h2>Saved roles</h2>
-              <div className="mini-grid">
-                {(savedJobs.length ? savedJobs : displayJobs.slice(0, 3)).map((job) => (
-                  <article className="mini-card" key={job.id}>
-                    <strong>{job.title}</strong>
-                    <span>{job.programme} · {job.modality}</span>
-                    <button onClick={() => { setSelectedJobId(job.id); openTab("apply"); }}>Apply</button>
-                  </article>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {tab === "updates" && (
-          <section>
-            <div className="section-head">
-              <h2>{activeRole} updates</h2>
-              <button onClick={() => openTab("settings")}>System status</button>
-            </div>
-            <div className="card-grid">
-              {currentRoleContent.updates.map((item) => (
-                <article className="card compact" key={item.title}>
-                  <h3>{item.title}</h3>
-                  <p>{item.detail}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {tab === "settings" && (
-          <section className="dashboard-grid">
-            <div className="command-panel">
-              <h2>Portal status</h2>
-              <dl>
-                <div><dt>API</dt><dd>{health?.ok ? "Online" : "Checking"}</dd></div>
-                <div><dt>Missing settings</dt><dd>{health?.missingSettings.length ? health.missingSettings.join(", ") : "None"}</dd></div>
-                <div><dt>Allowed origins</dt><dd>{health?.allowedOrigins.length ?? 0}</dd></div>
-              </dl>
-            </div>
-            <div className="command-panel">
-              <h2>Account</h2>
-              <dl>
-                <div><dt>Name</dt><dd>{profile?.name ?? "Not signed in"}</dd></div>
-                <div><dt>Email</dt><dd>{profile?.username ?? "Sign in to view"}</dd></div>
-                <div><dt>Role</dt><dd>{profile?.isAdmin ? "Portal.Admin" : activeRole}</dd></div>
-              </dl>
-            </div>
-            <div className="command-panel">
-              <h2>Role mode</h2>
-              <div className="role-switcher vertical">
-                {(["Student", "Instructor", "Staff"] as PortalRole[]).map((role) => (
-                  <button className={activeRole === role ? "selected" : ""} onClick={() => changeRole(role)} key={role}>
-                    {role}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="command-panel wide">
-              <h2>Connected routes</h2>
-              <div className="route-list">
-                {(health?.routes ?? ["GET /api/health", "GET /api/jobs"]).map((route) => <span key={route}>{route}</span>)}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {tab === "admin" && !profile?.isAdmin && (
-          <section className="dashboard-grid">
-            <div className="command-panel">
-              <h2>Staff workspace</h2>
-              <p className="panel-copy">Staff tools are ready, but operational actions require the `Portal.Admin` app role in Microsoft Entra.</p>
-              <button onClick={() => openTab("settings")}>Check portal settings</button>
-            </div>
-            <div className="command-panel">
-              <h2>Available now</h2>
-              <div className="timeline">
-                <div><strong>View public roles</strong><span>Confirm published opportunities and applicant-facing content.</span></div>
-                <div><strong>Check system health</strong><span>Review API routes, origins, and configuration status.</span></div>
-                <div><strong>Prepare resources</strong><span>Review onboarding materials before admin access is granted.</span></div>
-              </div>
-            </div>
-          </section>
-        )}
-
-        {tab === "admin" && profile?.isAdmin && (
-          <section className="admin-grid">
-            <div className="form-panel">
-              <h2>Create job posting</h2>
-              <form onSubmit={createJob}>
-                <label>Title<input autoComplete="off" value={jobDraft.title} onChange={(event) => setJobDraft({ ...jobDraft, title: event.target.value })} required /></label>
-                <label>Programme<input autoComplete="off" value={jobDraft.programme} onChange={(event) => setJobDraft({ ...jobDraft, programme: event.target.value })} required /></label>
-                <label>Modality<select value={jobDraft.modality} onChange={(event) => setJobDraft({ ...jobDraft, modality: event.target.value })}><option>Hybrid</option><option>Remote</option><option>On campus</option></select></label>
-                <label>Rate band<input autoComplete="off" value={jobDraft.rateBand} onChange={(event) => setJobDraft({ ...jobDraft, rateBand: event.target.value })} /></label>
-                <label>Closing date<input type="date" value={jobDraft.closingDate} onChange={(event) => setJobDraft({ ...jobDraft, closingDate: event.target.value })} /></label>
-                <label>Status<select value={jobDraft.status} onChange={(event) => setJobDraft({ ...jobDraft, status: event.target.value as JobInput["status"] })}><option>Draft</option><option>Live</option><option>Closed</option></select></label>
-                <label className="full">Description<textarea value={jobDraft.description} onChange={(event) => setJobDraft({ ...jobDraft, description: event.target.value })} required /></label>
-                <button disabled={loading}>Save posting</button>
-              </form>
-            </div>
-
-            <div>
-              <h2>Applicant queue</h2>
-              <div className="stack">
-                {adminApplications.map((item) => (
-                  <article className="card compact" key={item.id}>
-                    <div className="card-title">
-                      <h3>{item.applicantName}</h3>
-                      <span className="pill">{item.status}</span>
-                    </div>
-                    <p>{item.jobTitle} · {item.applicantEmail}</p>
-                    <div className="inline-fields">
-                      <select defaultValue={item.status} id={`status-${item.id}`}>
-                        <option>Submitted</option><option>Screening</option><option>Interview</option><option>Offer</option><option>Rejected</option>
-                      </select>
-                      <input autoComplete="off" defaultValue={item.owner} placeholder="Owner" id={`owner-${item.id}`} />
-                      <button onClick={() => updateApplication(
-                        item.id,
-                        (document.getElementById(`status-${item.id}`) as HTMLSelectElement).value as ApplicationStatus,
-                        (document.getElementById(`owner-${item.id}`) as HTMLInputElement).value
-                      )}>Update</button>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <h2>Onboarding tasks</h2>
-              <div className="stack">
-                {tasks.map((task) => (
-                  <article className="card compact" key={task.id}>
-                    <div className="card-title">
-                      <h3>{task.title}</h3>
-                      <span className="pill">{task.status}</span>
-                    </div>
-                    <p>{task.candidateName} · {task.detail}</p>
-                    <button onClick={() => advanceTask(task)}>Advance task</button>
-                  </article>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
         <footer className="legal-footer">
           <a href="/termsofservice/">Terms of Service</a>
           <a href="/privacystatement/">Privacy Statement</a>
@@ -738,17 +412,177 @@ export function App() {
   );
 }
 
-function DataTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+function LandingPage({ signIn, selectRole, selectedRole, liveJobs }: { signIn: (role?: PortalRole) => Promise<void>; selectRole: (role: PortalRole) => void; selectedRole: PortalRole; liveJobs: number }) {
   return (
-    <div className="table-wrap">
-      <table>
-        <thead><tr>{headers.map((header) => <th key={header}>{header}</th>)}</tr></thead>
-        <tbody>
-          {rows.length ? rows.map((row, index) => <tr key={index}>{row.map((cell) => <td key={cell}>{cell}</td>)}</tr>) : (
-            <tr><td colSpan={headers.length}>No records yet.</td></tr>
-          )}
-        </tbody>
-      </table>
-    </div>
+    <main className="landing-page">
+      <header className="landing-hero">
+        <nav className="landing-nav">
+          <div className="brand"><div className="brand-mark">SA</div><strong>Skunkworks Academy Portal</strong></div>
+          <button onClick={() => signIn(selectedRole)}>Sign in with Microsoft</button>
+        </nav>
+        <div className="landing-copy">
+          <p>Academy operations, learning, and instructor onboarding</p>
+          <h1>Skunkworks Academy Portal</h1>
+          <span>One Microsoft-connected entry point for students, instructors, and staff.</span>
+        </div>
+        <div className="landing-stats"><div><strong>{liveJobs}</strong><span>Live instructor roles</span></div><div><strong>3</strong><span>Role workspaces</span></div><div><strong>Teams</strong><span>Enterprise app ready</span></div></div>
+      </header>
+      <section className="role-entry-grid">
+        {landingRoles.map((item) => (
+          <article className={selectedRole === item.role ? "role-entry selected" : "role-entry"} key={item.role}>
+            <h2>{item.title}</h2>
+            <p>{item.detail}</p>
+            <button onClick={() => { selectRole(item.role); signIn(item.role); }}>Continue as {item.role}</button>
+          </article>
+        ))}
+      </section>
+    </main>
   );
+}
+
+function CourseCatalog() {
+  return (
+    <section>
+      <div className="section-head"><h2>Courses</h2><span className="pill">Student view</span></div>
+      <div className="card-grid">
+        {courseCatalog.map((course) => <article className="card" key={course.id}><div className="card-title"><h3>{course.title}</h3><span className="pill">{course.level}</span></div><p>{course.description}</p><dl><div><dt>Duration</dt><dd>{course.duration}</dd></div></dl></article>)}
+      </div>
+    </section>
+  );
+}
+
+function ClassWorkspace({ activeRole, enrolledClassIds, registerForClass }: { activeRole: PortalRole; enrolledClassIds: string[]; registerForClass: (id: string) => void }) {
+  const classes = activeRole === "Student" ? classSchedule.filter((item) => enrolledClassIds.includes(item.id)) : classSchedule;
+  return (
+    <section>
+      <div className="section-head"><h2>{activeRole === "Student" ? "My Classes" : "Class Monitoring"}</h2><span className="pill">{classes.length} classes</span></div>
+      <div className="card-grid">
+        {classes.map((item) => <article className="card compact" key={item.id}><div className="card-title"><h3>{item.title}</h3><span className="pill">{item.schedule}</span></div><p>Instructor: {item.instructor}</p><dl><div><dt>Seats</dt><dd>{item.seats}</dd></div></dl>{activeRole === "Student" && !enrolledClassIds.includes(item.id) && <button onClick={() => registerForClass(item.id)}>Register</button>}</article>)}
+      </div>
+    </section>
+  );
+}
+
+function ClassRegistration({ enrolledClassIds, registerForClass }: { enrolledClassIds: string[]; registerForClass: (id: string) => void }) {
+  return (
+    <section>
+      <div className="section-head"><h2>Register for a Class</h2><span className="pill">Available cohorts</span></div>
+      <div className="card-grid">
+        {classSchedule.map((item) => <article className="card" key={item.id}><h3>{item.title}</h3><p>{item.schedule}</p><button disabled={enrolledClassIds.includes(item.id)} onClick={() => registerForClass(item.id)}>{enrolledClassIds.includes(item.id) ? "Registered" : "Register"}</button></article>)}
+      </div>
+    </section>
+  );
+}
+
+function Jobs({ jobs, savedJobIds, toggleSavedJob, selectJob, activeRole }: { jobs: JobPosting[]; savedJobIds: string[]; toggleSavedJob: (id: string) => void; selectJob: (id: string) => void; activeRole: PortalRole }) {
+  return (
+    <section>
+      <div className="section-head"><h2>{activeRole === "Staff" ? "Job Postings" : "Open Instructor Roles"}</h2><span className="pill">{jobs.length} live</span></div>
+      <div className="card-grid">
+        {jobs.map((job) => <article className="card" key={job.id}><div className="card-title"><h3>{job.title}</h3><span className="pill">{job.modality}</span></div><p>{job.description}</p><dl><div><dt>Programme</dt><dd>{job.programme}</dd></div><div><dt>Closing</dt><dd>{job.closingDate || "Open until filled"}</dd></div></dl><div className="button-row"><button onClick={() => selectJob(job.id)}>{activeRole === "Staff" ? "Manage posting" : "Apply"}</button>{activeRole === "Instructor" && <button className="secondary-action" onClick={() => toggleSavedJob(job.id)}>{savedJobIds.includes(job.id) ? "Saved" : "Save"}</button>}</div></article>)}
+      </div>
+    </section>
+  );
+}
+
+function InstructorApplications(props: { profile: UserProfile; applications: ApplicationRecord[]; displayJobs: JobPosting[]; selectedJob?: JobPosting; selectedJobId: string; setSelectedJobId: (id: string) => void; discipline: string; setDiscipline: (value: string) => void; loading: boolean; submitApplication: (event: FormEvent<HTMLFormElement>) => Promise<void>; refresh: () => void }) {
+  return (
+    <section className="split-panel">
+      <div className="form-panel">
+        <div className="section-head"><h2>Apply for an Instructor Role</h2><button onClick={props.refresh}>Refresh</button></div>
+        <form onSubmit={props.submitApplication}>
+          <label>Role<select name="jobId" value={props.selectedJobId} onChange={(event) => props.setSelectedJobId(event.target.value)} required>{props.displayJobs.map((job) => <option key={job.id} value={job.id}>{job.title} - {job.programme}</option>)}</select></label>
+          <label>Name<input name="applicantName" defaultValue={props.profile.name} required /></label>
+          <label>Email<input name="applicantEmail" type="email" defaultValue={props.profile.username} required /></label>
+          <label>Phone<input name="phone" autoComplete="tel" required /></label>
+          <label>Discipline<input name="discipline" list="discipline-options" value={props.discipline} onChange={(event) => props.setDiscipline(event.target.value)} required /></label>
+          <datalist id="discipline-options">{disciplineOptions.map((option) => <option value={option} key={option} />)}</datalist>
+          <label>Availability<select name="availability"><option>Weekdays</option><option>Evenings</option><option>Weekends</option><option>Flexible</option></select></label>
+          <label className="full">Experience<textarea name="experience" required placeholder="Summarize teaching experience, certifications, and learner groups." /></label>
+          <label className="full">CV or certificate<input name="resume" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg" /></label>
+          <button disabled={props.loading}>{props.loading ? "Working..." : "Submit application"}</button>
+        </form>
+      </div>
+      <ApplicationTable applications={props.applications} />
+    </section>
+  );
+}
+
+function StaffApplications({ profile, applications, updateApplication, refresh }: { profile: UserProfile; applications: ApplicationRecord[]; updateApplication: (id: string, status: ApplicationStatus, owner: string) => Promise<void>; refresh: () => void }) {
+  if (!profile.isAdmin) return <LockedStaffPanel />;
+  return (
+    <section>
+      <div className="section-head"><h2>Instructor Applications</h2><button onClick={refresh}>Refresh</button></div>
+      <div className="stack">
+        {applications.map((item) => <AdminApplicationCard key={item.id} item={item} updateApplication={updateApplication} />)}
+        {applications.length === 0 && <div className="command-panel"><p className="panel-copy">No applications loaded yet.</p></div>}
+      </div>
+    </section>
+  );
+}
+
+function AdminApplicationCard({ item, updateApplication }: { item: ApplicationRecord; updateApplication: (id: string, status: ApplicationStatus, owner: string) => Promise<void> }) {
+  const [status, setStatus] = useState<ApplicationStatus>(item.status);
+  const [owner, setOwner] = useState(item.owner);
+  return <article className="card compact"><div className="card-title"><h3>{item.applicantName}</h3><span className="pill">{item.status}</span></div><p>{item.jobTitle} - {item.applicantEmail}</p><div className="inline-fields"><select value={status} onChange={(event) => setStatus(event.target.value as ApplicationStatus)}><option>Submitted</option><option>Screening</option><option>Interview</option><option>Offer</option><option>Rejected</option></select><input value={owner} onChange={(event) => setOwner(event.target.value)} placeholder="Owner" /><button onClick={() => updateApplication(item.id, status, owner)}>Update</button></div></article>;
+}
+
+function StaffOperations({ profile, jobDraft, setJobDraft, createJob, tasks, advanceTask, loading }: { profile: UserProfile; jobDraft: JobInput; setJobDraft: (value: JobInput) => void; createJob: (event: FormEvent<HTMLFormElement>) => Promise<void>; tasks: OnboardingTask[]; advanceTask: (task: OnboardingTask) => Promise<void>; loading: boolean }) {
+  if (!profile.isAdmin) return <LockedStaffPanel />;
+  return (
+    <section className="admin-grid">
+      <div className="form-panel">
+        <h2>Create Job Posting</h2>
+        <form onSubmit={createJob}>
+          <label>Title<input value={jobDraft.title} onChange={(event) => setJobDraft({ ...jobDraft, title: event.target.value })} required /></label>
+          <label>Programme<input value={jobDraft.programme} onChange={(event) => setJobDraft({ ...jobDraft, programme: event.target.value })} required /></label>
+          <label>Modality<select value={jobDraft.modality} onChange={(event) => setJobDraft({ ...jobDraft, modality: event.target.value })}><option>Hybrid</option><option>Remote</option><option>On campus</option></select></label>
+          <label>Rate band<input value={jobDraft.rateBand} onChange={(event) => setJobDraft({ ...jobDraft, rateBand: event.target.value })} /></label>
+          <label>Closing date<input type="date" value={jobDraft.closingDate} onChange={(event) => setJobDraft({ ...jobDraft, closingDate: event.target.value })} /></label>
+          <label>Status<select value={jobDraft.status} onChange={(event) => setJobDraft({ ...jobDraft, status: event.target.value as JobInput["status"] })}><option>Draft</option><option>Live</option><option>Closed</option></select></label>
+          <label className="full">Description<textarea value={jobDraft.description} onChange={(event) => setJobDraft({ ...jobDraft, description: event.target.value })} required /></label>
+          <button disabled={loading}>Save posting</button>
+        </form>
+      </div>
+      <div>
+        <h2>Onboarding Tasks</h2>
+        <div className="stack">
+          {tasks.map((task) => <article className="card compact" key={task.id}><div className="card-title"><h3>{task.title}</h3><span className="pill">{task.status}</span></div><p>{task.candidateName} - {task.detail}</p><button onClick={() => advanceTask(task)}>Advance task</button></article>)}
+          {tasks.length === 0 && <div className="command-panel"><p className="panel-copy">No onboarding tasks loaded yet.</p></div>}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function LockedStaffPanel() {
+  return <section className="dashboard-grid"><div className="command-panel"><h2>Staff Access Required</h2><p className="panel-copy">This workflow requires the `Portal.Admin` or staff app role from Microsoft Entra. The development role preview can show the menu, but it cannot grant production permissions.</p></div><div className="command-panel"><h2>Teams Ready Scope</h2><p className="panel-copy">Package this portal as a Teams tab with Microsoft SSO, then expose staff operations inside the enterprise app.</p></div></section>;
+}
+
+function Resources({ activeRole }: { activeRole: PortalRole }) {
+  return <section><div className="section-head"><h2>{activeRole} Resources</h2><span className="pill">Role-aware</span></div><div className="card-grid">{roleDefinitions[activeRole].resources.map((item) => <article className="card compact" key={item.title}><h3>{item.title}</h3><p>{item.detail}</p></article>)}</div></section>;
+}
+
+function ProfileEditor({ activeRole, profile, editableProfile, setEditableProfile, saveProfile }: { activeRole: PortalRole; profile: UserProfile; editableProfile: EditableProfile; setEditableProfile: (value: EditableProfile) => void; saveProfile: (event: FormEvent<HTMLFormElement>) => void }) {
+  return (
+    <section className="split-panel">
+      <div className="form-panel">
+        <div className="section-head"><h2>Edit Profile</h2><span className="pill">{activeRole}</span></div>
+        <form onSubmit={saveProfile}>
+          <label>Display name<input value={editableProfile.displayName || profile.name} onChange={(event) => setEditableProfile({ ...editableProfile, displayName: event.target.value })} /></label>
+          <label>Email<input value={profile.username} disabled /></label>
+          <label>Phone<input value={editableProfile.phone} onChange={(event) => setEditableProfile({ ...editableProfile, phone: event.target.value })} /></label>
+          <label>Location<input value={editableProfile.location} onChange={(event) => setEditableProfile({ ...editableProfile, location: event.target.value })} /></label>
+          {activeRole === "Instructor" && <label className="full">CV or resume<input type="file" accept=".pdf,.doc,.docx" onChange={(event) => setEditableProfile({ ...editableProfile, cvFileName: event.target.files?.[0]?.name ?? "" })} /></label>}
+          <label className="full">Profile summary<textarea value={editableProfile.bio} onChange={(event) => setEditableProfile({ ...editableProfile, bio: event.target.value })} /></label>
+          <button>Save profile</button>
+        </form>
+      </div>
+      <div className="command-panel"><h2>Account Details</h2><dl><div><dt>Tenant</dt><dd>{profile.tenantId ?? "Not available"}</dd></div><div><dt>Role source</dt><dd>{import.meta.env.DEV ? "Development preview" : "Microsoft Entra"}</dd></div><div><dt>CV</dt><dd>{editableProfile.cvFileName || "Not uploaded"}</dd></div></dl></div>
+    </section>
+  );
+}
+
+function ApplicationTable({ applications }: { applications: ApplicationRecord[] }) {
+  return <div className="table-wrap"><table><thead><tr><th>Role</th><th>Status</th><th>Submitted</th><th>Owner</th></tr></thead><tbody>{applications.length ? applications.map((item) => <tr key={item.id}><td>{item.jobTitle}</td><td>{item.status}</td><td>{new Date(item.submittedAt).toLocaleDateString()}</td><td>{item.owner || "Unassigned"}</td></tr>) : <tr><td colSpan={4}>No records yet.</td></tr>}</tbody></table></div>;
 }
