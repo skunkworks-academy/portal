@@ -221,6 +221,10 @@ function classFields(input: ClassInput, enrolled = 0) {
   };
 }
 
+function sameClassSession(left: ClassSession, right: ClassSession) {
+  return left.courseId === right.courseId && left.title === right.title && left.schedule === right.schedule;
+}
+
 export async function getLiveJobs() {
   const result = await listItems("JobPostings", "fields/Status eq 'Live'");
   return result.value.map(toJob);
@@ -278,8 +282,13 @@ export async function createClass(input: ClassInput, principal: Principal) {
 export async function updateClass(id: string, input: Partial<ClassInput>, principal: Principal) {
   const fallbackClass = fallbackClasses.find((item) => item.id === id);
   if (fallbackClass) {
-    const item = await createItem("ClassSessions", classFields({ ...fallbackClass, ...input }, fallbackClass.enrolled));
-    await audit("ClassMaterialized", principal, item.id);
+    const classItems = await listItems("ClassSessions");
+    const existing = classItems.value.map(toClassSession).find((item) => sameClassSession(item, fallbackClass));
+    const merged = { ...fallbackClass, ...input };
+    const item = existing
+      ? await patchItem("ClassSessions", existing.id, classFields(merged, existing.enrolled))
+      : await createItem("ClassSessions", classFields(merged, fallbackClass.enrolled));
+    await audit(existing ? "ClassUpdated" : "ClassMaterialized", principal, item.id);
     return toClassSession(item);
   }
 
@@ -313,6 +322,11 @@ export async function registerForClass(classId: string, principal: Principal) {
   let classSession = sharePointClasses.find((item) => item.id === classId);
   const fallbackClass = fallbackClasses.find((item) => item.id === classId);
   let isSharePointClass = Boolean(classSession);
+
+  if (!classSession && fallbackClass) {
+    classSession = sharePointClasses.find((item) => sameClassSession(item, fallbackClass));
+    isSharePointClass = Boolean(classSession);
+  }
 
   if (!classSession && fallbackClass) {
     const item = await createItem("ClassSessions", classFields(fallbackClass, fallbackClass.enrolled));
