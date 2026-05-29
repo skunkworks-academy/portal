@@ -44,6 +44,14 @@ function hasRole(principal: Principal, roles: string[]) {
   return principal.tenantId === config.entraTenantId && roles.some((role) => principal.roles.includes(role));
 }
 
+export async function requireStudent(request: HttpRequest): Promise<Principal> {
+  const principal = await requireUser(request);
+  if (!hasRole(principal, ["Portal.Student", "Portal.Staff", "Portal.Admin"])) {
+    throw new HttpError(403, "Portal.Student access in the Skunkworks tenant is required.");
+  }
+  return principal;
+}
+
 export async function requireInstructor(request: HttpRequest): Promise<Principal> {
   const principal = await requireUser(request);
   if (!hasRole(principal, ["Portal.Instructor", "Portal.Staff", "Portal.Admin"])) {
