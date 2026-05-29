@@ -25,7 +25,7 @@ Resources
 Profile
 ```
 
-Students can view courses, view enrolled classes, register for available classes, update their own profile, and see student resources. They should not see instructor jobs, instructor applications, staff dashboards, scheduling admin tools, or job posting tools.
+Students can view courses, view enrolled classes, register for available classes, update their own profile, and see student resources. They should not see instructor jobs, instructor applications, staff dashboards, scheduling admin tools, instructor profile monitoring, student monitoring, or job posting tools.
 
 Instructor workspace:
 
@@ -47,12 +47,14 @@ Dashboard
 Operations
 Jobs
 Applications
+Instructors
+Students
 Scheduling
 Resources
-Profile
+Settings
 ```
 
-Staff can post instructor jobs, manage postings, review applications, monitor onboarding, view instructor profiles, manage class schedules, assign instructors, and monitor students. Staff operational API writes require the `Portal.Admin` or staff app role from Microsoft Entra.
+Staff can post instructor jobs, manage postings, review applications, monitor onboarding, view instructor profiles, monitor student profiles, manage class schedules, assign instructors, and monitor students. Staff operational API writes require the `Portal.Admin` or staff app role from Microsoft Entra.
 
 ## Required Entra Setup
 
@@ -143,11 +145,13 @@ npm run build:api
 1. Signed-out users see the branded public landing page with Student, Instructor, and Staff entry paths.
 2. Student role sees only Dashboard, Courses, My Classes, Register, Resources, and Profile.
 3. Instructor role sees only Dashboard, Jobs, My Applications, My Classes, Resources, and Profile.
-4. Staff role sees Operations and Applications, but write actions are locked unless Microsoft Entra grants staff/admin role claims.
-5. Profile editing loads from GET /api/me/profile and saves through PATCH /api/me/profile.
-6. Instructor CV/resume uploads are stored in InstructorDocuments and linked from PortalProfiles.
-7. Resources content changes by role.
-8. Browser metadata and favicon show Skunkworks Academy Portal.
+4. Staff role sees Operations, Applications, Instructors, Students, Scheduling, Resources, and Settings.
+5. Staff write and monitoring actions are locked unless Microsoft Entra grants staff/admin role claims.
+6. Profile editing loads from GET /api/me/profile and saves through PATCH /api/me/profile.
+7. Instructor CV/resume uploads are stored in InstructorDocuments and linked from PortalProfiles.
+8. Staff monitoring views load instructor and student profile data from GET /api/admin/profiles.
+9. Resources content changes by role.
+10. Browser metadata and favicon show Skunkworks Academy Portal.
 ```
 
 ## Production Checks
@@ -172,6 +176,7 @@ The health route list should include:
 ```text
 GET /api/me/profile
 PATCH /api/me/profile
+GET /api/admin/profiles
 ```
 
 If `missingSettings` includes `apiClientSecret`, create a new client secret in the `Skunkworks Academy Portal API` app registration and add the secret value to the Function App setting `API_CLIENT_SECRET`. Restart the Function App after saving.
