@@ -22,6 +22,42 @@ const lists = [
     ]
   },
   {
+    displayName: "Courses",
+    columns: [
+      textColumn("Level"),
+      textColumn("Duration"),
+      multilineColumn("Description"),
+      choiceColumn("Status", ["Draft", "Live", "Archived"])
+    ]
+  },
+  {
+    displayName: "ClassSessions",
+    columns: [
+      textColumn("CourseId"),
+      textColumn("CourseTitle"),
+      textColumn("Schedule"),
+      textColumn("Modality"),
+      textColumn("Instructor"),
+      numberColumn("Seats"),
+      numberColumn("Enrolled"),
+      choiceColumn("Status", ["Scheduled", "Open", "Full", "InProgress", "Complete", "Cancelled"])
+    ]
+  },
+  {
+    displayName: "ClassRegistrations",
+    columns: [
+      textColumn("ClassId"),
+      textColumn("ClassTitle"),
+      textColumn("CourseId"),
+      textColumn("CourseTitle"),
+      textColumn("StudentName"),
+      textColumn("StudentEmail"),
+      textColumn("StudentObjectId"),
+      choiceColumn("Status", ["Registered", "Waitlisted", "Cancelled"]),
+      dateTimeColumn("RegisteredAt")
+    ]
+  },
+  {
     displayName: "Applications",
     columns: [
       textColumn("JobId"),
