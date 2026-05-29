@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title desc">
+  <title id="title">Skunkworks Academy Portal logo</title>
+  <desc id="desc">A teal and gold geometric mark for Skunkworks Academy.</desc>
+  <rect width="96" height="96" rx="20" fill="#111a22"/>
+  <path d="M20 64 48 18l28 46H60L48 42 36 64H20Z" fill="#13a89e"/>
+  <path d="M28 72h40l-8-14H36l-8 14Z" fill="#e6a933"/>
+  <path d="M48 42 60 64H36l12-22Z" fill="#f8fafc" opacity=".92"/>
+</svg>
