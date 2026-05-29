@@ -41,6 +41,21 @@ const lists = [
     ]
   },
   {
+    displayName: "PortalProfiles",
+    columns: [
+      textColumn("ObjectId"),
+      textColumn("DisplayName"),
+      textColumn("Email"),
+      choiceColumn("PortalRole", ["Student", "Instructor", "Staff"]),
+      textColumn("Phone"),
+      textColumn("Location"),
+      multilineColumn("Bio"),
+      textColumn("CvFileName"),
+      textColumn("CvDocumentUrl"),
+      dateTimeColumn("UpdatedAt")
+    ]
+  },
+  {
     displayName: "Candidates",
     columns: [
       textColumn("ApplicationId"),
