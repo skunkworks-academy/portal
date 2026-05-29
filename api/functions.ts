@@ -10,13 +10,14 @@ import {
   getLiveJobs,
   getMyApplications,
   getMyProfile,
+  getProfiles,
   getTasks,
   updateApplication,
   updateJob,
   updateTask,
   upsertMyProfile
 } from "./graph.js";
-import type { ApplicationRecord, JobInput, NewApplication, OnboardingTask, PortalProfileInput } from "../src/types.js";
+import type { ApplicationRecord, JobInput, NewApplication, OnboardingTask, PortalProfileInput, PortalRole } from "../src/types.js";
 
 app.http("cors", {
   methods: ["OPTIONS"],
@@ -50,6 +51,7 @@ app.http("health", {
       "POST /api/applications",
       "GET /api/me/applications",
       "GET /api/admin/applications",
+      "GET /api/admin/profiles",
       "PATCH /api/admin/applications/{id}",
       "POST /api/admin/jobs",
       "PATCH /api/admin/jobs/{id}",
@@ -122,6 +124,17 @@ app.http("adminApplications", {
   handler: async (request, context) => handle(request, context, async () => {
     await requireAdmin(request);
     return json(request, await getApplications());
+  })
+});
+
+app.http("adminProfiles", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "admin/profiles",
+  handler: async (request, context) => handle(request, context, async () => {
+    await requireAdmin(request);
+    const role = request.query.get("role") as PortalRole | null;
+    return json(request, await getProfiles(role ?? undefined));
   })
 });
 
