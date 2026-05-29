@@ -42,8 +42,9 @@ export async function requireUser(request: HttpRequest): Promise<Principal> {
 
 export async function requireAdmin(request: HttpRequest): Promise<Principal> {
   const principal = await requireUser(request);
-  if (principal.tenantId !== config.entraTenantId || !principal.roles.includes("Portal.Admin")) {
-    throw new HttpError(403, "Portal.Admin access in the Skunkworks tenant is required.");
+  const hasStaffAccess = principal.roles.includes("Portal.Admin") || principal.roles.includes("Portal.Staff");
+  if (principal.tenantId !== config.entraTenantId || !hasStaffAccess) {
+    throw new HttpError(403, "Portal.Admin or Portal.Staff access in the Skunkworks tenant is required.");
   }
   return principal;
 }
