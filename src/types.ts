@@ -1,6 +1,7 @@
 export type JobStatus = "Draft" | "Live" | "Closed";
 export type ApplicationStatus = "Submitted" | "Screening" | "Interview" | "Offer" | "Rejected";
 export type TaskStatus = "Due" | "InProgress" | "Ready" | "Complete";
+export type ClassStatus = "Scheduled" | "Open" | "Full" | "InProgress" | "Complete" | "Cancelled";
 export type PortalRole = "Student" | "Instructor" | "Staff";
 
 export interface JobPosting {
@@ -13,6 +14,52 @@ export interface JobPosting {
   status: JobStatus;
   description: string;
   applicants: number;
+}
+
+export interface CourseRecord {
+  id: string;
+  title: string;
+  level: string;
+  duration: string;
+  description: string;
+  status: "Draft" | "Live" | "Archived";
+}
+
+export interface ClassSession {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  title: string;
+  schedule: string;
+  modality: string;
+  instructor: string;
+  seats: number;
+  enrolled: number;
+  status: ClassStatus;
+}
+
+export interface ClassInput {
+  courseId: string;
+  courseTitle: string;
+  title: string;
+  schedule: string;
+  modality: string;
+  instructor: string;
+  seats: number;
+  status: ClassStatus;
+}
+
+export interface ClassRegistrationRecord {
+  id: string;
+  classId: string;
+  classTitle: string;
+  courseId: string;
+  courseTitle: string;
+  studentName: string;
+  studentEmail: string;
+  studentObjectId: string;
+  status: "Registered" | "Waitlisted" | "Cancelled";
+  registeredAt: string;
 }
 
 export interface ApplicationRecord {
