@@ -6,7 +6,7 @@ Production portal for students, instructors, and staff. The app supports course 
 
 - Frontend: Vite React SPA hosted on GitHub Pages at `https://portal.skunkworksacademy.com`.
 - Identity: Microsoft Entra ID with MSAL auth code + PKCE.
-- Role source: Microsoft Entra app roles or group claims, with a development-only local role preview in Vite dev mode.
+- Role source: Microsoft Entra app roles, with a development-only local role preview in Vite dev mode.
 - API: Azure Functions validating SPA access tokens and writing to Microsoft Graph.
 - Data: SharePoint site `/sites/InstructorPortal` with lists and document libraries.
 - Academic records: `Courses`, `ClassSessions`, and `ClassRegistrations` lists for student registration and staff scheduling.
