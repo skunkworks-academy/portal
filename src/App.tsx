@@ -3,7 +3,7 @@ import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { loginRequest, skunkworksTenantId } from "./authConfig";
 import { portalApi } from "./api";
-import { canAccess, classSchedule, courseCatalog, landingRoles, roleDefinitions, type Tab } from "./roles";
+import { canAccess, classSchedule, courseCatalog, landingRoles, roleDefinitions, roleFromClaims, type Tab } from "./roles";
 import type { ApplicationRecord, ApplicationStatus, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole, UserProfile } from "./types";
 
 const fallbackJobs: JobPosting[] = [
@@ -24,21 +24,13 @@ function emptyPortalProfile(role: PortalRole, profile?: UserProfile | null): Por
   return { displayName: profile?.name ?? "", portalRole: role, phone: "", location: "", bio: "", cvFileName: "" };
 }
 
-function roleFromClaims(roles: string[], groups: string[], isAdmin: boolean): PortalRole {
-  const claims = [...roles, ...groups].map((claim) => claim.toLowerCase());
-  if (isAdmin || claims.some((claim) => claim.includes("portal.staff") || claim.includes("staff"))) return "Staff";
-  if (claims.some((claim) => claim.includes("portal.student") || claim.includes("student"))) return "Student";
-  return "Instructor";
-}
-
 function getProfile(account?: AccountInfo | null): UserProfile | null {
   if (!account) return null;
   const claims = account.idTokenClaims as Record<string, unknown> | undefined;
   const roles = Array.isArray(claims?.roles) ? (claims.roles as string[]) : [];
-  const groups = Array.isArray(claims?.groups) ? (claims.groups as string[]) : [];
   const tenantId = typeof claims?.tid === "string" ? claims.tid : account.tenantId;
   const isAdmin = tenantId === skunkworksTenantId && (roles.includes("Portal.Admin") || roles.includes("Portal.Staff"));
-  return { name: account.name ?? account.username, username: account.username, tenantId, roles, isAdmin, portalRole: roleFromClaims(roles, groups, isAdmin) };
+  return { name: account.name ?? account.username, username: account.username, tenantId, roles, isAdmin, portalRole: roleFromClaims(roles, isAdmin) };
 }
 
 function readFileAsBase64(file: File): Promise<string> {
@@ -56,7 +48,7 @@ export function App() {
   const profile = useMemo(() => getProfile(account), [account]);
   const [roleOverride, setRoleOverride] = useState<PortalRole>(() => {
     const stored = localStorage.getItem("portalRoleOverride");
-    return stored === "Student" || stored === "Instructor" || stored === "Staff" ? stored : "Instructor";
+    return stored === "Student" || stored === "Instructor" || stored === "Staff" ? stored : "Student";
   });
   const activeRole = import.meta.env.DEV ? roleOverride : profile?.portalRole ?? roleOverride;
   const roleContent = roleDefinitions[activeRole];
@@ -221,7 +213,7 @@ export function App() {
         <div className="brand"><div className="brand-mark" aria-hidden="true">SA</div><div><strong>Skunkworks Academy</strong><span>Portal</span></div></div>
         <button className="menu-toggle" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen}>Menu</button>
         <nav className={menuOpen ? "open" : ""}>{roleContent.nav.map((item) => <button className={tab === item.tab ? "active" : ""} onClick={() => openTab(item.tab)} key={item.tab}>{item.label}</button>)}</nav>
-        <div className="identity"><strong>{profile.name}</strong><span>{profile.username}</span><em>{profile.isAdmin ? "Portal.Admin" : activeRole}</em><button onClick={signOut}>Sign out</button></div>
+        <div className="identity"><strong>{profile.name}</strong><span>{profile.username}</span><em>{profile.isAdmin ? roles.includes("Portal.Admin") ? "Portal.Admin" : "Portal.Staff" : activeRole}</em><button onClick={signOut}>Sign out</button></div>
       </aside>
 
       <main>
