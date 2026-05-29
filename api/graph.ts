@@ -1,7 +1,7 @@
 import { ClientSecretCredential } from "@azure/identity";
 import { config, requireSettings } from "./config.js";
 import { HttpError } from "./http.js";
-import type { ApplicationRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalProfile, PortalProfileInput, PortalRole } from "../src/types.js";
+import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalProfile, PortalProfileInput, PortalRole } from "../src/types.js";
 import type { Principal } from "./auth.js";
 
 const graphRoot = "https://graph.microsoft.com/v1.0";
@@ -113,6 +113,50 @@ function toJob(item: { id: string; fields: Record<string, unknown> }): JobPostin
   };
 }
 
+function toCourse(item: { id: string; fields: Record<string, unknown> }): CourseRecord {
+  const fields = item.fields;
+  return {
+    id: item.id,
+    title: text(fields.Title),
+    level: text(fields.Level),
+    duration: text(fields.Duration),
+    description: text(fields.Description),
+    status: (text(fields.Status) || "Draft") as CourseRecord["status"]
+  };
+}
+
+function toClassSession(item: { id: string; fields: Record<string, unknown> }): ClassSession {
+  const fields = item.fields;
+  return {
+    id: item.id,
+    courseId: text(fields.CourseId),
+    courseTitle: text(fields.CourseTitle),
+    title: text(fields.Title),
+    schedule: text(fields.Schedule),
+    modality: text(fields.Modality),
+    instructor: text(fields.Instructor),
+    seats: number(fields.Seats),
+    enrolled: number(fields.Enrolled),
+    status: (text(fields.Status) || "Scheduled") as ClassSession["status"]
+  };
+}
+
+function toClassRegistration(item: { id: string; fields: Record<string, unknown> }): ClassRegistrationRecord {
+  const fields = item.fields;
+  return {
+    id: item.id,
+    classId: text(fields.ClassId),
+    classTitle: text(fields.ClassTitle),
+    courseId: text(fields.CourseId),
+    courseTitle: text(fields.CourseTitle),
+    studentName: text(fields.StudentName),
+    studentEmail: text(fields.StudentEmail),
+    studentObjectId: text(fields.StudentObjectId),
+    status: (text(fields.Status) || "Registered") as ClassRegistrationRecord["status"],
+    registeredAt: text(fields.RegisteredAt)
+  };
+}
+
 function toApplication(item: { id: string; fields: Record<string, unknown> }): ApplicationRecord {
   const fields = item.fields;
   return {
@@ -196,6 +240,89 @@ export async function updateJob(id: string, input: Partial<JobInput>) {
   if (input.status !== undefined) fields.Status = input.status;
   if (input.description !== undefined) fields.Description = input.description;
   return toJob(await patchItem("JobPostings", id, fields));
+}
+
+export async function getCourses() {
+  const result = await listItems("Courses", "fields/Status eq 'Live'");
+  return result.value.map(toCourse);
+}
+
+export async function getClasses() {
+  const result = await listItems("ClassSessions");
+  return result.value.map(toClassSession);
+}
+
+export async function createClass(input: ClassInput, principal: Principal) {
+  const item = await createItem("ClassSessions", {
+    Title: input.title,
+    CourseId: input.courseId,
+    CourseTitle: input.courseTitle,
+    Schedule: input.schedule,
+    Modality: input.modality,
+    Instructor: input.instructor,
+    Seats: input.seats,
+    Enrolled: 0,
+    Status: input.status
+  });
+  await audit("ClassCreated", principal, item.id);
+  return toClassSession(item);
+}
+
+export async function updateClass(id: string, input: Partial<ClassInput>, principal: Principal) {
+  const fields: Record<string, unknown> = {};
+  if (input.title !== undefined) fields.Title = input.title;
+  if (input.courseId !== undefined) fields.CourseId = input.courseId;
+  if (input.courseTitle !== undefined) fields.CourseTitle = input.courseTitle;
+  if (input.schedule !== undefined) fields.Schedule = input.schedule;
+  if (input.modality !== undefined) fields.Modality = input.modality;
+  if (input.instructor !== undefined) fields.Instructor = input.instructor;
+  if (input.seats !== undefined) fields.Seats = input.seats;
+  if (input.status !== undefined) fields.Status = input.status;
+  const item = await patchItem("ClassSessions", id, fields);
+  await audit("ClassUpdated", principal, id);
+  return toClassSession(item);
+}
+
+export async function getMyClassRegistrations(principal: Principal) {
+  const result = await listItems("ClassRegistrations", `fields/StudentObjectId eq '${escapeOData(principal.subject)}'`);
+  return result.value.map(toClassRegistration);
+}
+
+export async function getClassRegistrations() {
+  const result = await listItems("ClassRegistrations");
+  return result.value.map(toClassRegistration);
+}
+
+export async function registerForClass(classId: string, principal: Principal) {
+  const classes = await getClasses();
+  const classSession = classes.find((item) => item.id === classId);
+  if (!classSession || !["Scheduled", "Open"].includes(classSession.status)) throw new HttpError(400, "Selected class is not open for registration.");
+
+  const existing = await listItems("ClassRegistrations", `fields/ClassId eq '${escapeOData(classId)}' and fields/StudentObjectId eq '${escapeOData(principal.subject)}'`);
+  if (existing.value[0]) return toClassRegistration(existing.value[0]);
+
+  const isFull = classSession.enrolled >= classSession.seats;
+  const item = await createItem("ClassRegistrations", {
+    Title: `${principal.name || principal.email} - ${classSession.title}`,
+    ClassId: classSession.id,
+    ClassTitle: classSession.title,
+    CourseId: classSession.courseId,
+    CourseTitle: classSession.courseTitle,
+    StudentName: principal.name,
+    StudentEmail: principal.email,
+    StudentObjectId: principal.subject,
+    Status: isFull ? "Waitlisted" : "Registered",
+    RegisteredAt: new Date().toISOString()
+  });
+
+  if (!isFull) {
+    await patchItem("ClassSessions", classSession.id, {
+      Enrolled: classSession.enrolled + 1,
+      Status: classSession.enrolled + 1 >= classSession.seats ? "Full" : classSession.status
+    });
+  }
+  await audit("ClassRegistered", principal, item.id);
+  return toClassRegistration(item);
 }
 
 export async function createApplication(input: NewApplication, principal: Principal) {
