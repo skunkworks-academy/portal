@@ -1,6 +1,6 @@
 import { app, type HttpRequest, type InvocationContext } from "@azure/functions";
 import { config, missingSettings } from "./config.js";
-import { requireAdmin, requireUser } from "./auth.js";
+import { requireAdmin, requireInstructor } from "./auth.js";
 import { fallbackJobs } from "./fallbackData.js";
 import { empty, failure, json, readJson } from "./http.js";
 import {
@@ -29,7 +29,7 @@ app.http("health", {
   route: "health",
   handler: async (request) => json(request, {
     ok: true,
-    service: "skunkworks-instructor-portal-api",
+    service: "skunkworks-academy-portal-api",
     missingSettings: missingSettings([
       "entraTenantId",
       "apiClientId",
@@ -74,7 +74,7 @@ app.http("submitApplication", {
   authLevel: "anonymous",
   route: "applications",
   handler: async (request, context) => handle(request, context, async () => {
-    const principal = await requireUser(request);
+    const principal = await requireInstructor(request);
     const payload = await readJson<NewApplication>(request);
     return json(request, await createApplication(payload, principal), 201);
   })
@@ -85,7 +85,7 @@ app.http("myApplications", {
   authLevel: "anonymous",
   route: "me/applications",
   handler: async (request, context) => handle(request, context, async () => {
-    const principal = await requireUser(request);
+    const principal = await requireInstructor(request);
     return json(request, await getMyApplications(principal));
   })
 });
