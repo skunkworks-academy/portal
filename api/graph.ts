@@ -1,7 +1,7 @@
 import { ClientSecretCredential } from "@azure/identity";
 import { config, requireSettings } from "./config.js";
 import { HttpError } from "./http.js";
-import type { ApplicationRecord, JobInput, JobPosting, NewApplication, OnboardingTask } from "../src/types.js";
+import type { ApplicationRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalProfile, PortalProfileInput } from "../src/types.js";
 import type { Principal } from "./auth.js";
 
 const graphRoot = "https://graph.microsoft.com/v1.0";
@@ -141,6 +141,23 @@ function toTask(item: { id: string; fields: Record<string, unknown> }): Onboardi
   };
 }
 
+function toPortalProfile(item: { id: string; fields: Record<string, unknown> }): PortalProfile {
+  const fields = item.fields;
+  return {
+    id: item.id,
+    objectId: text(fields.ObjectId),
+    displayName: text(fields.DisplayName),
+    email: text(fields.Email),
+    portalRole: (text(fields.PortalRole) || "Student") as PortalProfile["portalRole"],
+    phone: text(fields.Phone),
+    location: text(fields.Location),
+    bio: text(fields.Bio),
+    cvFileName: text(fields.CvFileName),
+    cvDocumentUrl: text(fields.CvDocumentUrl) || undefined,
+    updatedAt: text(fields.UpdatedAt)
+  };
+}
+
 export async function getLiveJobs() {
   const result = await listItems("JobPostings", "fields/Status eq 'Live'");
   return result.value.map(toJob);
@@ -183,7 +200,7 @@ export async function createApplication(input: NewApplication, principal: Princi
   if (!job || job.status !== "Live") throw new HttpError(400, "Selected job is not open for applications.");
 
   const documentUrl = input.resumeBase64 && input.resumeFileName
-    ? await uploadApplicantFile(input.resumeFileName, input.resumeBase64, principal)
+    ? await uploadDocument("ApplicantUploads", input.resumeFileName, input.resumeBase64, principal)
     : "";
 
   const item = await createItem("Applications", {
@@ -246,9 +263,43 @@ export async function updateTask(id: string, input: Partial<OnboardingTask>, pri
   return toTask(item);
 }
 
-async function uploadApplicantFile(fileName: string, base64: string, principal: Principal) {
+export async function getMyProfile(principal: Principal) {
+  const result = await listItems("PortalProfiles", `fields/ObjectId eq '${principal.subject.replaceAll("'", "''")}'`);
+  const existing = result.value[0];
+  if (existing) return toPortalProfile(existing);
+  return null;
+}
+
+export async function upsertMyProfile(input: PortalProfileInput, principal: Principal) {
+  const existing = await getMyProfile(principal);
+  const cvDocumentUrl = input.cvBase64 && input.cvFileName
+    ? await uploadDocument("InstructorDocuments", input.cvFileName, input.cvBase64, principal)
+    : existing?.cvDocumentUrl ?? "";
+  const cvFileName = input.cvFileName || existing?.cvFileName || "";
+  const fields = {
+    Title: input.displayName || principal.name || principal.email,
+    ObjectId: principal.subject,
+    DisplayName: input.displayName || principal.name,
+    Email: principal.email,
+    PortalRole: input.portalRole,
+    Phone: input.phone,
+    Location: input.location,
+    Bio: input.bio,
+    CvFileName: cvFileName,
+    CvDocumentUrl: cvDocumentUrl,
+    UpdatedAt: new Date().toISOString()
+  };
+
+  const item = existing
+    ? await patchItem("PortalProfiles", existing.id, fields)
+    : await createItem("PortalProfiles", fields);
+  await audit("ProfileUpdated", principal, item.id);
+  return toPortalProfile(item);
+}
+
+async function uploadDocument(libraryName: string, fileName: string, base64: string, principal: Principal) {
   const site = await siteId();
-  const drive = await driveId("ApplicantUploads");
+  const drive = await driveId(libraryName);
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
   const folder = `${principal.subject || "unknown"}-${Date.now()}`;
   const bytes = Buffer.from(base64, "base64");
