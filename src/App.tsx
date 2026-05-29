@@ -24,6 +24,11 @@ function emptyPortalProfile(role: PortalRole, profile?: UserProfile | null): Por
   return { displayName: profile?.name ?? "", portalRole: role, phone: "", location: "", bio: "", cvFileName: "" };
 }
 
+function roleBadge(profile: UserProfile, activeRole: PortalRole) {
+  if (!profile.isAdmin) return activeRole;
+  return profile.roles.includes("Portal.Admin") ? "Portal.Admin" : "Portal.Staff";
+}
+
 function getProfile(account?: AccountInfo | null): UserProfile | null {
   if (!account) return null;
   const claims = account.idTokenClaims as Record<string, unknown> | undefined;
@@ -213,7 +218,7 @@ export function App() {
         <div className="brand"><div className="brand-mark" aria-hidden="true">SA</div><div><strong>Skunkworks Academy</strong><span>Portal</span></div></div>
         <button className="menu-toggle" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen}>Menu</button>
         <nav className={menuOpen ? "open" : ""}>{roleContent.nav.map((item) => <button className={tab === item.tab ? "active" : ""} onClick={() => openTab(item.tab)} key={item.tab}>{item.label}</button>)}</nav>
-        <div className="identity"><strong>{profile.name}</strong><span>{profile.username}</span><em>{profile.isAdmin ? roles.includes("Portal.Admin") ? "Portal.Admin" : "Portal.Staff" : activeRole}</em><button onClick={signOut}>Sign out</button></div>
+        <div className="identity"><strong>{profile.name}</strong><span>{profile.username}</span><em>{roleBadge(profile, activeRole)}</em><button onClick={signOut}>Sign out</button></div>
       </aside>
 
       <main>
