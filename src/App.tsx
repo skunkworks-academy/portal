@@ -4,7 +4,7 @@ import type { AccountInfo } from "@azure/msal-browser";
 import { loginRequest, skunkworksTenantId } from "./authConfig";
 import { portalApi } from "./api";
 import { canAccess, classSchedule, courseCatalog, landingRoles, roleDefinitions, type Tab } from "./roles";
-import type { ApplicationRecord, ApplicationStatus, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalRole, UserProfile } from "./types";
+import type { ApplicationRecord, ApplicationStatus, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfileInput, PortalRole, UserProfile } from "./types";
 
 const fallbackJobs: JobPosting[] = [
   {
@@ -73,12 +73,15 @@ const emptyJob: JobInput = {
   description: ""
 };
 
-interface EditableProfile {
-  displayName: string;
-  phone: string;
-  location: string;
-  bio: string;
-  cvFileName: string;
+function emptyPortalProfile(role: PortalRole, profile?: UserProfile | null): PortalProfileInput {
+  return {
+    displayName: profile?.name ?? "",
+    portalRole: role,
+    phone: "",
+    location: "",
+    bio: "",
+    cvFileName: ""
+  };
 }
 
 function roleFromClaims(roles: string[], groups: string[], isAdmin: boolean): PortalRole {
@@ -147,9 +150,8 @@ export function App() {
   const [health, setHealth] = useState<PortalHealth | null>(null);
   const [savedJobIds, setSavedJobIds] = useState<string[]>(() => loadJson<string[]>("savedInstructorJobs", []));
   const [enrolledClassIds, setEnrolledClassIds] = useState<string[]>(() => loadJson<string[]>("studentClassIds", ["cls-ai-june"]));
-  const [editableProfile, setEditableProfile] = useState<EditableProfile>(() =>
-    loadJson<EditableProfile>("editableProfile", { displayName: "", phone: "", location: "", bio: "", cvFileName: "" })
-  );
+  const [editableProfile, setEditableProfile] = useState<PortalProfileInput>(() => emptyPortalProfile(roleOverride));
+  const [cvFile, setCvFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function refreshJobs() {
@@ -177,6 +179,19 @@ export function App() {
     ]);
     setAdminApplications(nextApplications);
     setTasks(nextTasks);
+  }
+
+  async function refreshProfile() {
+    if (!auth || !profile) return;
+    const saved = await portalApi.myProfile(auth);
+    setEditableProfile(saved ? {
+      displayName: saved.displayName || profile.name,
+      portalRole: saved.portalRole,
+      phone: saved.phone,
+      location: saved.location,
+      bio: saved.bio,
+      cvFileName: saved.cvFileName
+    } : emptyPortalProfile(activeRole, profile));
   }
 
   function friendlyError(err: unknown) {
@@ -211,6 +226,10 @@ export function App() {
   }, [activeRole, profile?.isAdmin, tab]);
 
   useEffect(() => {
+    if (account) run(refreshProfile);
+  }, [account?.homeAccountId]);
+
+  useEffect(() => {
     if (account && activeRole === "Instructor" && tab === "applications") run(refreshUserData);
   }, [account?.homeAccountId, activeRole, tab]);
 
@@ -235,6 +254,7 @@ export function App() {
   function changeRole(role: PortalRole) {
     localStorage.setItem("portalRoleOverride", role);
     setRoleOverride(role);
+    setEditableProfile((current) => ({ ...current, portalRole: role }));
     setTab("dashboard");
   }
 
@@ -309,16 +329,31 @@ export function App() {
     }, "Task updated.");
   }
 
-  function saveProfile(event: FormEvent<HTMLFormElement>) {
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    localStorage.setItem("editableProfile", JSON.stringify(editableProfile));
-    setNotice("Profile updated locally. Connect this form to the profile API when the backend endpoint is available.");
+    if (!auth) return;
+    await run(async () => {
+      const saved = await portalApi.updateProfile({
+        ...editableProfile,
+        portalRole: activeRole,
+        cvFileName: cvFile?.name || editableProfile.cvFileName,
+        cvBase64: cvFile ? await readFileAsBase64(cvFile) : undefined
+      }, auth);
+      setEditableProfile({
+        displayName: saved.displayName,
+        portalRole: saved.portalRole,
+        phone: saved.phone,
+        location: saved.location,
+        bio: saved.bio,
+        cvFileName: saved.cvFileName
+      });
+      setCvFile(null);
+    }, "Profile updated.");
   }
 
   const liveJobs = jobs.filter((job) => job.status === "Live");
   const displayJobs = liveJobs.length ? liveJobs : fallbackJobs;
   const selectedJob = displayJobs.find((job) => job.id === selectedJobId) ?? displayJobs[0];
-  const savedJobs = displayJobs.filter((job) => savedJobIds.includes(job.id));
   const setupComplete = health ? setupSteps.length - health.missingSettings.length : 2;
   const enrolledClasses = classSchedule.filter((item) => enrolledClassIds.includes(item.id));
   const pipelineCount = profile?.isAdmin ? adminApplications.length : applications.length;
@@ -397,11 +432,11 @@ export function App() {
         {tab === "classes" && <ClassWorkspace activeRole={activeRole} enrolledClassIds={enrolledClassIds} registerForClass={registerForClass} />}
         {tab === "register" && <ClassRegistration enrolledClassIds={enrolledClassIds} registerForClass={registerForClass} />}
         {tab === "jobs" && <Jobs jobs={displayJobs} savedJobIds={savedJobIds} toggleSavedJob={toggleSavedJob} selectJob={(id) => { setSelectedJobId(id); openTab(activeRole === "Staff" ? "staff" : "applications"); }} activeRole={activeRole} />}
-        {tab === "applications" && activeRole === "Instructor" && <InstructorApplications profile={profile} applications={applications} displayJobs={displayJobs} selectedJob={selectedJob} selectedJobId={selectedJob?.id ?? ""} setSelectedJobId={setSelectedJobId} discipline={discipline} setDiscipline={setDiscipline} loading={loading} submitApplication={submitApplication} refresh={() => run(refreshUserData)} />}
+        {tab === "applications" && activeRole === "Instructor" && <InstructorApplications profile={profile} applications={applications} displayJobs={displayJobs} selectedJobId={selectedJob?.id ?? ""} setSelectedJobId={setSelectedJobId} discipline={discipline} setDiscipline={setDiscipline} loading={loading} submitApplication={submitApplication} refresh={() => run(refreshUserData)} />}
         {tab === "applications" && activeRole === "Staff" && <StaffApplications profile={profile} applications={adminApplications} updateApplication={updateApplication} refresh={() => run(refreshAdminData)} />}
         {tab === "staff" && <StaffOperations profile={profile} jobDraft={jobDraft} setJobDraft={setJobDraft} createJob={createJob} tasks={tasks} advanceTask={advanceTask} loading={loading} />}
         {tab === "resources" && <Resources activeRole={activeRole} />}
-        {tab === "profile" && <ProfileEditor activeRole={activeRole} profile={profile} editableProfile={editableProfile} setEditableProfile={setEditableProfile} saveProfile={saveProfile} />}
+        {tab === "profile" && <ProfileEditor activeRole={activeRole} profile={profile} editableProfile={editableProfile} setEditableProfile={setEditableProfile} setCvFile={setCvFile} saveProfile={saveProfile} />}
 
         <footer className="legal-footer">
           <a href="/termsofservice/">Terms of Service</a>
@@ -485,7 +520,7 @@ function Jobs({ jobs, savedJobIds, toggleSavedJob, selectJob, activeRole }: { jo
   );
 }
 
-function InstructorApplications(props: { profile: UserProfile; applications: ApplicationRecord[]; displayJobs: JobPosting[]; selectedJob?: JobPosting; selectedJobId: string; setSelectedJobId: (id: string) => void; discipline: string; setDiscipline: (value: string) => void; loading: boolean; submitApplication: (event: FormEvent<HTMLFormElement>) => Promise<void>; refresh: () => void }) {
+function InstructorApplications(props: { profile: UserProfile; applications: ApplicationRecord[]; displayJobs: JobPosting[]; selectedJobId: string; setSelectedJobId: (id: string) => void; discipline: string; setDiscipline: (value: string) => void; loading: boolean; submitApplication: (event: FormEvent<HTMLFormElement>) => Promise<void>; refresh: () => void }) {
   return (
     <section className="split-panel">
       <div className="form-panel">
@@ -563,7 +598,7 @@ function Resources({ activeRole }: { activeRole: PortalRole }) {
   return <section><div className="section-head"><h2>{activeRole} Resources</h2><span className="pill">Role-aware</span></div><div className="card-grid">{roleDefinitions[activeRole].resources.map((item) => <article className="card compact" key={item.title}><h3>{item.title}</h3><p>{item.detail}</p></article>)}</div></section>;
 }
 
-function ProfileEditor({ activeRole, profile, editableProfile, setEditableProfile, saveProfile }: { activeRole: PortalRole; profile: UserProfile; editableProfile: EditableProfile; setEditableProfile: (value: EditableProfile) => void; saveProfile: (event: FormEvent<HTMLFormElement>) => void }) {
+function ProfileEditor({ activeRole, profile, editableProfile, setEditableProfile, setCvFile, saveProfile }: { activeRole: PortalRole; profile: UserProfile; editableProfile: PortalProfileInput; setEditableProfile: (value: PortalProfileInput) => void; setCvFile: (file: File | null) => void; saveProfile: (event: FormEvent<HTMLFormElement>) => Promise<void> }) {
   return (
     <section className="split-panel">
       <div className="form-panel">
@@ -573,7 +608,7 @@ function ProfileEditor({ activeRole, profile, editableProfile, setEditableProfil
           <label>Email<input value={profile.username} disabled /></label>
           <label>Phone<input value={editableProfile.phone} onChange={(event) => setEditableProfile({ ...editableProfile, phone: event.target.value })} /></label>
           <label>Location<input value={editableProfile.location} onChange={(event) => setEditableProfile({ ...editableProfile, location: event.target.value })} /></label>
-          {activeRole === "Instructor" && <label className="full">CV or resume<input type="file" accept=".pdf,.doc,.docx" onChange={(event) => setEditableProfile({ ...editableProfile, cvFileName: event.target.files?.[0]?.name ?? "" })} /></label>}
+          {activeRole === "Instructor" && <label className="full">CV or resume<input type="file" accept=".pdf,.doc,.docx" onChange={(event) => { const file = event.target.files?.[0] ?? null; setCvFile(file); setEditableProfile({ ...editableProfile, cvFileName: file?.name ?? editableProfile.cvFileName }); }} /></label>}
           <label className="full">Profile summary<textarea value={editableProfile.bio} onChange={(event) => setEditableProfile({ ...editableProfile, bio: event.target.value })} /></label>
           <button>Save profile</button>
         </form>
