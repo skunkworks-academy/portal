@@ -55,7 +55,7 @@ Resources
 Settings
 ```
 
-Staff can post instructor jobs, manage postings, review applications, monitor onboarding, view instructor profiles, monitor student profiles, manage class schedules, assign instructors, and monitor students. Staff operational API writes require the `Portal.Admin` or staff app role from Microsoft Entra.
+Staff can post instructor jobs, manage postings, review applications, monitor onboarding, view instructor profiles, monitor student profiles, create and update class schedules, assign instructors, and monitor students. Staff operational API writes require the `Portal.Admin` or staff app role from Microsoft Entra.
 
 ## Required Entra Setup
 
@@ -163,7 +163,7 @@ npm run build:api
 7. Profile editing loads from GET /api/me/profile and saves through PATCH /api/me/profile.
 8. Instructor CV/resume uploads are stored in InstructorDocuments and linked from PortalProfiles.
 9. Staff monitoring views load instructor and student profile data from GET /api/admin/profiles.
-10. Staff scheduling loads classes from GET /api/classes and creates classes through POST /api/admin/classes.
+10. Staff scheduling loads classes from GET /api/classes, creates classes through POST /api/admin/classes, and updates schedules/instructors through PATCH /api/admin/classes/{id}.
 11. Resources content changes by role.
 12. Browser metadata and favicon show Skunkworks Academy Portal.
 ```
