@@ -144,7 +144,7 @@ textarea { min-height: 110px; resize: vertical; }
   place-items: center;
   border-radius: 8px;
   color: transparent;
-  background: #f8fafc url("/logo.svg") center/contain no-repeat;
+  background: #f8fafc url("./assets/logo.svg") center/contain no-repeat;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,.24);
   font-size: 0;
 }
