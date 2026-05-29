@@ -310,11 +310,20 @@ export async function getClassRegistrations() {
 export async function registerForClass(classId: string, principal: Principal) {
   const classItems = await listItems("ClassSessions");
   const sharePointClasses = classItems.value.map(toClassSession);
-  const classSession = sharePointClasses.find((item) => item.id === classId) ?? fallbackClasses.find((item) => item.id === classId);
-  const isSharePointClass = sharePointClasses.some((item) => item.id === classSession?.id);
+  let classSession = sharePointClasses.find((item) => item.id === classId);
+  const fallbackClass = fallbackClasses.find((item) => item.id === classId);
+  let isSharePointClass = Boolean(classSession);
+
+  if (!classSession && fallbackClass) {
+    const item = await createItem("ClassSessions", classFields(fallbackClass, fallbackClass.enrolled));
+    classSession = toClassSession(item);
+    isSharePointClass = true;
+    await audit("ClassMaterializedForRegistration", principal, item.id);
+  }
+
   if (!classSession || !["Scheduled", "Open"].includes(classSession.status)) throw new HttpError(400, "Selected class is not open for registration.");
 
-  const existing = await listItems("ClassRegistrations", `fields/ClassId eq '${escapeOData(classId)}' and fields/StudentObjectId eq '${escapeOData(principal.subject)}'`);
+  const existing = await listItems("ClassRegistrations", `fields/ClassId eq '${escapeOData(classSession.id)}' and fields/StudentObjectId eq '${escapeOData(principal.subject)}'`);
   if (existing.value[0]) return toClassRegistration(existing.value[0]);
 
   const isFull = classSession.enrolled >= classSession.seats;
