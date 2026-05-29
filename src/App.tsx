@@ -4,7 +4,7 @@ import type { AccountInfo } from "@azure/msal-browser";
 import { loginRequest, skunkworksTenantId } from "./authConfig";
 import { portalApi } from "./api";
 import { canAccess, classSchedule, courseCatalog, landingRoles, roleDefinitions, type Tab } from "./roles";
-import type { ApplicationRecord, ApplicationStatus, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfileInput, PortalRole, UserProfile } from "./types";
+import type { ApplicationRecord, ApplicationStatus, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole, UserProfile } from "./types";
 
 const fallbackJobs: JobPosting[] = [
   {
@@ -141,6 +141,7 @@ export function App() {
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
   const [adminApplications, setAdminApplications] = useState<ApplicationRecord[]>([]);
+  const [adminProfiles, setAdminProfiles] = useState<PortalProfile[]>([]);
   const [tasks, setTasks] = useState<OnboardingTask[]>([]);
   const [selectedJobId, setSelectedJobId] = useState("");
   const [discipline, setDiscipline] = useState("");
@@ -173,12 +174,14 @@ export function App() {
 
   async function refreshAdminData() {
     if (!auth || !profile?.isAdmin) return;
-    const [nextApplications, nextTasks] = await Promise.all([
+    const [nextApplications, nextTasks, nextProfiles] = await Promise.all([
       portalApi.adminApplications(auth),
-      portalApi.adminTasks(auth)
+      portalApi.adminTasks(auth),
+      portalApi.adminProfiles(auth)
     ]);
     setAdminApplications(nextApplications);
     setTasks(nextTasks);
+    setAdminProfiles(nextProfiles);
   }
 
   async function refreshProfile() {
@@ -234,7 +237,7 @@ export function App() {
   }, [account?.homeAccountId, activeRole, tab]);
 
   useEffect(() => {
-    if (profile?.isAdmin && (tab === "staff" || tab === "applications")) run(refreshAdminData);
+    if (profile?.isAdmin && ["staff", "applications", "instructors", "students", "settings"].includes(tab)) run(refreshAdminData);
   }, [profile?.isAdmin, account?.homeAccountId, tab]);
 
   async function signIn(nextRole?: PortalRole) {
@@ -357,6 +360,8 @@ export function App() {
   const setupComplete = health ? setupSteps.length - health.missingSettings.length : 2;
   const enrolledClasses = classSchedule.filter((item) => enrolledClassIds.includes(item.id));
   const pipelineCount = profile?.isAdmin ? adminApplications.length : applications.length;
+  const instructorProfiles = adminProfiles.filter((item) => item.portalRole === "Instructor");
+  const studentProfiles = adminProfiles.filter((item) => item.portalRole === "Student");
 
   if (!profile) {
     return <LandingPage signIn={signIn} selectRole={changeRole} selectedRole={roleOverride} liveJobs={displayJobs.length} />;
@@ -396,7 +401,7 @@ export function App() {
           <div className="hero-metrics">
             <div><span>Courses</span><strong>{courseCatalog.length}</strong></div>
             <div><span>{activeRole === "Student" ? "My classes" : "Pipeline"}</span><strong>{activeRole === "Student" ? enrolledClasses.length : pipelineCount}</strong></div>
-            <div><span>{activeRole === "Instructor" ? "Saved jobs" : "Live jobs"}</span><strong>{activeRole === "Instructor" ? savedJobIds.length : liveJobs.length}</strong></div>
+            <div><span>{activeRole === "Instructor" ? "Saved jobs" : "Profiles"}</span><strong>{activeRole === "Instructor" ? savedJobIds.length : activeRole === "Staff" ? adminProfiles.length : liveJobs.length}</strong></div>
           </div>
         </header>
 
@@ -435,6 +440,9 @@ export function App() {
         {tab === "applications" && activeRole === "Instructor" && <InstructorApplications profile={profile} applications={applications} displayJobs={displayJobs} selectedJobId={selectedJob?.id ?? ""} setSelectedJobId={setSelectedJobId} discipline={discipline} setDiscipline={setDiscipline} loading={loading} submitApplication={submitApplication} refresh={() => run(refreshUserData)} />}
         {tab === "applications" && activeRole === "Staff" && <StaffApplications profile={profile} applications={adminApplications} updateApplication={updateApplication} refresh={() => run(refreshAdminData)} />}
         {tab === "staff" && <StaffOperations profile={profile} jobDraft={jobDraft} setJobDraft={setJobDraft} createJob={createJob} tasks={tasks} advanceTask={advanceTask} loading={loading} />}
+        {tab === "instructors" && <StaffProfiles title="Instructor Profiles" profiles={instructorProfiles} profile={profile} emptyText="No instructor profiles have been saved yet." />}
+        {tab === "students" && <StaffProfiles title="Student Profiles" profiles={studentProfiles} profile={profile} emptyText="No student profiles have been saved yet." />}
+        {tab === "settings" && <StaffSettings profile={profile} health={health} refresh={() => run(refreshAdminData)} />}
         {tab === "resources" && <Resources activeRole={activeRole} />}
         {tab === "profile" && <ProfileEditor activeRole={activeRole} profile={profile} editableProfile={editableProfile} setEditableProfile={setEditableProfile} setCvFile={setCvFile} saveProfile={saveProfile} />}
 
@@ -588,6 +596,16 @@ function StaffOperations({ profile, jobDraft, setJobDraft, createJob, tasks, adv
       </div>
     </section>
   );
+}
+
+function StaffProfiles({ title, profiles, profile, emptyText }: { title: string; profiles: PortalProfile[]; profile: UserProfile; emptyText: string }) {
+  if (!profile.isAdmin) return <LockedStaffPanel />;
+  return <section><div className="section-head"><h2>{title}</h2><span className="pill">{profiles.length} profiles</span></div><div className="card-grid">{profiles.map((item) => <article className="card compact" key={item.id}><div className="card-title"><h3>{item.displayName || item.email}</h3><span className="pill">{item.portalRole}</span></div><p>{item.email}</p><dl><div><dt>Phone</dt><dd>{item.phone || "Not set"}</dd></div><div><dt>Location</dt><dd>{item.location || "Not set"}</dd></div><div><dt>CV</dt><dd>{item.cvDocumentUrl ? "Uploaded" : "Not uploaded"}</dd></div><div><dt>Updated</dt><dd>{item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : "Never"}</dd></div></dl></article>)}{profiles.length === 0 && <div className="command-panel"><p className="panel-copy">{emptyText}</p></div>}</div></section>;
+}
+
+function StaffSettings({ profile, health, refresh }: { profile: UserProfile; health: PortalHealth | null; refresh: () => void }) {
+  if (!profile.isAdmin) return <LockedStaffPanel />;
+  return <section className="dashboard-grid"><div className="command-panel"><div className="section-head"><h2>Portal Status</h2><button onClick={refresh}>Refresh</button></div><dl><div><dt>API</dt><dd>{health?.ok ? "Online" : "Checking"}</dd></div><div><dt>Missing settings</dt><dd>{health?.missingSettings.length ? health.missingSettings.join(", ") : "None"}</dd></div><div><dt>Allowed origins</dt><dd>{health?.allowedOrigins.length ?? 0}</dd></div></dl></div><div className="command-panel"><h2>Connected Routes</h2><div className="route-list">{(health?.routes ?? ["GET /api/health"]).map((route) => <span key={route}>{route}</span>)}</div></div></section>;
 }
 
 function LockedStaffPanel() {
