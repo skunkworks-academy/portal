@@ -3,9 +3,9 @@ import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { loginRequest, skunkworksTenantId } from "./authConfig";
 import { portalApi } from "./api";
-import type { ApplicationRecord, ApplicationStatus, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, UserProfile } from "./types";
+import type { ApplicationRecord, ApplicationStatus, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalRole, UserProfile } from "./types";
 
-type Tab = "jobs" | "apply" | "my" | "admin";
+type Tab = "dashboard" | "jobs" | "apply" | "my" | "profile" | "updates" | "resources" | "settings" | "admin";
 
 const fallbackJobs: JobPosting[] = [
   {
@@ -56,6 +56,76 @@ const disciplineOptions = [
   "UI/UX Design"
 ];
 
+const onboardingResources = [
+  {
+    title: "Instructor readiness checklist",
+    detail: "Contracts, profile details, banking, tax, identity checks, and teaching availability."
+  },
+  {
+    title: "Demo lesson scorecard",
+    detail: "Use a consistent review frame for technical depth, learner empathy, pacing, and lab readiness."
+  },
+  {
+    title: "Programme handoff pack",
+    detail: "Share cohort calendar, lesson plan, assessment rubrics, classroom links, and escalation contacts."
+  }
+];
+
+const setupSteps = [
+  "Microsoft sign-in configured",
+  "Azure Functions API deployed",
+  "SharePoint site connected",
+  "Admin roles assigned",
+  "Application intake tested"
+];
+
+const roleContent: Record<PortalRole, {
+  headline: string;
+  quickActions: Array<{ label: string; tab: Tab }>;
+  focus: string[];
+  updates: Array<{ title: string; detail: string }>;
+}> = {
+  Student: {
+    headline: "Student learning portal",
+    quickActions: [
+      { label: "Browse learning roles", tab: "jobs" },
+      { label: "Track applications", tab: "my" },
+      { label: "View resources", tab: "resources" }
+    ],
+    focus: ["Course readiness", "Instructor applications", "Learning support"],
+    updates: [
+      { title: "Application guidance", detail: "Students can prepare instructor assistant profiles and track application status." },
+      { title: "Learning pathways", detail: "Resources now highlight readiness steps before applying for programme support roles." }
+    ]
+  },
+  Instructor: {
+    headline: "Instructor onboarding portal",
+    quickActions: [
+      { label: "Submit instructor profile", tab: "apply" },
+      { label: "Saved opportunities", tab: "dashboard" },
+      { label: "Onboarding resources", tab: "resources" }
+    ],
+    focus: ["Teaching opportunities", "Onboarding tasks", "Document readiness"],
+    updates: [
+      { title: "Profile intake expanded", detail: "Instructor applications collect discipline, availability, experience, and attachments." },
+      { title: "Role saving added", detail: "Save instructor roles and return to them from the dashboard." }
+    ]
+  },
+  Staff: {
+    headline: "Staff operations portal",
+    quickActions: [
+      { label: "Review pipeline", tab: "admin" },
+      { label: "Create job posting", tab: "admin" },
+      { label: "Check API status", tab: "settings" }
+    ],
+    focus: ["Applicant review", "Job posting operations", "SharePoint readiness"],
+    updates: [
+      { title: "API health online", detail: "Staff can verify deployed API routes and missing configuration from Settings." },
+      { title: "Fallback roles active", detail: "Public roles stay visible while SharePoint list provisioning is completed." }
+    ]
+  }
+};
+
 const emptyJob: JobInput = {
   title: "",
   programme: "",
@@ -66,17 +136,25 @@ const emptyJob: JobInput = {
   description: ""
 };
 
-function getProfile(account?: AccountInfo | null): UserProfile | null {
+function roleFromClaims(roles: string[], isAdmin: boolean): PortalRole {
+  if (isAdmin || roles.includes("Portal.Staff")) return "Staff";
+  if (roles.includes("Portal.Student")) return "Student";
+  return "Instructor";
+}
+
+function getProfile(account?: AccountInfo | null, selectedRole?: PortalRole): UserProfile | null {
   if (!account) return null;
   const claims = account.idTokenClaims as Record<string, unknown> | undefined;
   const roles = Array.isArray(claims?.roles) ? (claims.roles as string[]) : [];
   const tenantId = typeof claims?.tid === "string" ? claims.tid : account.tenantId;
+  const isAdmin = tenantId === skunkworksTenantId && roles.includes("Portal.Admin");
   return {
     name: account.name ?? account.username,
     username: account.username,
     tenantId,
     roles,
-    isAdmin: tenantId === skunkworksTenantId && roles.includes("Portal.Admin")
+    isAdmin,
+    portalRole: selectedRole ?? roleFromClaims(roles, isAdmin)
   };
 }
 
@@ -92,9 +170,16 @@ function readFileAsBase64(file: File): Promise<string> {
 export function App() {
   const { instance, accounts } = useMsal();
   const account = accounts[0];
-  const profile = useMemo(() => getProfile(account), [account]);
+  const [selectedRole, setSelectedRole] = useState<PortalRole>(() => {
+    const stored = localStorage.getItem("portalRole");
+    return stored === "Student" || stored === "Instructor" || stored === "Staff" ? stored : "Instructor";
+  });
+  const profile = useMemo(() => getProfile(account, selectedRole), [account, selectedRole]);
+  const activeRole = profile?.portalRole ?? selectedRole;
+  const currentRoleContent = roleContent[activeRole];
   const auth = account ? { instance, account } : undefined;
-  const [tab, setTab] = useState<Tab>("jobs");
+  const [tab, setTab] = useState<Tab>("dashboard");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
   const [adminApplications, setAdminApplications] = useState<ApplicationRecord[]>([]);
@@ -105,6 +190,13 @@ export function App() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [health, setHealth] = useState<PortalHealth | null>(null);
+  const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("savedInstructorJobs") ?? "[]") as string[];
+    } catch {
+      return [];
+    }
+  });
   const [loading, setLoading] = useState(false);
 
   async function refreshJobs() {
@@ -183,6 +275,25 @@ export function App() {
     await instance.logoutRedirect();
   }
 
+  function openTab(nextTab: Tab) {
+    setTab(nextTab);
+    setMenuOpen(false);
+  }
+
+  function toggleSavedJob(jobId: string) {
+    setSavedJobIds((current) => {
+      const next = current.includes(jobId) ? current.filter((id) => id !== jobId) : [...current, jobId];
+      localStorage.setItem("savedInstructorJobs", JSON.stringify(next));
+      return next;
+    });
+  }
+
+  function changeRole(role: PortalRole) {
+    localStorage.setItem("portalRole", role);
+    setSelectedRole(role);
+    setTab("dashboard");
+  }
+
   async function submitApplication(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!auth) {
@@ -240,6 +351,9 @@ export function App() {
   const liveJobs = jobs.filter((job) => job.status === "Live");
   const displayJobs = liveJobs.length ? liveJobs : fallbackJobs;
   const selectedJob = displayJobs.find((job) => job.id === selectedJobId) ?? displayJobs[0];
+  const savedJobs = displayJobs.filter((job) => savedJobIds.includes(job.id));
+  const setupComplete = health ? setupSteps.length - health.missingSettings.length : 2;
+  const pipelineCount = profile?.isAdmin ? adminApplications.length : applications.length;
 
   return (
     <div className="app-shell">
@@ -251,18 +365,26 @@ export function App() {
             <span>Instructor Portal</span>
           </div>
         </div>
-        <nav>
-          <button className={tab === "jobs" ? "active" : ""} onClick={() => setTab("jobs")}>Jobs</button>
-          <button className={tab === "apply" ? "active" : ""} onClick={() => setTab("apply")}>Apply</button>
-          {profile && <button className={tab === "my" ? "active" : ""} onClick={() => setTab("my")}>My Applications</button>}
-          {profile?.isAdmin && <button className={tab === "admin" ? "active" : ""} onClick={() => setTab("admin")}>Admin</button>}
+        <button className="menu-toggle" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen}>
+          Menu
+        </button>
+        <nav className={menuOpen ? "open" : ""}>
+          <button className={tab === "dashboard" ? "active" : ""} onClick={() => openTab("dashboard")}>Dashboard</button>
+          <button className={tab === "jobs" ? "active" : ""} onClick={() => openTab("jobs")}>Jobs</button>
+          <button className={tab === "apply" ? "active" : ""} onClick={() => openTab("apply")}>Apply</button>
+          {profile && <button className={tab === "my" ? "active" : ""} onClick={() => openTab("my")}>My Applications</button>}
+          <button className={tab === "profile" ? "active" : ""} onClick={() => openTab("profile")}>Profile</button>
+          <button className={tab === "updates" ? "active" : ""} onClick={() => openTab("updates")}>Updates</button>
+          <button className={tab === "resources" ? "active" : ""} onClick={() => openTab("resources")}>Resources</button>
+          <button className={tab === "settings" ? "active" : ""} onClick={() => openTab("settings")}>Settings</button>
+          {(profile?.isAdmin || activeRole === "Staff") && <button className={tab === "admin" ? "active" : ""} onClick={() => openTab("admin")}>Staff</button>}
         </nav>
         <div className="identity">
           {profile ? (
             <>
               <strong>{profile.name}</strong>
               <span>{profile.username}</span>
-              {profile.isAdmin && <em>Portal.Admin</em>}
+              <em>{profile.isAdmin ? "Portal.Admin" : activeRole}</em>
               <button onClick={signOut}>Sign out</button>
             </>
           ) : (
@@ -277,13 +399,14 @@ export function App() {
       <main>
         <header className="hero">
           <div>
-            <p>Instructor onboarding and job posting</p>
-            <h1>Recruit, approve, and onboard instructors with Microsoft identity and SharePoint records.</h1>
+            <p>{activeRole} workspace</p>
+            <h1>{currentRoleContent.headline}</h1>
+            <span className="hero-copy">Recruit, approve, and onboard instructors with Microsoft identity, Azure Functions, and SharePoint records.</span>
           </div>
           <div className="hero-metrics">
             <div><span>Live roles</span><strong>{liveJobs.length}</strong></div>
-            <div><span>Applications</span><strong>{profile?.isAdmin ? adminApplications.length : applications.length}</strong></div>
-            <div><span>Tasks</span><strong>{tasks.length}</strong></div>
+            <div><span>Pipeline</span><strong>{pipelineCount}</strong></div>
+            <div><span>Saved</span><strong>{savedJobIds.length}</strong></div>
           </div>
         </header>
 
@@ -292,6 +415,58 @@ export function App() {
           <div className="alert warning">
             API setup is almost complete. Missing Azure setting: {health.missingSettings.join(", ")}.
           </div>
+        )}
+
+        {tab === "dashboard" && (
+          <section className="dashboard-grid">
+            <div className="command-panel">
+              <div className="section-head">
+                <h2>Today</h2>
+                <button onClick={() => openTab("apply")}>Start application</button>
+              </div>
+              <div className="role-switcher" aria-label="Portal role">
+                {(["Student", "Instructor", "Staff"] as PortalRole[]).map((role) => (
+                  <button className={activeRole === role ? "selected" : ""} onClick={() => changeRole(role)} key={role}>
+                    {role}
+                  </button>
+                ))}
+              </div>
+              <div className="timeline">
+                {currentRoleContent.focus.map((item) => (
+                  <div key={item}><strong>{item}</strong><span>{displayJobs.length} live opportunities and portal actions are available for this role.</span></div>
+                ))}
+              </div>
+            </div>
+            <div className="command-panel">
+              <div className="section-head">
+                <h2>Setup Status</h2>
+                <span className="pill">{setupComplete}/{setupSteps.length}</span>
+              </div>
+              <div className="setup-list">
+                {setupSteps.map((step, index) => (
+                  <div className={index < setupComplete ? "complete" : ""} key={step}>
+                    <span>{index + 1}</span>
+                    <strong>{step}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="command-panel wide">
+              <div className="section-head">
+                <h2>Quick actions</h2>
+                <button onClick={() => openTab("jobs")}>Browse roles</button>
+              </div>
+              <div className="mini-grid">
+                {currentRoleContent.quickActions.map((action) => (
+                  <article className="mini-card" key={action.label}>
+                    <strong>{action.label}</strong>
+                    <span>{activeRole} workspace</span>
+                    <button onClick={() => openTab(action.tab)}>Open</button>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
         )}
 
         {tab === "jobs" && (
@@ -313,7 +488,12 @@ export function App() {
                     <div><dt>Rate</dt><dd>{job.rateBand || "To be confirmed"}</dd></div>
                     <div><dt>Closing</dt><dd>{job.closingDate || "Open until filled"}</dd></div>
                   </dl>
-                  <button onClick={() => { setSelectedJobId(job.id); setTab("apply"); }}>Apply for this role</button>
+                  <div className="button-row">
+                    <button onClick={() => { setSelectedJobId(job.id); openTab("apply"); }}>Apply for this role</button>
+                    <button className="secondary-action" onClick={() => toggleSavedJob(job.id)}>
+                      {savedJobIds.includes(job.id) ? "Saved" : "Save"}
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
@@ -354,11 +534,139 @@ export function App() {
 
         {tab === "my" && (
           <section>
-            <h2>My applications</h2>
+            <div className="section-head">
+              <h2>My applications</h2>
+              <button onClick={() => run(refreshUserData)}>Refresh</button>
+            </div>
             <DataTable
               headers={["Role", "Status", "Submitted", "Owner"]}
               rows={applications.map((item) => [item.jobTitle, item.status, new Date(item.submittedAt).toLocaleDateString(), item.owner || "Unassigned"])}
             />
+          </section>
+        )}
+
+        {tab === "resources" && (
+          <section>
+            <div className="section-head">
+              <h2>Instructor resources</h2>
+              <button onClick={() => openTab("apply")}>Apply</button>
+            </div>
+            <div className="card-grid">
+              {onboardingResources.map((item) => (
+                <article className="card compact" key={item.title}>
+                  <h3>{item.title}</h3>
+                  <p>{item.detail}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {tab === "profile" && (
+          <section className="dashboard-grid">
+            <div className="command-panel">
+              <h2>User profile</h2>
+              <dl>
+                <div><dt>Name</dt><dd>{profile?.name ?? "Guest applicant"}</dd></div>
+                <div><dt>Email</dt><dd>{profile?.username ?? "Sign in to connect profile"}</dd></div>
+                <div><dt>Portal role</dt><dd>{activeRole}</dd></div>
+                <div><dt>Tenant</dt><dd>{profile?.tenantId ?? "Not signed in"}</dd></div>
+              </dl>
+            </div>
+            <div className="command-panel">
+              <h2>Role preferences</h2>
+              <div className="role-switcher vertical">
+                {(["Student", "Instructor", "Staff"] as PortalRole[]).map((role) => (
+                  <button className={activeRole === role ? "selected" : ""} onClick={() => changeRole(role)} key={role}>
+                    {role}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="command-panel wide">
+              <h2>Saved roles</h2>
+              <div className="mini-grid">
+                {(savedJobs.length ? savedJobs : displayJobs.slice(0, 3)).map((job) => (
+                  <article className="mini-card" key={job.id}>
+                    <strong>{job.title}</strong>
+                    <span>{job.programme} · {job.modality}</span>
+                    <button onClick={() => { setSelectedJobId(job.id); openTab("apply"); }}>Apply</button>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {tab === "updates" && (
+          <section>
+            <div className="section-head">
+              <h2>{activeRole} updates</h2>
+              <button onClick={() => openTab("settings")}>System status</button>
+            </div>
+            <div className="card-grid">
+              {currentRoleContent.updates.map((item) => (
+                <article className="card compact" key={item.title}>
+                  <h3>{item.title}</h3>
+                  <p>{item.detail}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {tab === "settings" && (
+          <section className="dashboard-grid">
+            <div className="command-panel">
+              <h2>Portal status</h2>
+              <dl>
+                <div><dt>API</dt><dd>{health?.ok ? "Online" : "Checking"}</dd></div>
+                <div><dt>Missing settings</dt><dd>{health?.missingSettings.length ? health.missingSettings.join(", ") : "None"}</dd></div>
+                <div><dt>Allowed origins</dt><dd>{health?.allowedOrigins.length ?? 0}</dd></div>
+              </dl>
+            </div>
+            <div className="command-panel">
+              <h2>Account</h2>
+              <dl>
+                <div><dt>Name</dt><dd>{profile?.name ?? "Not signed in"}</dd></div>
+                <div><dt>Email</dt><dd>{profile?.username ?? "Sign in to view"}</dd></div>
+                <div><dt>Role</dt><dd>{profile?.isAdmin ? "Portal.Admin" : activeRole}</dd></div>
+              </dl>
+            </div>
+            <div className="command-panel">
+              <h2>Role mode</h2>
+              <div className="role-switcher vertical">
+                {(["Student", "Instructor", "Staff"] as PortalRole[]).map((role) => (
+                  <button className={activeRole === role ? "selected" : ""} onClick={() => changeRole(role)} key={role}>
+                    {role}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="command-panel wide">
+              <h2>Connected routes</h2>
+              <div className="route-list">
+                {(health?.routes ?? ["GET /api/health", "GET /api/jobs"]).map((route) => <span key={route}>{route}</span>)}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {tab === "admin" && !profile?.isAdmin && (
+          <section className="dashboard-grid">
+            <div className="command-panel">
+              <h2>Staff workspace</h2>
+              <p className="panel-copy">Staff tools are ready, but operational actions require the `Portal.Admin` app role in Microsoft Entra.</p>
+              <button onClick={() => openTab("settings")}>Check portal settings</button>
+            </div>
+            <div className="command-panel">
+              <h2>Available now</h2>
+              <div className="timeline">
+                <div><strong>View public roles</strong><span>Confirm published opportunities and applicant-facing content.</span></div>
+                <div><strong>Check system health</strong><span>Review API routes, origins, and configuration status.</span></div>
+                <div><strong>Prepare resources</strong><span>Review onboarding materials before admin access is granted.</span></div>
+              </div>
+            </div>
           </section>
         )}
 

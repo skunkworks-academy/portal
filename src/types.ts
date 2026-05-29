@@ -1,6 +1,7 @@
 export type JobStatus = "Draft" | "Live" | "Closed";
 export type ApplicationStatus = "Submitted" | "Screening" | "Interview" | "Offer" | "Rejected";
 export type TaskStatus = "Due" | "InProgress" | "Ready" | "Complete";
+export type PortalRole = "Student" | "Instructor" | "Staff";
 
 export interface JobPosting {
   id: string;
@@ -68,6 +69,7 @@ export interface UserProfile {
   tenantId?: string;
   roles: string[];
   isAdmin: boolean;
+  portalRole: PortalRole;
 }
 
 export interface PortalHealth {

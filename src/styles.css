@@ -78,6 +78,13 @@ nav button.active {
   color: #fff;
   background: rgba(255,255,255,.1);
 }
+.menu-toggle {
+  display: none;
+  width: 100%;
+  color: #fff;
+  background: rgba(255,255,255,.1);
+  border-color: rgba(255,255,255,.16);
+}
 .identity {
   margin-top: auto;
   padding: 14px;
@@ -105,8 +112,16 @@ main { min-width: 0; padding: 28px; }
 }
 .hero p { margin: 0 0 8px; color: var(--teal); font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: 12px; }
 .hero h1 { margin: 0; max-width: 920px; font-size: clamp(28px, 5vw, 48px); line-height: 1.02; letter-spacing: 0; }
+.hero-copy {
+  display: block;
+  max-width: 760px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.5;
+}
 .hero-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.hero-metrics div, .card, .form-panel, .table-wrap {
+.hero-metrics div, .card, .form-panel, .table-wrap, .command-panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -131,6 +146,77 @@ main { min-width: 0; padding: 28px; }
   justify-content: space-between;
   gap: 14px;
 }
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, .9fr) minmax(300px, .9fr);
+  gap: 16px;
+  align-items: start;
+}
+.command-panel {
+  padding: 18px;
+  display: grid;
+  gap: 14px;
+}
+.command-panel.wide { grid-column: 1 / -1; }
+.timeline, .setup-list, .route-list {
+  display: grid;
+  gap: 10px;
+}
+.timeline div {
+  padding-left: 14px;
+  border-left: 3px solid var(--teal);
+}
+.timeline strong, .timeline span {
+  display: block;
+}
+.timeline span {
+  margin-top: 3px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.setup-list div {
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+.setup-list span {
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--muted);
+  background: #edf2f6;
+  font-size: 12px;
+  font-weight: 850;
+}
+.setup-list .complete span {
+  color: #fff;
+  background: var(--teal);
+}
+.mini-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.mini-card {
+  display: grid;
+  gap: 8px;
+  min-height: 132px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcfd;
+}
+.mini-card span {
+  color: var(--muted);
+  line-height: 1.4;
+}
 h2 { margin: 0 0 14px; font-size: 22px; }
 h3 { margin: 0; font-size: 18px; }
 .card-grid {
@@ -141,6 +227,22 @@ h3 { margin: 0; font-size: 18px; }
 .card { padding: 17px; display: grid; gap: 12px; }
 .card.compact { gap: 10px; }
 .card p { margin: 0; color: var(--muted); line-height: 1.5; }
+.panel-copy {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.button-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.secondary-action {
+  color: var(--teal);
+  background: #fff;
+  border-color: #bdded8;
+}
 .pill {
   display: inline-flex;
   min-height: 28px;
@@ -179,7 +281,7 @@ label {
   gap: 8px;
   margin-top: -2px;
 }
-.discipline-picks button {
+.discipline-picks button, .role-switcher button {
   min-height: 34px;
   padding: 0 10px;
   color: var(--teal);
@@ -188,10 +290,19 @@ label {
   font-size: 12px;
   font-weight: 750;
 }
-.discipline-picks button.selected {
+.discipline-picks button.selected, .role-switcher button.selected {
   color: #fff;
   background: var(--teal);
   border-color: var(--teal);
+}
+.role-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.role-switcher.vertical {
+  display: grid;
+  grid-template-columns: 1fr;
 }
 .admin-grid {
   display: grid;
@@ -204,6 +315,19 @@ label {
   display: grid;
   grid-template-columns: 150px minmax(140px, 1fr) auto;
   gap: 8px;
+}
+.route-list {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+.route-list span {
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  background: #fbfcfd;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 .table-wrap { overflow: auto; }
 table { width: 100%; border-collapse: collapse; min-width: 620px; }
@@ -232,13 +356,15 @@ th { color: var(--muted); background: #fbfcfd; text-transform: uppercase; letter
     gap: 14px;
   }
   .brand { align-items: center; }
+  .menu-toggle { display: block; }
   nav {
-    display: flex;
+    display: none;
     gap: 8px;
     overflow-x: auto;
     padding-bottom: 2px;
     scrollbar-width: thin;
   }
+  nav.open { display: flex; }
   nav button {
     min-width: max-content;
     width: auto;
@@ -254,7 +380,8 @@ th { color: var(--muted); background: #fbfcfd; text-transform: uppercase; letter
     align-items: center;
   }
   .identity button { width: auto; min-width: 110px; text-align: center; }
-  .hero, .admin-grid { grid-template-columns: 1fr; }
+  .hero, .admin-grid, .dashboard-grid { grid-template-columns: 1fr; }
+  .mini-grid { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 640px) {
@@ -269,6 +396,7 @@ th { color: var(--muted); background: #fbfcfd; text-transform: uppercase; letter
   .identity button { width: 100%; }
   .hero { gap: 14px; margin-bottom: 16px; }
   .hero h1 { font-size: 30px; line-height: 1.08; }
+  .hero-copy { font-size: 14px; }
   .hero-metrics div { padding: 12px; }
   .hero-metrics strong { font-size: 24px; }
   .section-head {
@@ -278,7 +406,10 @@ th { color: var(--muted); background: #fbfcfd; text-transform: uppercase; letter
   .section-head button { width: 100%; }
   .card-grid { grid-template-columns: 1fr; gap: 12px; }
   .card, .form-panel { padding: 14px; }
+  .command-panel { padding: 14px; }
   .hero-metrics, form, .inline-fields { grid-template-columns: 1fr; }
+  .button-row { grid-template-columns: 1fr; }
+  .secondary-action { width: 100%; }
   .discipline-picks {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
