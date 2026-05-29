@@ -1,6 +1,6 @@
 import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser";
 import { apiScope } from "./authConfig";
-import type { ApplicationRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
+import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -44,12 +44,24 @@ async function request<T>(
 export const portalApi = {
   health: () => request<PortalHealth>("/health"),
   jobs: () => request<JobPosting[]>("/jobs"),
+  courses: () => request<CourseRecord[]>("/courses"),
+  classes: () => request<ClassSession[]>("/classes"),
+  registerClass: (id: string, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
+    request<ClassRegistrationRecord>(`/classes/${id}/register`, { method: "POST" }, auth),
+  myClasses: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
+    request<ClassRegistrationRecord[]>("/me/classes", {}, auth),
   myProfile: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<PortalProfile | null>("/me/profile", {}, auth),
   updateProfile: (payload: PortalProfileInput, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<PortalProfile>("/me/profile", { method: "PATCH", body: JSON.stringify(payload) }, auth),
   adminProfiles: (auth: { instance: IPublicClientApplication; account: AccountInfo }, role?: PortalRole) =>
     request<PortalProfile[]>(`/admin/profiles${role ? `?role=${encodeURIComponent(role)}` : ""}`, {}, auth),
+  adminClassRegistrations: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
+    request<ClassRegistrationRecord[]>("/admin/class-registrations", {}, auth),
+  createClass: (payload: ClassInput, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
+    request<ClassSession>("/admin/classes", { method: "POST", body: JSON.stringify(payload) }, auth),
+  updateClass: (id: string, payload: Partial<ClassInput>, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
+    request<ClassSession>(`/admin/classes/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth),
   submitApplication: (
     payload: NewApplication,
     auth: { instance: IPublicClientApplication; account: AccountInfo }
