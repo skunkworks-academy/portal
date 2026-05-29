@@ -207,6 +207,20 @@ function toPortalProfile(item: { id: string; fields: Record<string, unknown> }):
   };
 }
 
+function classFields(input: ClassInput, enrolled = 0) {
+  return {
+    Title: input.title,
+    CourseId: input.courseId,
+    CourseTitle: input.courseTitle,
+    Schedule: input.schedule,
+    Modality: input.modality,
+    Instructor: input.instructor,
+    Seats: input.seats,
+    Enrolled: enrolled,
+    Status: input.status
+  };
+}
+
 export async function getLiveJobs() {
   const result = await listItems("JobPostings", "fields/Status eq 'Live'");
   return result.value.map(toJob);
@@ -256,22 +270,19 @@ export async function getClasses() {
 }
 
 export async function createClass(input: ClassInput, principal: Principal) {
-  const item = await createItem("ClassSessions", {
-    Title: input.title,
-    CourseId: input.courseId,
-    CourseTitle: input.courseTitle,
-    Schedule: input.schedule,
-    Modality: input.modality,
-    Instructor: input.instructor,
-    Seats: input.seats,
-    Enrolled: 0,
-    Status: input.status
-  });
+  const item = await createItem("ClassSessions", classFields(input));
   await audit("ClassCreated", principal, item.id);
   return toClassSession(item);
 }
 
 export async function updateClass(id: string, input: Partial<ClassInput>, principal: Principal) {
+  const fallbackClass = fallbackClasses.find((item) => item.id === id);
+  if (fallbackClass) {
+    const item = await createItem("ClassSessions", classFields({ ...fallbackClass, ...input }, fallbackClass.enrolled));
+    await audit("ClassMaterialized", principal, item.id);
+    return toClassSession(item);
+  }
+
   const fields: Record<string, unknown> = {};
   if (input.title !== undefined) fields.Title = input.title;
   if (input.courseId !== undefined) fields.CourseId = input.courseId;
