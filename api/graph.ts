@@ -1,7 +1,7 @@
 import { ClientSecretCredential } from "@azure/identity";
 import { config, requireSettings } from "./config.js";
 import { HttpError } from "./http.js";
-import type { ApplicationRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalProfile, PortalProfileInput } from "../src/types.js";
+import type { ApplicationRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalProfile, PortalProfileInput, PortalRole } from "../src/types.js";
 import type { Principal } from "./auth.js";
 
 const graphRoot = "https://graph.microsoft.com/v1.0";
@@ -92,6 +92,10 @@ function text(value: unknown) {
 
 function number(value: unknown) {
   return Number(value ?? 0);
+}
+
+function escapeOData(value: string) {
+  return value.replaceAll("'", "''");
 }
 
 function toJob(item: { id: string; fields: Record<string, unknown> }): JobPosting {
@@ -227,7 +231,7 @@ export async function createApplication(input: NewApplication, principal: Princi
 }
 
 export async function getMyApplications(principal: Principal) {
-  const result = await listItems("Applications", `fields/ApplicantObjectId eq '${principal.subject.replaceAll("'", "''")}'`);
+  const result = await listItems("Applications", `fields/ApplicantObjectId eq '${escapeOData(principal.subject)}'`);
   return result.value.map(toApplication);
 }
 
@@ -264,10 +268,15 @@ export async function updateTask(id: string, input: Partial<OnboardingTask>, pri
 }
 
 export async function getMyProfile(principal: Principal) {
-  const result = await listItems("PortalProfiles", `fields/ObjectId eq '${principal.subject.replaceAll("'", "''")}'`);
+  const result = await listItems("PortalProfiles", `fields/ObjectId eq '${escapeOData(principal.subject)}'`);
   const existing = result.value[0];
   if (existing) return toPortalProfile(existing);
   return null;
+}
+
+export async function getProfiles(role?: PortalRole) {
+  const result = await listItems("PortalProfiles", role ? `fields/PortalRole eq '${escapeOData(role)}'` : undefined);
+  return result.value.map(toPortalProfile);
 }
 
 export async function upsertMyProfile(input: PortalProfileInput, principal: Principal) {
