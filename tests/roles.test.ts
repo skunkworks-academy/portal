@@ -3,8 +3,8 @@ import { canAccess, roleDefinitions, type Tab } from "../src/roles";
 import type { PortalRole } from "../src/types";
 
 const forbiddenTabs: Record<PortalRole, Tab[]> = {
-  Student: ["jobs", "applications", "staff"],
-  Instructor: ["courses", "register", "staff"],
+  Student: ["jobs", "applications", "staff", "instructors", "students", "settings"],
+  Instructor: ["courses", "register", "staff", "instructors", "students", "settings"],
   Staff: ["courses", "register"]
 };
 
@@ -25,10 +25,12 @@ describe("role access configuration", () => {
     }
   });
 
-  it("allows staff operations only to staff role or admin users", () => {
-    expect(canAccess("Student", "staff", false)).toBe(false);
-    expect(canAccess("Instructor", "staff", false)).toBe(false);
-    expect(canAccess("Student", "staff", true)).toBe(true);
-    expect(canAccess("Staff", "staff", false)).toBe(true);
+  it("allows staff monitoring tabs only to staff role or admin users", () => {
+    for (const tab of ["staff", "instructors", "students", "settings"] as Tab[]) {
+      expect(canAccess("Student", tab, false)).toBe(false);
+      expect(canAccess("Instructor", tab, false)).toBe(false);
+      expect(canAccess("Student", tab, true)).toBe(true);
+      expect(canAccess("Staff", tab, false)).toBe(true);
+    }
   });
 });
