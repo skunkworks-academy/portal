@@ -1,5 +1,6 @@
 import { ClientSecretCredential } from "@azure/identity";
 import { config, requireSettings } from "./config.js";
+import { fallbackClasses, fallbackCourses } from "./fallbackData.js";
 import { HttpError } from "./http.js";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalProfile, PortalProfileInput, PortalRole } from "../src/types.js";
 import type { Principal } from "./auth.js";
@@ -244,12 +245,14 @@ export async function updateJob(id: string, input: Partial<JobInput>) {
 
 export async function getCourses() {
   const result = await listItems("Courses", "fields/Status eq 'Live'");
-  return result.value.map(toCourse);
+  const courses = result.value.map(toCourse);
+  return courses.length ? courses : fallbackCourses;
 }
 
 export async function getClasses() {
   const result = await listItems("ClassSessions");
-  return result.value.map(toClassSession);
+  const classes = result.value.map(toClassSession);
+  return classes.length ? classes : fallbackClasses;
 }
 
 export async function createClass(input: ClassInput, principal: Principal) {
@@ -294,8 +297,10 @@ export async function getClassRegistrations() {
 }
 
 export async function registerForClass(classId: string, principal: Principal) {
-  const classes = await getClasses();
-  const classSession = classes.find((item) => item.id === classId);
+  const classItems = await listItems("ClassSessions");
+  const sharePointClasses = classItems.value.map(toClassSession);
+  const classSession = sharePointClasses.find((item) => item.id === classId) ?? fallbackClasses.find((item) => item.id === classId);
+  const isSharePointClass = sharePointClasses.some((item) => item.id === classSession?.id);
   if (!classSession || !["Scheduled", "Open"].includes(classSession.status)) throw new HttpError(400, "Selected class is not open for registration.");
 
   const existing = await listItems("ClassRegistrations", `fields/ClassId eq '${escapeOData(classId)}' and fields/StudentObjectId eq '${escapeOData(principal.subject)}'`);
@@ -315,7 +320,7 @@ export async function registerForClass(classId: string, principal: Principal) {
     RegisteredAt: new Date().toISOString()
   });
 
-  if (!isFull) {
+  if (isSharePointClass && !isFull) {
     await patchItem("ClassSessions", classSession.id, {
       Enrolled: classSession.enrolled + 1,
       Status: classSession.enrolled + 1 >= classSession.seats ? "Full" : classSession.status
