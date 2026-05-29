@@ -9,6 +9,7 @@
     "build": "tsc -b && vite build",
     "build:api": "tsc -p tsconfig.api.json",
     "provision:sharepoint": "tsx scripts/provision-sharepoint.ts",
+    "teams:icons": "tsx scripts/generate-teams-icons.ts",
     "preview": "vite preview",
     "api:start": "func start --typescript",
     "test": "vitest run"
