@@ -1,6 +1,6 @@
 import { app, type HttpRequest, type InvocationContext } from "@azure/functions";
 import { config, missingSettings } from "./config.js";
-import { requireAdmin, requireInstructor } from "./auth.js";
+import { requireAdmin, requireInstructor, requireUser } from "./auth.js";
 import { fallbackJobs } from "./fallbackData.js";
 import { empty, failure, json, readJson } from "./http.js";
 import {
@@ -9,12 +9,14 @@ import {
   getApplications,
   getLiveJobs,
   getMyApplications,
+  getMyProfile,
   getTasks,
   updateApplication,
   updateJob,
-  updateTask
+  updateTask,
+  upsertMyProfile
 } from "./graph.js";
-import type { ApplicationRecord, JobInput, NewApplication, OnboardingTask } from "../src/types.js";
+import type { ApplicationRecord, JobInput, NewApplication, OnboardingTask, PortalProfileInput } from "../src/types.js";
 
 app.http("cors", {
   methods: ["OPTIONS"],
@@ -43,6 +45,8 @@ app.http("health", {
     routes: [
       "GET /api/health",
       "GET /api/jobs",
+      "GET /api/me/profile",
+      "PATCH /api/me/profile",
       "POST /api/applications",
       "GET /api/me/applications",
       "GET /api/admin/applications",
@@ -67,6 +71,27 @@ app.http("getJobs", {
       return json(request, fallbackJobs);
     }
   }
+});
+
+app.http("myProfile", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "me/profile",
+  handler: async (request, context) => handle(request, context, async () => {
+    const principal = await requireUser(request);
+    return json(request, await getMyProfile(principal));
+  })
+});
+
+app.http("updateMyProfile", {
+  methods: ["PATCH"],
+  authLevel: "anonymous",
+  route: "me/profile",
+  handler: async (request, context) => handle(request, context, async () => {
+    const principal = await requireUser(request);
+    const payload = await readJson<PortalProfileInput>(request);
+    return json(request, await upsertMyProfile(payload, principal));
+  })
 });
 
 app.http("submitApplication", {
