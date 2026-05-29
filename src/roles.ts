@@ -86,10 +86,9 @@ export const roleDefinitions: Record<PortalRole, RoleDefinition> = {
   }
 };
 
-export function roleFromClaims(roles: string[], isTrustedTenant: boolean): PortalRole {
-  if (!isTrustedTenant) return "Student";
+export function roleFromClaims(roles: string[], hasStaffAccess: boolean): PortalRole {
   const normalizedRoles = roles.map((role) => role.toLowerCase());
-  if (normalizedRoles.includes("portal.admin") || normalizedRoles.includes("portal.staff")) return "Staff";
+  if (hasStaffAccess) return "Staff";
   if (normalizedRoles.includes("portal.instructor")) return "Instructor";
   return "Student";
 }
