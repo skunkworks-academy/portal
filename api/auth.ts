@@ -40,10 +40,21 @@ export async function requireUser(request: HttpRequest): Promise<Principal> {
   };
 }
 
+function hasRole(principal: Principal, roles: string[]) {
+  return principal.tenantId === config.entraTenantId && roles.some((role) => principal.roles.includes(role));
+}
+
+export async function requireInstructor(request: HttpRequest): Promise<Principal> {
+  const principal = await requireUser(request);
+  if (!hasRole(principal, ["Portal.Instructor", "Portal.Staff", "Portal.Admin"])) {
+    throw new HttpError(403, "Portal.Instructor access in the Skunkworks tenant is required.");
+  }
+  return principal;
+}
+
 export async function requireAdmin(request: HttpRequest): Promise<Principal> {
   const principal = await requireUser(request);
-  const hasStaffAccess = principal.roles.includes("Portal.Admin") || principal.roles.includes("Portal.Staff");
-  if (principal.tenantId !== config.entraTenantId || !hasStaffAccess) {
+  if (!hasRole(principal, ["Portal.Admin", "Portal.Staff"])) {
     throw new HttpError(403, "Portal.Admin or Portal.Staff access in the Skunkworks tenant is required.");
   }
   return principal;
