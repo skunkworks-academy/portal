@@ -143,9 +143,10 @@ textarea { min-height: 110px; resize: vertical; }
   display: grid;
   place-items: center;
   border-radius: 8px;
-  color: #071018;
-  background: linear-gradient(135deg, #13a89e, #e6a933);
-  font-weight: 850;
+  color: transparent;
+  background: #f8fafc url("/logo.svg") center/contain no-repeat;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.24);
+  font-size: 0;
 }
 .brand strong, .identity strong { display: block; }
 .brand span, .identity span { display: block; color: #b5c3d0; font-size: 13px; margin-top: 3px; overflow-wrap: anywhere; }
