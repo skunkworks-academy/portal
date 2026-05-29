@@ -1,23 +1,30 @@
 import { app, type HttpRequest, type InvocationContext } from "@azure/functions";
 import { config, missingSettings } from "./config.js";
-import { requireAdmin, requireInstructor, requireUser } from "./auth.js";
+import { requireAdmin, requireInstructor, requireStudent, requireUser } from "./auth.js";
 import { fallbackJobs } from "./fallbackData.js";
 import { empty, failure, json, readJson } from "./http.js";
 import {
   createApplication,
+  createClass,
   createJob,
   getApplications,
+  getClassRegistrations,
+  getClasses,
+  getCourses,
   getLiveJobs,
   getMyApplications,
+  getMyClassRegistrations,
   getMyProfile,
   getProfiles,
   getTasks,
+  registerForClass,
   updateApplication,
+  updateClass,
   updateJob,
   updateTask,
   upsertMyProfile
 } from "./graph.js";
-import type { ApplicationRecord, JobInput, NewApplication, OnboardingTask, PortalProfileInput, PortalRole } from "../src/types.js";
+import type { ApplicationRecord, ClassInput, JobInput, NewApplication, OnboardingTask, PortalProfileInput, PortalRole } from "../src/types.js";
 
 app.http("cors", {
   methods: ["OPTIONS"],
@@ -46,12 +53,19 @@ app.http("health", {
     routes: [
       "GET /api/health",
       "GET /api/jobs",
+      "GET /api/courses",
+      "GET /api/classes",
+      "POST /api/classes/{id}/register",
+      "GET /api/me/classes",
       "GET /api/me/profile",
       "PATCH /api/me/profile",
       "POST /api/applications",
       "GET /api/me/applications",
       "GET /api/admin/applications",
       "GET /api/admin/profiles",
+      "GET /api/admin/class-registrations",
+      "POST /api/admin/classes",
+      "PATCH /api/admin/classes/{id}",
       "PATCH /api/admin/applications/{id}",
       "POST /api/admin/jobs",
       "PATCH /api/admin/jobs/{id}",
@@ -73,6 +87,40 @@ app.http("getJobs", {
       return json(request, fallbackJobs);
     }
   }
+});
+
+app.http("getCourses", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "courses",
+  handler: async (request, context) => handle(request, context, async () => json(request, await getCourses()))
+});
+
+app.http("getClasses", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "classes",
+  handler: async (request, context) => handle(request, context, async () => json(request, await getClasses()))
+});
+
+app.http("registerClass", {
+  methods: ["POST"],
+  authLevel: "anonymous",
+  route: "classes/{id}/register",
+  handler: async (request, context) => handle(request, context, async () => {
+    const principal = await requireStudent(request);
+    return json(request, await registerForClass(request.params.id, principal), 201);
+  })
+});
+
+app.http("myClasses", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "me/classes",
+  handler: async (request, context) => handle(request, context, async () => {
+    const principal = await requireStudent(request);
+    return json(request, await getMyClassRegistrations(principal));
+  })
 });
 
 app.http("myProfile", {
@@ -135,6 +183,38 @@ app.http("adminProfiles", {
     await requireAdmin(request);
     const role = request.query.get("role") as PortalRole | null;
     return json(request, await getProfiles(role ?? undefined));
+  })
+});
+
+app.http("adminClassRegistrations", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "admin/class-registrations",
+  handler: async (request, context) => handle(request, context, async () => {
+    await requireAdmin(request);
+    return json(request, await getClassRegistrations());
+  })
+});
+
+app.http("adminClassCreate", {
+  methods: ["POST"],
+  authLevel: "anonymous",
+  route: "admin/classes",
+  handler: async (request, context) => handle(request, context, async () => {
+    const principal = await requireAdmin(request);
+    const payload = await readJson<ClassInput>(request);
+    return json(request, await createClass(payload, principal), 201);
+  })
+});
+
+app.http("adminClassUpdate", {
+  methods: ["PATCH"],
+  authLevel: "anonymous",
+  route: "admin/classes/{id}",
+  handler: async (request, context) => handle(request, context, async () => {
+    const principal = await requireAdmin(request);
+    const payload = await readJson<Partial<ClassInput>>(request);
+    return json(request, await updateClass(request.params.id, payload, principal));
   })
 });
 
