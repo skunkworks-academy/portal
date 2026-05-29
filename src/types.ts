@@ -72,6 +72,30 @@ export interface UserProfile {
   portalRole: PortalRole;
 }
 
+export interface PortalProfile {
+  id: string;
+  objectId: string;
+  displayName: string;
+  email: string;
+  portalRole: PortalRole;
+  phone: string;
+  location: string;
+  bio: string;
+  cvFileName: string;
+  cvDocumentUrl?: string;
+  updatedAt: string;
+}
+
+export interface PortalProfileInput {
+  displayName: string;
+  portalRole: PortalRole;
+  phone: string;
+  location: string;
+  bio: string;
+  cvFileName?: string;
+  cvBase64?: string;
+}
+
 export interface PortalHealth {
   ok: boolean;
   service: string;
