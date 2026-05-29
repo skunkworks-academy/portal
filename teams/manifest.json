@@ -1,0 +1,48 @@
+{
+  "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.17",
+  "version": "1.0.0",
+  "id": "00000000-0000-0000-0000-000000000000",
+  "developer": {
+    "name": "Skunkworks Academy",
+    "websiteUrl": "https://portal.skunkworksacademy.com",
+    "privacyUrl": "https://portal.skunkworksacademy.com/privacystatement/",
+    "termsOfUseUrl": "https://portal.skunkworksacademy.com/termsofservice/"
+  },
+  "name": {
+    "short": "Academy Portal",
+    "full": "Skunkworks Academy Portal"
+  },
+  "description": {
+    "short": "Role-based academy portal for students, instructors, and staff.",
+    "full": "Skunkworks Academy Portal provides Microsoft Entra authenticated access for students, instructors, and staff to manage courses, class registration, instructor applications, job postings, scheduling, onboarding, and operational monitoring."
+  },
+  "icons": {
+    "outline": "outline.png",
+    "color": "color.png"
+  },
+  "accentColor": "0F766E",
+  "staticTabs": [
+    {
+      "entityId": "skunkworks-academy-portal",
+      "name": "Portal",
+      "contentUrl": "https://portal.skunkworksacademy.com/",
+      "websiteUrl": "https://portal.skunkworksacademy.com/",
+      "scopes": ["personal"]
+    }
+  ],
+  "validDomains": [
+    "portal.skunkworksacademy.com",
+    "skunkworks-academy.github.io",
+    "login.microsoftonline.com"
+  ],
+  "webApplicationInfo": {
+    "id": "00000000-0000-0000-0000-000000000000",
+    "resource": "api://00000000-0000-0000-0000-000000000000"
+  },
+  "authorization": {
+    "permissions": {
+      "resourceSpecific": []
+    }
+  }
+}
