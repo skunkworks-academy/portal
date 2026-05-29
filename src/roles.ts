@@ -7,8 +7,11 @@ export type Tab =
   | "register"
   | "jobs"
   | "applications"
+  | "instructors"
+  | "students"
   | "profile"
   | "resources"
+  | "settings"
   | "staff";
 
 export interface RoleDefinition {
@@ -68,9 +71,11 @@ export const roleDefinitions: Record<PortalRole, RoleDefinition> = {
       { tab: "staff", label: "Operations" },
       { tab: "jobs", label: "Jobs" },
       { tab: "applications", label: "Applications" },
+      { tab: "instructors", label: "Instructors" },
+      { tab: "students", label: "Students" },
       { tab: "classes", label: "Scheduling" },
       { tab: "resources", label: "Resources" },
-      { tab: "profile", label: "Profile" }
+      { tab: "settings", label: "Settings" }
     ],
     capabilities: ["Post jobs", "Review instructor applications", "Manage class schedules", "Monitor students and onboarding"],
     resources: [
@@ -82,7 +87,7 @@ export const roleDefinitions: Record<PortalRole, RoleDefinition> = {
 };
 
 export function canAccess(role: PortalRole, tab: Tab, isAdmin: boolean) {
-  if (tab === "staff") return role === "Staff" || isAdmin;
+  if (tab === "staff" || tab === "instructors" || tab === "students" || tab === "settings") return role === "Staff" || isAdmin;
   return roleDefinitions[role].nav.some((item) => item.tab === tab);
 }
 
