@@ -1,13 +1,57 @@
-# Skunkworks Academy Instructor Portal
+# Skunkworks Academy Portal
 
-Production portal for instructor job postings, public applications, admin review, onboarding tasks, and SharePoint-backed records.
+Production portal for students, instructors, and staff. The app supports course discovery, class registration, instructor job applications, staff job posting, admin review, onboarding tasks, Microsoft Entra authentication, Teams packaging, and SharePoint-backed records.
 
 ## Architecture
 
 - Frontend: Vite React SPA hosted on GitHub Pages at `https://portal.skunkworksacademy.com`.
-- Identity: Microsoft Entra ID with `AzureADandPersonalMicrosoftAccount` and MSAL auth code + PKCE.
+- Identity: Microsoft Entra ID with MSAL auth code + PKCE.
+- Role source: Microsoft Entra app roles or group claims, with a development-only local role preview in Vite dev mode.
 - API: Azure Functions validating SPA access tokens and writing to Microsoft Graph.
 - Data: SharePoint site `/sites/InstructorPortal` with lists and document libraries.
+- Teams: Personal Teams app scaffold in `teams/manifest.json`.
+
+## Role Model
+
+Student workspace:
+
+```text
+Dashboard
+Courses
+My Classes
+Register
+Resources
+Profile
+```
+
+Students can view courses, view enrolled classes, register for available classes, update their own profile, and see student resources. They should not see instructor jobs, instructor applications, staff dashboards, scheduling admin tools, or job posting tools.
+
+Instructor workspace:
+
+```text
+Dashboard
+Jobs
+My Applications
+My Classes
+Resources
+Profile
+```
+
+Instructors can view jobs, apply for jobs, manage applications, edit their profile, upload CV or resume details, monitor assigned classes, and see instructor resources.
+
+Staff workspace:
+
+```text
+Dashboard
+Operations
+Jobs
+Applications
+Scheduling
+Resources
+Profile
+```
+
+Staff can post instructor jobs, manage postings, review applications, monitor onboarding, view instructor profiles, manage class schedules, assign instructors, and monitor students. Staff operational API writes require the `Portal.Admin` or staff app role from Microsoft Entra.
 
 ## Required Entra Setup
 
@@ -20,9 +64,22 @@ Create `Skunkworks Academy Portal` as a SPA app registration.
 Create `Skunkworks Academy Portal API` as the API app registration.
 
 - Expose API scope: `access_as_user`.
-- App role: `Portal.Admin`, assign it to Skunkworks admin users on the Enterprise Application.
+- App roles: `Portal.Student`, `Portal.Instructor`, `Portal.Staff`, and `Portal.Admin`.
+- Assign `Portal.Admin` or `Portal.Staff` to Skunkworks staff users on the Enterprise Application.
 - Graph application permission: `Sites.Selected`, granted admin consent.
 - Grant the API service principal write access to the `InstructorPortal` site.
+
+## Microsoft Teams
+
+The Teams manifest scaffold is in `teams/manifest.json`. Before uploading to Teams Admin Center, replace placeholder IDs and add Teams PNG icons:
+
+```text
+teams/manifest.json
+teams/color.png
+teams/outline.png
+```
+
+See `teams/README.md` for the packaging checklist and Entra role guidance.
 
 ## Configuration
 
@@ -76,6 +133,18 @@ Build Azure Functions:
 
 ```bash
 npm run build:api
+```
+
+## Verification Checklist
+
+```text
+1. Signed-out users see the branded public landing page with Student, Instructor, and Staff entry paths.
+2. Student role sees only Dashboard, Courses, My Classes, Register, Resources, and Profile.
+3. Instructor role sees only Dashboard, Jobs, My Applications, My Classes, Resources, and Profile.
+4. Staff role sees Operations and Applications, but write actions are locked unless Microsoft Entra grants staff/admin role claims.
+5. Profile editing is available to each role, and instructor profile includes CV/resume upload control.
+6. Resources content changes by role.
+7. Browser metadata and favicon show Skunkworks Academy Portal.
 ```
 
 ## Production Checks
