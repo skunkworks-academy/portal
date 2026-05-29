@@ -1,6 +1,6 @@
 # Skunkworks Academy Portal
 
-Production portal for students, instructors, and staff. The app supports course discovery, class registration, instructor job applications, staff job posting, admin review, onboarding tasks, Microsoft Entra authentication, Teams packaging, and SharePoint-backed records.
+Production portal for students, instructors, and staff. The app supports course discovery, class registration, instructor job applications, staff job posting, admin review, onboarding tasks, profile editing, Microsoft Entra authentication, Teams packaging, and SharePoint-backed records.
 
 ## Architecture
 
@@ -9,6 +9,7 @@ Production portal for students, instructors, and staff. The app supports course 
 - Role source: Microsoft Entra app roles or group claims, with a development-only local role preview in Vite dev mode.
 - API: Azure Functions validating SPA access tokens and writing to Microsoft Graph.
 - Data: SharePoint site `/sites/InstructorPortal` with lists and document libraries.
+- Profile storage: `PortalProfiles` SharePoint list plus `InstructorDocuments` for instructor CV/resume files.
 - Teams: Personal Teams app scaffold in `teams/manifest.json`.
 
 ## Role Model
@@ -66,6 +67,7 @@ Create `Skunkworks Academy Portal API` as the API app registration.
 - Expose API scope: `access_as_user`.
 - App roles: `Portal.Student`, `Portal.Instructor`, `Portal.Staff`, and `Portal.Admin`.
 - Assign `Portal.Admin` or `Portal.Staff` to Skunkworks staff users on the Enterprise Application.
+- Assign `Portal.Instructor` to instructor users who need application/profile document workflows.
 - Graph application permission: `Sites.Selected`, granted admin consent.
 - Grant the API service principal write access to the `InstructorPortal` site.
 
@@ -113,7 +115,7 @@ Create a dedicated SharePoint site named `InstructorPortal`, then run:
 npm run provision:sharepoint
 ```
 
-The script creates `JobPostings`, `Applications`, `Candidates`, `OnboardingTasks`, `AuditEvents`, `ApplicantUploads`, and `InstructorDocuments`.
+The script creates `JobPostings`, `Applications`, `PortalProfiles`, `Candidates`, `OnboardingTasks`, `AuditEvents`, `ApplicantUploads`, and `InstructorDocuments`.
 
 ## Development
 
@@ -142,9 +144,10 @@ npm run build:api
 2. Student role sees only Dashboard, Courses, My Classes, Register, Resources, and Profile.
 3. Instructor role sees only Dashboard, Jobs, My Applications, My Classes, Resources, and Profile.
 4. Staff role sees Operations and Applications, but write actions are locked unless Microsoft Entra grants staff/admin role claims.
-5. Profile editing is available to each role, and instructor profile includes CV/resume upload control.
-6. Resources content changes by role.
-7. Browser metadata and favicon show Skunkworks Academy Portal.
+5. Profile editing loads from GET /api/me/profile and saves through PATCH /api/me/profile.
+6. Instructor CV/resume uploads are stored in InstructorDocuments and linked from PortalProfiles.
+7. Resources content changes by role.
+8. Browser metadata and favicon show Skunkworks Academy Portal.
 ```
 
 ## Production Checks
@@ -164,6 +167,13 @@ The response should include:
 }
 ```
 
+The health route list should include:
+
+```text
+GET /api/me/profile
+PATCH /api/me/profile
+```
+
 If `missingSettings` includes `apiClientSecret`, create a new client secret in the `Skunkworks Academy Portal API` app registration and add the secret value to the Function App setting `API_CLIENT_SECRET`. Restart the Function App after saving.
 
 The public jobs endpoint is:
@@ -172,7 +182,7 @@ The public jobs endpoint is:
 https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api/jobs
 ```
 
-If SharePoint is not provisioned yet, the API returns preset public jobs so the portal remains usable while setup finishes. Admin and application submission flows still require the SharePoint site, lists, libraries, Graph permissions, and `API_CLIENT_SECRET`.
+If SharePoint is not provisioned yet, the API returns preset public jobs so the portal remains usable while setup finishes. Admin, profile, and application submission flows still require the SharePoint site, lists, libraries, Graph permissions, and `API_CLIENT_SECRET`.
 
 ## GitHub Secrets
 
