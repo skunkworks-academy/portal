@@ -1,6 +1,6 @@
 import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser";
 import { apiScope } from "./authConfig";
-import type { ApplicationRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput } from "./types";
+import type { ApplicationRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
 
@@ -48,6 +48,8 @@ export const portalApi = {
     request<PortalProfile | null>("/me/profile", {}, auth),
   updateProfile: (payload: PortalProfileInput, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<PortalProfile>("/me/profile", { method: "PATCH", body: JSON.stringify(payload) }, auth),
+  adminProfiles: (auth: { instance: IPublicClientApplication; account: AccountInfo }, role?: PortalRole) =>
+    request<PortalProfile[]>(`/admin/profiles${role ? `?role=${encodeURIComponent(role)}` : ""}`, {}, auth),
   submitApplication: (
     payload: NewApplication,
     auth: { instance: IPublicClientApplication; account: AccountInfo }
