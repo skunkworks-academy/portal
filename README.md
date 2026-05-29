@@ -9,6 +9,7 @@ Production portal for students, instructors, and staff. The app supports course 
 - Role source: Microsoft Entra app roles or group claims, with a development-only local role preview in Vite dev mode.
 - API: Azure Functions validating SPA access tokens and writing to Microsoft Graph.
 - Data: SharePoint site `/sites/InstructorPortal` with lists and document libraries.
+- Academic records: `Courses`, `ClassSessions`, and `ClassRegistrations` lists for student registration and staff scheduling.
 - Profile storage: `PortalProfiles` SharePoint list plus `InstructorDocuments` for instructor CV/resume files.
 - Teams: Personal Teams app scaffold in `teams/manifest.json`.
 
@@ -68,8 +69,9 @@ Create `Skunkworks Academy Portal API` as the API app registration.
 
 - Expose API scope: `access_as_user`.
 - App roles: `Portal.Student`, `Portal.Instructor`, `Portal.Staff`, and `Portal.Admin`.
-- Assign `Portal.Admin` or `Portal.Staff` to Skunkworks staff users on the Enterprise Application.
+- Assign `Portal.Student` to student users who can register for classes.
 - Assign `Portal.Instructor` to instructor users who need application/profile document workflows.
+- Assign `Portal.Admin` or `Portal.Staff` to Skunkworks staff users on the Enterprise Application.
 - Graph application permission: `Sites.Selected`, granted admin consent.
 - Grant the API service principal write access to the `InstructorPortal` site.
 
@@ -117,7 +119,17 @@ Create a dedicated SharePoint site named `InstructorPortal`, then run:
 npm run provision:sharepoint
 ```
 
-The script creates `JobPostings`, `Applications`, `PortalProfiles`, `Candidates`, `OnboardingTasks`, `AuditEvents`, `ApplicantUploads`, and `InstructorDocuments`.
+The script creates `JobPostings`, `Courses`, `ClassSessions`, `ClassRegistrations`, `Applications`, `PortalProfiles`, `Candidates`, `OnboardingTasks`, `AuditEvents`, `ApplicantUploads`, and `InstructorDocuments`.
+
+When `Courses` or `ClassSessions` are empty, provisioning seeds starter academic records:
+
+```text
+Applied AI Tools
+Security Analyst Academy
+Cloud Practitioner Track
+```
+
+Staff can replace or extend these through the Scheduling workspace.
 
 ## Development
 
@@ -144,14 +156,16 @@ npm run build:api
 ```text
 1. Signed-out users see the branded public landing page with Student, Instructor, and Staff entry paths.
 2. Student role sees only Dashboard, Courses, My Classes, Register, Resources, and Profile.
-3. Instructor role sees only Dashboard, Jobs, My Applications, My Classes, Resources, and Profile.
-4. Staff role sees Operations, Applications, Instructors, Students, Scheduling, Resources, and Settings.
-5. Staff write and monitoring actions are locked unless Microsoft Entra grants staff/admin role claims.
-6. Profile editing loads from GET /api/me/profile and saves through PATCH /api/me/profile.
-7. Instructor CV/resume uploads are stored in InstructorDocuments and linked from PortalProfiles.
-8. Staff monitoring views load instructor and student profile data from GET /api/admin/profiles.
-9. Resources content changes by role.
-10. Browser metadata and favicon show Skunkworks Academy Portal.
+3. Student users with Portal.Student can register for open classes through POST /api/classes/{id}/register.
+4. Instructor role sees only Dashboard, Jobs, My Applications, My Classes, Resources, and Profile.
+5. Staff role sees Operations, Applications, Instructors, Students, Scheduling, Resources, and Settings.
+6. Staff write and monitoring actions are locked unless Microsoft Entra grants staff/admin role claims.
+7. Profile editing loads from GET /api/me/profile and saves through PATCH /api/me/profile.
+8. Instructor CV/resume uploads are stored in InstructorDocuments and linked from PortalProfiles.
+9. Staff monitoring views load instructor and student profile data from GET /api/admin/profiles.
+10. Staff scheduling loads classes from GET /api/classes and creates classes through POST /api/admin/classes.
+11. Resources content changes by role.
+12. Browser metadata and favicon show Skunkworks Academy Portal.
 ```
 
 ## Production Checks
@@ -174,9 +188,16 @@ The response should include:
 The health route list should include:
 
 ```text
+GET /api/courses
+GET /api/classes
+POST /api/classes/{id}/register
+GET /api/me/classes
 GET /api/me/profile
 PATCH /api/me/profile
 GET /api/admin/profiles
+GET /api/admin/class-registrations
+POST /api/admin/classes
+PATCH /api/admin/classes/{id}
 ```
 
 If `missingSettings` includes `apiClientSecret`, create a new client secret in the `Skunkworks Academy Portal API` app registration and add the secret value to the Function App setting `API_CLIENT_SECRET`. Restart the Function App after saving.
@@ -187,7 +208,7 @@ The public jobs endpoint is:
 https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api/jobs
 ```
 
-If SharePoint is not provisioned yet, the API returns preset public jobs so the portal remains usable while setup finishes. Admin, profile, and application submission flows still require the SharePoint site, lists, libraries, Graph permissions, and `API_CLIENT_SECRET`.
+If SharePoint is not provisioned yet, the API returns preset public jobs so the portal remains usable while setup finishes. Authenticated admin, profile, class registration, and application submission flows still require the SharePoint site, lists, libraries, Graph permissions, and `API_CLIENT_SECRET`.
 
 ## GitHub Secrets
 
