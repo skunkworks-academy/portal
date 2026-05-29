@@ -127,6 +127,66 @@ const lists = [
 
 const libraries = ["ApplicantUploads", "InstructorDocuments"];
 
+const courseSeeds = [
+  {
+    Title: "Applied AI Tools",
+    Level: "Short course",
+    Duration: "4 weeks",
+    Description: "Prompt workflows, responsible use, automation, and workplace AI productivity.",
+    Status: "Live"
+  },
+  {
+    Title: "Security Analyst Academy",
+    Level: "Professional track",
+    Duration: "12 weeks",
+    Description: "Security fundamentals, labs, incident response, and analyst capstone work.",
+    Status: "Live"
+  },
+  {
+    Title: "Cloud Practitioner Track",
+    Level: "Foundation",
+    Duration: "8 weeks",
+    Description: "Cloud fundamentals, deployment practice, troubleshooting, and exam readiness.",
+    Status: "Live"
+  }
+];
+
+const classSeeds = [
+  {
+    Title: "AI Tools June Cohort",
+    CourseId: "ai-tools",
+    CourseTitle: "Applied AI Tools",
+    Schedule: "Tue and Thu, 18:00",
+    Modality: "Hybrid",
+    Instructor: "Pending assignment",
+    Seats: 24,
+    Enrolled: 0,
+    Status: "Open"
+  },
+  {
+    Title: "Security Analyst July Cohort",
+    CourseId: "cybersecurity",
+    CourseTitle: "Security Analyst Academy",
+    Schedule: "Mon and Wed, 17:30",
+    Modality: "Hybrid",
+    Instructor: "Pending assignment",
+    Seats: 18,
+    Enrolled: 0,
+    Status: "Open"
+  },
+  {
+    Title: "Cloud Practitioner June Cohort",
+    CourseId: "cloud",
+    CourseTitle: "Cloud Practitioner Track",
+    Schedule: "Saturday, 09:00",
+    Modality: "On campus",
+    Instructor: "Pending assignment",
+    Seats: 30,
+    Enrolled: 0,
+    Status: "Open"
+  }
+];
+
 async function main() {
   const site = await graph<{ id: string }>(`/sites/${hostname}:${sitePath}`);
   const existingLists = await graph<{ value: Array<{ displayName: string }> }>(`/sites/${site.id}/lists?$select=displayName`);
@@ -162,6 +222,29 @@ async function main() {
     });
     console.log(`Created library: ${library}`);
   }
+
+  await seedList(site.id, "Courses", courseSeeds);
+  await seedList(site.id, "ClassSessions", classSeeds);
+}
+
+async function seedList(siteId: string, displayName: string, rows: Array<Record<string, unknown>>) {
+  const lists = await graph<{ value: Array<{ id: string; displayName: string }> }>(`/sites/${siteId}/lists?$select=id,displayName`);
+  const list = lists.value.find((item) => item.displayName === displayName);
+  if (!list) throw new Error(`List not found after provisioning: ${displayName}`);
+
+  const existing = await graph<{ value: Array<{ id: string }> }>(`/sites/${siteId}/lists/${list.id}/items?$top=1`);
+  if (existing.value.length) {
+    console.log(`Seed skipped: ${displayName} already has records`);
+    return;
+  }
+
+  for (const fields of rows) {
+    await graph(`/sites/${siteId}/lists/${list.id}/items`, {
+      method: "POST",
+      body: JSON.stringify({ fields })
+    });
+  }
+  console.log(`Seeded ${rows.length} records: ${displayName}`);
 }
 
 async function graph<T = unknown>(path: string, init: RequestInit = {}): Promise<T> {
