@@ -129,7 +129,7 @@ Security Analyst Academy
 Cloud Practitioner Track
 ```
 
-Staff can replace or extend these through the Scheduling workspace.
+Staff can replace or extend these through the Scheduling workspace. If a student registers against a fallback class before seeded sessions exist, the API materializes that fallback into `ClassSessions` first so registrations, enrollment counts, and later staff schedule edits stay attached to the same SharePoint record.
 
 ## Development
 
