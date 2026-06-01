@@ -3,7 +3,7 @@ import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { loginRequest, skunkworksTenantId } from "./authConfig";
 import { portalApi } from "./api";
-import { canAccess, classSchedule, courseCatalog, landingRoles, roleDefinitions, roleFromClaims, type Tab } from "./roles";
+import { canAccess, classSchedule, courseCatalog, hasStaffRole, landingRoles, roleDefinitions, roleFromClaims, type Tab } from "./roles";
 import type { ApplicationRecord, ApplicationStatus, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole, UserProfile } from "./types";
 
 const fallbackJobs: JobPosting[] = [
@@ -26,7 +26,8 @@ function emptyPortalProfile(role: PortalRole, profile?: UserProfile | null): Por
 
 function roleBadge(profile: UserProfile, activeRole: PortalRole) {
   if (!profile.isAdmin) return activeRole;
-  return profile.roles.includes("Portal.Admin") ? "Portal.Admin" : "Portal.Staff";
+  const normalizedRoles = profile.roles.map((role) => role.toLowerCase());
+  return normalizedRoles.includes("portal.admin") ? "Portal.Admin" : "Portal.Staff";
 }
 
 function getProfile(account?: AccountInfo | null): UserProfile | null {
@@ -34,7 +35,7 @@ function getProfile(account?: AccountInfo | null): UserProfile | null {
   const claims = account.idTokenClaims as Record<string, unknown> | undefined;
   const roles = Array.isArray(claims?.roles) ? (claims.roles as string[]) : [];
   const tenantId = typeof claims?.tid === "string" ? claims.tid : account.tenantId;
-  const isAdmin = tenantId === skunkworksTenantId && (roles.includes("Portal.Admin") || roles.includes("Portal.Staff"));
+  const isAdmin = tenantId === skunkworksTenantId && hasStaffRole(roles);
   return { name: account.name ?? account.username, username: account.username, tenantId, roles, isAdmin, portalRole: roleFromClaims(roles, isAdmin) };
 }
 
