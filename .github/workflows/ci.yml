@@ -25,5 +25,8 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Generate Teams icons
+        run: npm run teams:icons
+
       - name: Build frontend and API
         run: npm run build && npm run build:api
