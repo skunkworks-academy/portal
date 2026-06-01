@@ -145,7 +145,7 @@ export function App() {
   useEffect(() => { if (account) run(refreshProfile); }, [account?.homeAccountId]);
   useEffect(() => { if (account && activeRole === "Student") run(refreshStudentData); }, [account?.homeAccountId, activeRole]);
   useEffect(() => { if (account && activeRole === "Instructor" && tab === "applications") run(refreshUserData); }, [account?.homeAccountId, activeRole, tab]);
-  useEffect(() => { if (profile?.isAdmin && ["staff", "applications", "instructors", "students", "settings", "classes"].includes(tab)) run(refreshAdminData); }, [profile?.isAdmin, account?.homeAccountId, tab]);
+  useEffect(() => { if (profile?.isAdmin && ["staff", "applications", "instructors", "students", "classes"].includes(tab)) run(refreshAdminData); }, [profile?.isAdmin, account?.homeAccountId, tab]);
 
   async function signIn(nextRole?: PortalRole) { if (nextRole) changeRole(nextRole); await instance.loginRedirect(loginRequest); }
   async function signOut() { await instance.logoutRedirect(); }
