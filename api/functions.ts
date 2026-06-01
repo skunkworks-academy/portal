@@ -7,6 +7,7 @@ import {
   createApplication,
   createClass,
   createJob,
+  getAllJobs,
   getApplications,
   getClassRegistrations,
   getClasses,
@@ -67,6 +68,7 @@ app.http("health", {
       "POST /api/admin/classes",
       "PATCH /api/admin/classes/{id}",
       "PATCH /api/admin/applications/{id}",
+      "GET /api/admin/jobs",
       "POST /api/admin/jobs",
       "PATCH /api/admin/jobs/{id}",
       "GET /api/admin/tasks",
@@ -226,6 +228,16 @@ app.http("adminApplicationUpdate", {
     const principal = await requireAdmin(request);
     const payload = await readJson<Partial<Pick<ApplicationRecord, "status" | "owner">>>(request);
     return json(request, await updateApplication(request.params.id, payload, principal));
+  })
+});
+
+app.http("adminJobs", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "admin/jobs",
+  handler: async (request, context) => handle(request, context, async () => {
+    await requireAdmin(request);
+    return json(request, await getAllJobs());
   })
 });
 
