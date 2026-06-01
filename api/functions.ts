@@ -57,6 +57,7 @@ app.http("health", {
       "GET /api/courses",
       "GET /api/classes",
       "POST /api/classes/{id}/register",
+      "POST /api/classes/{id}/assign-instructor",
       "GET /api/me/classes",
       "GET /api/me/profile",
       "PATCH /api/me/profile",
@@ -112,6 +113,16 @@ app.http("registerClass", {
   handler: async (request, context) => handle(request, context, async () => {
     const principal = await requireStudent(request);
     return json(request, await registerForClass(request.params.id, principal), 201);
+  })
+});
+
+app.http("assignInstructorClass", {
+  methods: ["POST"],
+  authLevel: "anonymous",
+  route: "classes/{id}/assign-instructor",
+  handler: async (request, context) => handle(request, context, async () => {
+    const principal = await requireInstructor(request);
+    return json(request, await updateClass(request.params.id, { instructor: principal.name || principal.email }, principal));
   })
 });
 
