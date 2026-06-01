@@ -245,7 +245,7 @@ export function App() {
         {tab === "staff" && <StaffOperations profile={profile} jobDraft={jobDraft} setJobDraft={setJobDraft} createJob={createJob} tasks={tasks} advanceTask={advanceTask} loading={loading} />}
         {tab === "instructors" && <StaffProfiles title="Instructor Profiles" profiles={instructorProfiles} profile={profile} emptyText="No instructor profiles have been saved yet." />}
         {tab === "students" && <StaffProfiles title="Student Profiles" profiles={studentProfiles} profile={profile} emptyText="No student profiles have been saved yet." />}
-        {tab === "settings" && <StaffSettings profile={profile} health={health} refresh={() => run(refreshAdminData)} />}
+        {tab === "settings" && <StaffSettings profile={profile} health={health} refresh={() => run(async () => { setHealth(await portalApi.health()); }, "Portal status refreshed.")} />}
         {tab === "resources" && <Resources activeRole={activeRole} />}
         {tab === "profile" && <ProfileEditor activeRole={activeRole} profile={profile} editableProfile={editableProfile} setEditableProfile={setEditableProfile} setCvFile={setCvFile} saveProfile={saveProfile} />}
         <footer className="legal-footer"><a href="/termsofservice/">Terms of Service</a><a href="/privacystatement/">Privacy Statement</a></footer>
