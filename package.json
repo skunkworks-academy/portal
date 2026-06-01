@@ -10,6 +10,8 @@
     "build:api": "tsc -p tsconfig.api.json",
     "provision:sharepoint": "tsx scripts/provision-sharepoint.ts",
     "teams:icons": "tsx scripts/generate-teams-icons.ts",
+    "teams:validate": "tsx scripts/validate-teams-manifest.ts",
+    "teams:validate:production": "tsx scripts/validate-teams-manifest.ts --production",
     "preview": "vite preview",
     "api:start": "func start --typescript",
     "test": "vitest run"
