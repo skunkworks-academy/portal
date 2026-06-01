@@ -28,6 +28,19 @@ Recommended production role source order:
 4. Development-only local role override
 ```
 
+Generate the Teams app icons before packaging:
+
+```bash
+npm run teams:icons
+```
+
+This writes:
+
+```text
+teams/outline.png
+teams/color.png
+```
+
 Teams configuration checklist:
 
 ```text
@@ -37,7 +50,7 @@ Teams configuration checklist:
 4. Grant the SPA permission to request the API scope.
 5. Assign Portal.Admin or Portal.Staff through the Enterprise Application for staff users.
 6. Add the portal domain to validDomains in the Teams manifest.
-7. Create 32x32 outline.png and 192x192 color.png icons before packaging for Teams.
+7. Run npm run teams:icons to generate 32x32 outline.png and 192x192 color.png.
 8. Zip manifest.json, outline.png, and color.png for upload to Teams Admin Center.
 ```
 
