@@ -1,6 +1,6 @@
 # Skunkworks Academy Portal
 
-Production portal for students, instructors, and staff. The app supports course discovery, class registration, instructor job applications, staff job posting, admin review, onboarding tasks, profile editing, Microsoft Entra authentication, Teams packaging, and SharePoint-backed records.
+Production portal for students, instructors, and staff. The app supports course discovery, class registration, instructor job applications, instructor class self-assignment, staff job posting, admin review, onboarding tasks, profile editing, Microsoft Entra authentication, Teams packaging, and SharePoint-backed records.
 
 ## Architecture
 
@@ -39,7 +39,7 @@ Resources
 Profile
 ```
 
-Instructors can view jobs, apply for jobs, manage applications, edit their profile, upload CV or resume details, monitor assigned classes, and see instructor resources.
+Instructors can view jobs, apply for jobs, manage applications, edit their profile, upload CV or resume details, monitor classes, self-assign pending classes, and see instructor resources.
 
 Staff workspace:
 
@@ -129,7 +129,7 @@ Security Analyst Academy
 Cloud Practitioner Track
 ```
 
-Staff can replace or extend these through the Scheduling workspace. If a student registers against a fallback class before seeded sessions exist, the API materializes that fallback into `ClassSessions` first so registrations, enrollment counts, and later staff schedule edits stay attached to the same SharePoint record.
+Staff can replace or extend these through the Scheduling workspace. If a student registers against a fallback class before seeded sessions exist, the API materializes that fallback into `ClassSessions` first so registrations, enrollment counts, and later staff schedule edits stay attached to the same SharePoint record. Instructor class assignment uses the same class update path, so pending fallback classes can be materialized and assigned from the instructor workspace.
 
 ## Development
 
@@ -158,15 +158,16 @@ npm run build:api
 2. Student role sees only Dashboard, Courses, My Classes, Register, Resources, and Profile.
 3. Student users with Portal.Student can register for open classes through POST /api/classes/{id}/register.
 4. Instructor role sees only Dashboard, Jobs, My Applications, My Classes, Resources, and Profile.
-5. Staff role sees Operations, Applications, Instructors, Students, Scheduling, Resources, and Settings.
-6. Staff write and monitoring actions are locked unless Microsoft Entra grants staff/admin role claims.
-7. Profile editing loads from GET /api/me/profile and saves through PATCH /api/me/profile.
-8. Instructor CV/resume uploads are stored in InstructorDocuments and linked from PortalProfiles.
-9. Staff monitoring views load instructor and student profile data from GET /api/admin/profiles.
-10. Staff scheduling loads classes from GET /api/classes, creates classes through POST /api/admin/classes, and updates schedules/instructors through PATCH /api/admin/classes/{id}.
-11. Staff job management loads all postings from GET /api/admin/jobs and updates postings through PATCH /api/admin/jobs/{id}.
-12. Resources content changes by role.
-13. Browser metadata and favicon show Skunkworks Academy Portal.
+5. Instructor users with Portal.Instructor can assign themselves to pending classes through POST /api/classes/{id}/assign-instructor.
+6. Staff role sees Operations, Applications, Instructors, Students, Scheduling, Resources, and Settings.
+7. Staff write and monitoring actions are locked unless Microsoft Entra grants staff/admin role claims.
+8. Profile editing loads from GET /api/me/profile and saves through PATCH /api/me/profile.
+9. Instructor CV/resume uploads are stored in InstructorDocuments and linked from PortalProfiles.
+10. Staff monitoring views load instructor and student profile data from GET /api/admin/profiles.
+11. Staff scheduling loads classes from GET /api/classes, creates classes through POST /api/admin/classes, and updates schedules/instructors through PATCH /api/admin/classes/{id}.
+12. Staff job management loads all postings from GET /api/admin/jobs and updates postings through PATCH /api/admin/jobs/{id}.
+13. Resources content changes by role.
+14. Browser metadata and favicon show Skunkworks Academy Portal.
 ```
 
 ## Production Checks
@@ -192,6 +193,7 @@ The health route list should include:
 GET /api/courses
 GET /api/classes
 POST /api/classes/{id}/register
+POST /api/classes/{id}/assign-instructor
 GET /api/me/classes
 GET /api/me/profile
 PATCH /api/me/profile
@@ -212,7 +214,7 @@ The public jobs endpoint is:
 https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api/jobs
 ```
 
-If SharePoint is not provisioned yet, the API returns preset public jobs so the portal remains usable while setup finishes. Authenticated admin, profile, class registration, and application submission flows still require the SharePoint site, lists, libraries, Graph permissions, and `API_CLIENT_SECRET`.
+If SharePoint is not provisioned yet, the API returns preset public jobs so the portal remains usable while setup finishes. Authenticated admin, profile, class registration, class assignment, and application submission flows still require the SharePoint site, lists, libraries, Graph permissions, and `API_CLIENT_SECRET`.
 
 ## GitHub Secrets
 
