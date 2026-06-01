@@ -68,6 +68,7 @@ export function App() {
   const [allClassRegistrations, setAllClassRegistrations] = useState<ClassRegistrationRecord[]>([]);
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
   const [adminApplications, setAdminApplications] = useState<ApplicationRecord[]>([]);
+  const [adminJobs, setAdminJobs] = useState<JobPosting[]>([]);
   const [adminProfiles, setAdminProfiles] = useState<PortalProfile[]>([]);
   const [tasks, setTasks] = useState<OnboardingTask[]>([]);
   const [selectedJobId, setSelectedJobId] = useState("");
@@ -113,13 +114,14 @@ export function App() {
 
   async function refreshAdminData() {
     if (!auth || !profile?.isAdmin) return;
-    const [nextApplications, nextTasks, nextProfiles, nextRegistrations] = await Promise.all([
-      portalApi.adminApplications(auth), portalApi.adminTasks(auth), portalApi.adminProfiles(auth), portalApi.adminClassRegistrations(auth)
+    const [nextApplications, nextTasks, nextProfiles, nextRegistrations, nextJobs] = await Promise.all([
+      portalApi.adminApplications(auth), portalApi.adminTasks(auth), portalApi.adminProfiles(auth), portalApi.adminClassRegistrations(auth), portalApi.adminJobs(auth)
     ]);
     setAdminApplications(nextApplications);
     setTasks(nextTasks);
     setAdminProfiles(nextProfiles);
     setAllClassRegistrations(nextRegistrations);
+    setAdminJobs(nextJobs);
   }
 
   async function refreshProfile() {
@@ -146,7 +148,7 @@ export function App() {
   useEffect(() => { if (account) run(refreshProfile); }, [account?.homeAccountId]);
   useEffect(() => { if (account && activeRole === "Student") run(refreshStudentData); }, [account?.homeAccountId, activeRole]);
   useEffect(() => { if (account && activeRole === "Instructor" && tab === "applications") run(refreshUserData); }, [account?.homeAccountId, activeRole, tab]);
-  useEffect(() => { if (profile?.isAdmin && ["staff", "applications", "instructors", "students", "classes"].includes(tab)) run(refreshAdminData); }, [profile?.isAdmin, account?.homeAccountId, tab]);
+  useEffect(() => { if (profile?.isAdmin && ["staff", "jobs", "applications", "instructors", "students", "classes"].includes(tab)) run(refreshAdminData); }, [profile?.isAdmin, account?.homeAccountId, tab]);
 
   async function signIn(nextRole?: PortalRole) { if (nextRole) changeRole(nextRole); await instance.loginRedirect(loginRequest); }
   async function signOut() { await instance.logoutRedirect(); }
@@ -173,7 +175,12 @@ export function App() {
 
   async function createJob(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); if (!auth || !profile?.isAdmin) return;
-    await run(async () => { await portalApi.createJob(jobDraft, auth); setJobDraft(emptyJob); await refreshJobs(); }, "Job posting saved.");
+    await run(async () => { await portalApi.createJob(jobDraft, auth); setJobDraft(emptyJob); await Promise.all([refreshJobs(), refreshAdminData()]); }, "Job posting saved.");
+  }
+
+  async function updateJob(id: string, payload: Partial<JobInput>) {
+    if (!auth || !profile?.isAdmin) return;
+    await run(async () => { await portalApi.updateJob(id, payload, auth); await Promise.all([refreshJobs(), refreshAdminData()]); }, "Job posting updated.");
   }
 
   async function createClass(event: FormEvent<HTMLFormElement>) {
@@ -208,6 +215,7 @@ export function App() {
 
   const liveJobs = jobs.filter((job) => job.status === "Live");
   const displayJobs = liveJobs.length ? liveJobs : fallbackJobs;
+  const staffJobs = adminJobs.length ? adminJobs : displayJobs;
   const selectedJob = displayJobs.find((job) => job.id === selectedJobId) ?? displayJobs[0];
   const setupComplete = health ? setupSteps.length - health.missingSettings.length : 2;
   const registeredClassIds = classRegistrations.filter((item) => item.status !== "Cancelled").map((item) => item.classId);
@@ -240,10 +248,10 @@ export function App() {
         {tab === "classes" && activeRole === "Staff" && <StaffClassScheduling courses={courses} classes={classes} registrations={allClassRegistrations} classDraft={classDraft} setClassDraft={setClassDraft} createClass={createClass} updateClass={updateClass} loading={loading} />}
         {tab === "classes" && activeRole !== "Staff" && <ClassWorkspace activeRole={activeRole} classes={classes} registeredClassIds={registeredClassIds} registerForClass={registerClass} />}
         {tab === "register" && <ClassRegistration classes={classes} registeredClassIds={registeredClassIds} registerForClass={registerClass} />}
-        {tab === "jobs" && <Jobs jobs={displayJobs} savedJobIds={savedJobIds} toggleSavedJob={toggleSavedJob} selectJob={(id) => { setSelectedJobId(id); openTab(activeRole === "Staff" ? "staff" : "applications"); }} activeRole={activeRole} />}
+        {tab === "jobs" && <Jobs jobs={activeRole === "Staff" ? staffJobs : displayJobs} savedJobIds={savedJobIds} toggleSavedJob={toggleSavedJob} selectJob={(id) => { setSelectedJobId(id); openTab(activeRole === "Staff" ? "staff" : "applications"); }} activeRole={activeRole} />}
         {tab === "applications" && activeRole === "Instructor" && <InstructorApplications profile={profile} applications={applications} displayJobs={displayJobs} selectedJobId={selectedJob?.id ?? ""} setSelectedJobId={setSelectedJobId} discipline={discipline} setDiscipline={setDiscipline} loading={loading} submitApplication={submitApplication} refresh={() => run(refreshUserData)} />}
         {tab === "applications" && activeRole === "Staff" && <StaffApplications profile={profile} applications={adminApplications} updateApplication={updateApplication} refresh={() => run(refreshAdminData)} />}
-        {tab === "staff" && <StaffOperations profile={profile} jobDraft={jobDraft} setJobDraft={setJobDraft} createJob={createJob} tasks={tasks} advanceTask={advanceTask} loading={loading} />}
+        {tab === "staff" && <StaffOperations profile={profile} jobs={staffJobs} jobDraft={jobDraft} setJobDraft={setJobDraft} createJob={createJob} updateJob={updateJob} refresh={() => run(refreshAdminData)} tasks={tasks} advanceTask={advanceTask} loading={loading} />}
         {tab === "instructors" && <StaffProfiles title="Instructor Profiles" profiles={instructorProfiles} profile={profile} emptyText="No instructor profiles have been saved yet." />}
         {tab === "students" && <StaffProfiles title="Student Profiles" profiles={studentProfiles} profile={profile} emptyText="No student profiles have been saved yet." />}
         {tab === "settings" && <StaffSettings profile={profile} health={health} refresh={() => run(async () => { setHealth(await portalApi.health()); }, "Portal status refreshed.")} />}
@@ -313,9 +321,18 @@ function AdminApplicationCard({ item, updateApplication }: { item: ApplicationRe
   return <article className="card compact"><div className="card-title"><h3>{item.applicantName}</h3><span className="pill">{item.status}</span></div><p>{item.jobTitle} - {item.applicantEmail}</p><div className="inline-fields"><select value={status} onChange={(event) => setStatus(event.target.value as ApplicationStatus)}><option>Submitted</option><option>Screening</option><option>Interview</option><option>Offer</option><option>Rejected</option></select><input value={owner} onChange={(event) => setOwner(event.target.value)} placeholder="Owner" /><button onClick={() => updateApplication(item.id, status, owner)}>Update</button></div></article>;
 }
 
-function StaffOperations({ profile, jobDraft, setJobDraft, createJob, tasks, advanceTask, loading }: { profile: UserProfile; jobDraft: JobInput; setJobDraft: (value: JobInput) => void; createJob: (event: FormEvent<HTMLFormElement>) => Promise<void>; tasks: OnboardingTask[]; advanceTask: (task: OnboardingTask) => Promise<void>; loading: boolean }) {
+function StaffOperations({ profile, jobs, jobDraft, setJobDraft, createJob, updateJob, refresh, tasks, advanceTask, loading }: { profile: UserProfile; jobs: JobPosting[]; jobDraft: JobInput; setJobDraft: (value: JobInput) => void; createJob: (event: FormEvent<HTMLFormElement>) => Promise<void>; updateJob: (id: string, payload: Partial<JobInput>) => Promise<void>; refresh: () => void; tasks: OnboardingTask[]; advanceTask: (task: OnboardingTask) => Promise<void>; loading: boolean }) {
   if (!profile.isAdmin) return <LockedStaffPanel />;
-  return <section className="admin-grid"><div className="form-panel"><h2>Create Job Posting</h2><form onSubmit={createJob}><label>Title<input value={jobDraft.title} onChange={(event) => setJobDraft({ ...jobDraft, title: event.target.value })} required /></label><label>Programme<input value={jobDraft.programme} onChange={(event) => setJobDraft({ ...jobDraft, programme: event.target.value })} required /></label><label>Modality<select value={jobDraft.modality} onChange={(event) => setJobDraft({ ...jobDraft, modality: event.target.value })}><option>Hybrid</option><option>Remote</option><option>On campus</option></select></label><label>Rate band<input value={jobDraft.rateBand} onChange={(event) => setJobDraft({ ...jobDraft, rateBand: event.target.value })} /></label><label>Closing date<input type="date" value={jobDraft.closingDate} onChange={(event) => setJobDraft({ ...jobDraft, closingDate: event.target.value })} /></label><label>Status<select value={jobDraft.status} onChange={(event) => setJobDraft({ ...jobDraft, status: event.target.value as JobInput["status"] })}><option>Draft</option><option>Live</option><option>Closed</option></select></label><label className="full">Description<textarea value={jobDraft.description} onChange={(event) => setJobDraft({ ...jobDraft, description: event.target.value })} required /></label><button disabled={loading}>Save posting</button></form></div><div><h2>Onboarding Tasks</h2><div className="stack">{tasks.map((task) => <article className="card compact" key={task.id}><div className="card-title"><h3>{task.title}</h3><span className="pill">{task.status}</span></div><p>{task.candidateName} - {task.detail}</p><button onClick={() => advanceTask(task)}>Advance task</button></article>)}{tasks.length === 0 && <div className="command-panel"><p className="panel-copy">No onboarding tasks loaded yet.</p></div>}</div></div></section>;
+  return <section className="admin-grid"><div className="form-panel"><h2>Create Job Posting</h2><form onSubmit={createJob}><label>Title<input value={jobDraft.title} onChange={(event) => setJobDraft({ ...jobDraft, title: event.target.value })} required /></label><label>Programme<input value={jobDraft.programme} onChange={(event) => setJobDraft({ ...jobDraft, programme: event.target.value })} required /></label><label>Modality<select value={jobDraft.modality} onChange={(event) => setJobDraft({ ...jobDraft, modality: event.target.value })}><option>Hybrid</option><option>Remote</option><option>On campus</option></select></label><label>Rate band<input value={jobDraft.rateBand} onChange={(event) => setJobDraft({ ...jobDraft, rateBand: event.target.value })} /></label><label>Closing date<input type="date" value={jobDraft.closingDate} onChange={(event) => setJobDraft({ ...jobDraft, closingDate: event.target.value })} /></label><label>Status<select value={jobDraft.status} onChange={(event) => setJobDraft({ ...jobDraft, status: event.target.value as JobInput["status"] })}><option>Draft</option><option>Live</option><option>Closed</option></select></label><label className="full">Description<textarea value={jobDraft.description} onChange={(event) => setJobDraft({ ...jobDraft, description: event.target.value })} required /></label><button disabled={loading}>Save posting</button></form></div><div><div className="section-head"><h2>Manage Job Postings</h2><button onClick={refresh}>Refresh</button></div><div className="stack">{jobs.map((job) => <StaffJobCard job={job} updateJob={updateJob} loading={loading} key={job.id} />)}{jobs.length === 0 && <div className="command-panel"><p className="panel-copy">No job postings loaded yet.</p></div>}</div><h2>Onboarding Tasks</h2><div className="stack">{tasks.map((task) => <article className="card compact" key={task.id}><div className="card-title"><h3>{task.title}</h3><span className="pill">{task.status}</span></div><p>{task.candidateName} - {task.detail}</p><button onClick={() => advanceTask(task)}>Advance task</button></article>)}{tasks.length === 0 && <div className="command-panel"><p className="panel-copy">No onboarding tasks loaded yet.</p></div>}</div></div></section>;
+}
+
+function StaffJobCard({ job, updateJob, loading }: { job: JobPosting; updateJob: (id: string, payload: Partial<JobInput>) => Promise<void>; loading: boolean }) {
+  const [draft, setDraft] = useState<JobInput>({ title: job.title, programme: job.programme, modality: job.modality, rateBand: job.rateBand, closingDate: job.closingDate, status: job.status, description: job.description });
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await updateJob(job.id, draft);
+  }
+  return <article className="card compact"><div className="card-title"><h3>{job.title}</h3><span className="pill">{job.status}</span></div><p>{job.applicants} applicants</p><form className="inline-fields" onSubmit={submit}><input value={draft.title} onChange={(event) => setDraft({ ...draft, title: event.target.value })} aria-label="Job title" /><input value={draft.programme} onChange={(event) => setDraft({ ...draft, programme: event.target.value })} aria-label="Programme" /><select value={draft.modality} onChange={(event) => setDraft({ ...draft, modality: event.target.value })} aria-label="Modality"><option>Hybrid</option><option>Remote</option><option>On campus</option></select><input value={draft.rateBand} onChange={(event) => setDraft({ ...draft, rateBand: event.target.value })} aria-label="Rate band" placeholder="Rate band" /><input type="date" value={draft.closingDate} onChange={(event) => setDraft({ ...draft, closingDate: event.target.value })} aria-label="Closing date" /><select value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as JobInput["status"] })} aria-label="Status"><option>Draft</option><option>Live</option><option>Closed</option></select><textarea value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} aria-label="Description" /><button disabled={loading}>Update posting</button></form></article>;
 }
 
 function StaffProfiles({ title, profiles, profile, emptyText }: { title: string; profiles: PortalProfile[]; profile: UserProfile; emptyText: string }) {
