@@ -48,6 +48,8 @@ export const portalApi = {
   classes: () => request<ClassSession[]>("/classes"),
   registerClass: (id: string, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<ClassRegistrationRecord>(`/classes/${id}/register`, { method: "POST" }, auth),
+  assignInstructor: (id: string, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
+    request<ClassSession>(`/classes/${id}/assign-instructor`, { method: "POST" }, auth),
   myClasses: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<ClassRegistrationRecord[]>("/me/classes", {}, auth),
   myProfile: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
