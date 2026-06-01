@@ -28,17 +28,25 @@ Recommended production role source order:
 4. Development-only local role override
 ```
 
-Generate the Teams app icons before packaging:
+Generate and validate the Teams app package assets before packaging:
 
 ```bash
 npm run teams:icons
+npm run teams:validate
 ```
 
-This writes:
+This writes and checks:
 
 ```text
 teams/outline.png
 teams/color.png
+teams/manifest.json
+```
+
+After replacing the placeholder Teams and Entra IDs, run the production validation:
+
+```bash
+npm run teams:validate:production
 ```
 
 Teams configuration checklist:
@@ -49,9 +57,10 @@ Teams configuration checklist:
 3. Expose the API scope api://<API_CLIENT_ID>/access_as_user.
 4. Grant the SPA permission to request the API scope.
 5. Assign Portal.Admin or Portal.Staff through the Enterprise Application for staff users.
-6. Add the portal domain to validDomains in the Teams manifest.
-7. Run npm run teams:icons to generate 32x32 outline.png and 192x192 color.png.
-8. Zip manifest.json, outline.png, and color.png for upload to Teams Admin Center.
+6. Replace the placeholder Teams package id, SPA client id, and API app id in manifest.json.
+7. Add the portal domain to validDomains in the Teams manifest.
+8. Run npm run teams:icons and npm run teams:validate:production.
+9. Zip manifest.json, outline.png, and color.png for upload to Teams Admin Center.
 ```
 
 Staff workflows inside Teams should use the same portal screens and server-side API authorization. The Teams package should not grant permissions by itself; Microsoft Entra app roles remain the source of authority.
