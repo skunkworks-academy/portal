@@ -75,6 +75,8 @@ export const portalApi = {
     payload: Partial<Pick<ApplicationRecord, "status" | "owner">>,
     auth: { instance: IPublicClientApplication; account: AccountInfo }
   ) => request<ApplicationRecord>(`/admin/applications/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth),
+  adminJobs: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
+    request<JobPosting[]>("/admin/jobs", {}, auth),
   createJob: (payload: JobInput, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<JobPosting>("/admin/jobs", { method: "POST", body: JSON.stringify(payload) }, auth),
   updateJob: (
