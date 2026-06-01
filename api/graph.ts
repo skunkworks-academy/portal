@@ -3,7 +3,7 @@ import { config, requireSettings } from "./config.js";
 import { fallbackClasses, fallbackCourses } from "./fallbackData.js";
 import { HttpError } from "./http.js";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalProfile, PortalProfileInput, PortalRole } from "../src/types.js";
-import type { Principal } from "./auth.js";
+import { portalRoleFromPrincipal, type Principal } from "./auth.js";
 
 const graphRoot = "https://graph.microsoft.com/v1.0";
 let credential: ClientSecretCredential | undefined;
@@ -456,7 +456,7 @@ export async function upsertMyProfile(input: PortalProfileInput, principal: Prin
     ObjectId: principal.subject,
     DisplayName: input.displayName || principal.name,
     Email: principal.email,
-    PortalRole: input.portalRole,
+    PortalRole: portalRoleFromPrincipal(principal),
     Phone: input.phone,
     Location: input.location,
     Bio: input.bio,
