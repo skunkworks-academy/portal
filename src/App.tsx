@@ -161,6 +161,11 @@ export function App() {
     await run(async () => { await portalApi.registerClass(classId, auth); await Promise.all([refreshAcademicData(), refreshStudentData()]); }, "Class registration saved.");
   }
 
+  async function assignInstructor(classId: string) {
+    if (!auth) { await signIn("Instructor"); return; }
+    await run(async () => { await portalApi.assignInstructor(classId, auth); await refreshAcademicData(); }, "Class assigned to your instructor profile.");
+  }
+
   async function submitApplication(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!auth) { await signIn("Instructor"); return; }
@@ -246,7 +251,7 @@ export function App() {
         {tab === "dashboard" && <Dashboard activeRole={activeRole} setupComplete={setupComplete} changeRole={changeRole} />}
         {tab === "courses" && <CourseCatalog courses={courses} />}
         {tab === "classes" && activeRole === "Staff" && <StaffClassScheduling courses={courses} classes={classes} registrations={allClassRegistrations} classDraft={classDraft} setClassDraft={setClassDraft} createClass={createClass} updateClass={updateClass} loading={loading} />}
-        {tab === "classes" && activeRole !== "Staff" && <ClassWorkspace activeRole={activeRole} classes={classes} registeredClassIds={registeredClassIds} registerForClass={registerClass} />}
+        {tab === "classes" && activeRole !== "Staff" && <ClassWorkspace activeRole={activeRole} profile={profile} classes={classes} registeredClassIds={registeredClassIds} registerForClass={registerClass} assignInstructor={assignInstructor} loading={loading} />}
         {tab === "register" && <ClassRegistration classes={classes} registeredClassIds={registeredClassIds} registerForClass={registerClass} />}
         {tab === "jobs" && <Jobs jobs={activeRole === "Staff" ? staffJobs : displayJobs} savedJobIds={savedJobIds} toggleSavedJob={toggleSavedJob} selectJob={(id) => { setSelectedJobId(id); openTab(activeRole === "Staff" ? "staff" : "applications"); }} activeRole={activeRole} />}
         {tab === "applications" && activeRole === "Instructor" && <InstructorApplications profile={profile} applications={applications} displayJobs={displayJobs} selectedJobId={selectedJob?.id ?? ""} setSelectedJobId={setSelectedJobId} discipline={discipline} setDiscipline={setDiscipline} loading={loading} submitApplication={submitApplication} refresh={() => run(refreshUserData)} />}
@@ -276,9 +281,15 @@ function CourseCatalog({ courses }: { courses: CourseRecord[] }) {
   return <section><div className="section-head"><h2>Courses</h2><span className="pill">Student view</span></div><div className="card-grid">{courses.map((course) => <article className="card" key={course.id}><div className="card-title"><h3>{course.title}</h3><span className="pill">{course.level}</span></div><p>{course.description}</p><dl><div><dt>Duration</dt><dd>{course.duration}</dd></div></dl></article>)}</div></section>;
 }
 
-function ClassWorkspace({ activeRole, classes, registeredClassIds, registerForClass }: { activeRole: PortalRole; classes: ClassSession[]; registeredClassIds: string[]; registerForClass: (id: string) => void }) {
+function ClassWorkspace({ activeRole, profile, classes, registeredClassIds, registerForClass, assignInstructor, loading }: { activeRole: PortalRole; profile: UserProfile; classes: ClassSession[]; registeredClassIds: string[]; registerForClass: (id: string) => void; assignInstructor: (id: string) => void; loading: boolean }) {
   const visibleClasses = activeRole === "Student" ? classes.filter((item) => registeredClassIds.includes(item.id)) : classes;
-  return <section><div className="section-head"><h2>{activeRole === "Student" ? "My Classes" : "Class Monitoring"}</h2><span className="pill">{visibleClasses.length} classes</span></div><div className="card-grid">{visibleClasses.map((item) => <article className="card compact" key={item.id}><div className="card-title"><h3>{item.title}</h3><span className="pill">{item.status}</span></div><p>{item.schedule} - {item.modality}</p><dl><div><dt>Instructor</dt><dd>{item.instructor || "Pending"}</dd></div><div><dt>Seats</dt><dd>{item.enrolled}/{item.seats}</dd></div></dl>{activeRole === "Student" && !registeredClassIds.includes(item.id) && <button onClick={() => registerForClass(item.id)}>Register</button>}</article>)}</div></section>;
+  return <section><div className="section-head"><h2>{activeRole === "Student" ? "My Classes" : "Class Monitoring"}</h2><span className="pill">{visibleClasses.length} classes</span></div><div className="card-grid">{visibleClasses.map((item) => {
+    const instructor = item.instructor.trim();
+    const normalizedInstructor = instructor.toLowerCase();
+    const isPendingInstructor = !instructor || normalizedInstructor === "pending" || normalizedInstructor === "pending assignment";
+    const assignedToMe = Boolean(instructor) && [profile.name, profile.username].some((value) => value.toLowerCase() === normalizedInstructor);
+    return <article className="card compact" key={item.id}><div className="card-title"><h3>{item.title}</h3><span className="pill">{item.status}</span></div><p>{item.schedule} - {item.modality}</p><dl><div><dt>Instructor</dt><dd>{instructor || "Pending"}</dd></div><div><dt>Seats</dt><dd>{item.enrolled}/{item.seats}</dd></div></dl>{activeRole === "Student" && !registeredClassIds.includes(item.id) && <button onClick={() => registerForClass(item.id)}>Register</button>}{activeRole === "Instructor" && isPendingInstructor && <button disabled={loading} onClick={() => assignInstructor(item.id)}>Assign me</button>}{activeRole === "Instructor" && assignedToMe && <span className="pill">Assigned to you</span>}</article>;
+  })}</div></section>;
 }
 
 function ClassRegistration({ classes, registeredClassIds, registerForClass }: { classes: ClassSession[]; registeredClassIds: string[]; registerForClass: (id: string) => void }) {
