@@ -28,5 +28,8 @@ jobs:
       - name: Generate Teams icons
         run: npm run teams:icons
 
+      - name: Validate Teams manifest
+        run: npm run teams:validate
+
       - name: Build frontend and API
         run: npm run build && npm run build:api
