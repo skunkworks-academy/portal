@@ -164,8 +164,9 @@ npm run build:api
 8. Instructor CV/resume uploads are stored in InstructorDocuments and linked from PortalProfiles.
 9. Staff monitoring views load instructor and student profile data from GET /api/admin/profiles.
 10. Staff scheduling loads classes from GET /api/classes, creates classes through POST /api/admin/classes, and updates schedules/instructors through PATCH /api/admin/classes/{id}.
-11. Resources content changes by role.
-12. Browser metadata and favicon show Skunkworks Academy Portal.
+11. Staff job management loads all postings from GET /api/admin/jobs and updates postings through PATCH /api/admin/jobs/{id}.
+12. Resources content changes by role.
+13. Browser metadata and favicon show Skunkworks Academy Portal.
 ```
 
 ## Production Checks
@@ -198,6 +199,9 @@ GET /api/admin/profiles
 GET /api/admin/class-registrations
 POST /api/admin/classes
 PATCH /api/admin/classes/{id}
+GET /api/admin/jobs
+POST /api/admin/jobs
+PATCH /api/admin/jobs/{id}
 ```
 
 If `missingSettings` includes `apiClientSecret`, create a new client secret in the `Skunkworks Academy Portal API` app registration and add the secret value to the Function App setting `API_CLIENT_SECRET`. Restart the Function App after saving.
