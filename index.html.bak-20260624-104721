@@ -1,14 +1,6 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en-ZA">
   <head>
-  <!-- Skunkworks Academy global shell: managed -->
-  <meta name="skunkworks:org" content="skunkworks-academy" />
-  <meta name="skunkworks:repo" content="portal" />
-  <meta name="skunkworks:repo-sitemap" content="https://skunkworksacademy.com/repositories/" />
-  <link rel="stylesheet" href="https://skunkworksacademy.com/assets/academy-global.css?v=2026.06.24" data-skunkworks-global-style="v1" />
-  <link rel="sitemap" type="text/html" title="Skunkworks Academy Repository Sitemap" href="https://skunkworksacademy.com/repositories/" data-skunkworks-org-sitemap="v1" />
-  <script defer src="https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.06.24" data-skunkworks-global-nav="v1"></script>
-  <!-- /Skunkworks Academy global shell: managed -->
     <meta charset="utf-8" data-skunkworks-head="mandatory-v1" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Skunkworks Academy Portal | Unified Learning Ecosystem</title>
@@ -33,6 +25,7 @@
     <meta name="twitter:title" content="Skunkworks Academy Portal" />
     <meta name="twitter:description" content="Portal access for learners, instructors and academy operations." />
     <meta name="twitter:image" content="https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png" />
+    <script defer src="https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.06.23"></script>
     <style>
       :root{--bg:#050505;--text:#f5f5f5;--muted:#a3a3a3;--line:#2a2a2a;--accent:#7c3aed;--accent2:#06b6d4}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}.noscript{min-height:100vh;display:grid;place-items:center;padding:24px}.card{max-width:760px;border:1px solid var(--line);border-radius:24px;padding:28px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.035));box-shadow:0 24px 80px rgba(0,0,0,.35)}h1{font-size:clamp(36px,7vw,72px);line-height:.95;letter-spacing:-.07em;margin:0 0 16px}p{color:var(--muted);line-height:1.6}.links{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}.btn{border:1px solid var(--line);border-radius:999px;padding:10px 14px;color:var(--text);text-decoration:none;font-weight:700}.primary{border:0;background:linear-gradient(135deg,var(--accent),var(--accent2))}
     </style>
@@ -51,4 +44,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
