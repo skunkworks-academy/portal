@@ -4,7 +4,8 @@ import { config, requireSettings } from "./config.js";
 import { HttpError } from "./http.js";
 import type { PortalRole } from "../src/types.js";
 
-const jwks = createRemoteJWKSet(new URL("https://login.microsoftonline.com/common/discovery/v2.0/keys"));
+// Use the configured Entra tenant for JWKS discovery
+const jwks = createRemoteJWKSet(new URL(`https://login.microsoftonline.com/${config.entraTenantId}/discovery/v2.0/keys`));
 
 export interface Principal {
   subject: string;
@@ -27,7 +28,8 @@ export async function requireUser(request: HttpRequest): Promise<Principal> {
   });
 
   const issuer = String(payload.iss ?? "");
-  if (!/^https:\/\/login\.microsoftonline\.com\/[^/]+\/v2\.0\/?$/.test(issuer)) {
+  // Ensure the token issuer matches the configured Entra tenant
+  if (!issuer.startsWith(`https://login.microsoftonline.com/${config.entraTenantId}/`)) {
     throw new HttpError(401, "Unsupported token issuer.");
   }
 
