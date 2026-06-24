@@ -11,7 +11,8 @@ export const apiScope =
 export const msalConfig: Configuration = {
   auth: {
     clientId: import.meta.env.VITE_MSAL_CLIENT_ID ?? "00000000-0000-0000-0000-000000000000",
-    authority: "https://login.microsoftonline.com/common",
+    // Restrict authentication to the configured tenant instead of using the common endpoint
+    authority: `https://login.microsoftonline.com/${skunkworksTenantId}`,
     redirectUri: browserOrigin + "/",
     postLogoutRedirectUri: browserOrigin + "/"
   },
