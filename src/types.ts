@@ -86,6 +86,7 @@ export interface OnboardingTask {
   dueDate: string;
   status: TaskStatus;
   detail: string;
+  assignee?: string;
 }
 
 export interface NewApplication {
@@ -131,6 +132,7 @@ export interface PortalProfile {
   cvFileName: string;
   cvDocumentUrl?: string;
   updatedAt: string;
+  cvWebUrl?: string;
 }
 
 export interface PortalProfileInput {
