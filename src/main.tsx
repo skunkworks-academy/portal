@@ -5,6 +5,7 @@ import { MsalProvider } from "@azure/msal-react";
 import { App } from "./App";
 import { msalConfig } from "./authConfig";
 import "./styles.css";
+import "./site-theme.css";
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
