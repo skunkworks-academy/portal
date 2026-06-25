@@ -1,0 +1,25 @@
+{
+  "name": "Skunkworks Academy Portal",
+  "short_name": "Academy Portal",
+  "description": "Microsoft-connected portal for Skunkworks Academy learners, instructors and staff operations.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#050505",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-white.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
