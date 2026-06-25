@@ -6,6 +6,7 @@ import { App } from "./App";
 import { msalConfig } from "./authConfig";
 import "./styles.css";
 import "./site-theme.css";
+import "./mobile-optimisation.css";
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
