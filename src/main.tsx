@@ -7,6 +7,7 @@ import { msalConfig } from "./authConfig";
 import "./styles.css";
 import "./site-theme.css";
 import "./mobile-optimisation.css";
+import "./global-nav-compat.css";
 
 const msalInstance = new PublicClientApplication(msalConfig);
 const rootElement = document.getElementById("root");
