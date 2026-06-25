@@ -18,7 +18,10 @@ async function request<T>(
   auth?: { instance: IPublicClientApplication; account: AccountInfo }
 ): Promise<T> {
   const headers = new Headers(options.headers);
-  headers.set("Content-Type", "application/json");
+
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
 
   if (auth) {
     headers.set("Authorization", `Bearer ${await getAccessToken(auth.instance, auth.account)}`);
@@ -35,6 +38,11 @@ async function request<T>(
   }
 
   if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const contentType = response.headers.get("Content-Type") ?? "";
+  if (!contentType.includes("application/json")) {
     return undefined as T;
   }
 
