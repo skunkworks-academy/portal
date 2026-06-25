@@ -23,8 +23,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
-      - run: npm install
+      - run: npm ci
 
       - run: npm run build:api
 
@@ -38,7 +39,7 @@ jobs:
           cp -r api-dist/src package/src
           node -e "const fs = require('node:fs'); const pkg = JSON.parse(fs.readFileSync('package/package.json', 'utf8')); pkg.main = 'api/functions.js'; fs.writeFileSync('package/package.json', JSON.stringify(pkg, null, 2) + '\n');"
           cd package
-          npm install --omit=dev
+          npm ci --omit=dev
           zip -r ../release.zip .
 
       - name: Deploy to Azure Functions
