@@ -5,14 +5,23 @@ const browserOrigin = typeof window === "undefined" ? "http://localhost" : windo
 export const skunkworksTenantId =
   import.meta.env.VITE_SKUNKWORKS_TENANT_ID ?? "972e8de4-e365-43a3-99ec-c86a0cc249e8";
 
+export const portalClientId =
+  import.meta.env.VITE_MSAL_CLIENT_ID ?? "8b1e77b3-3017-4c54-8ab3-0e4864511b55";
+
 export const apiScope =
-  import.meta.env.VITE_API_SCOPE ?? "api://00000000-0000-0000-0000-000000000000/access_as_user";
+  import.meta.env.VITE_API_SCOPE ?? "api://8b1e77b3-3017-4c54-8ab3-0e4864511b55/access_as_user";
+
+const configuredAuthority = import.meta.env.VITE_MSAL_AUTHORITY;
+
+export const msalAuthority =
+  configuredAuthority && configuredAuthority.trim().length > 0
+    ? configuredAuthority
+    : "https://login.microsoftonline.com/common";
 
 export const msalConfig: Configuration = {
   auth: {
-    clientId: import.meta.env.VITE_MSAL_CLIENT_ID ?? "00000000-0000-0000-0000-000000000000",
-    // Restrict authentication to the configured tenant instead of using the common endpoint
-    authority: `https://login.microsoftonline.com/${skunkworksTenantId}`,
+    clientId: portalClientId,
+    authority: msalAuthority,
     redirectUri: browserOrigin + "/",
     postLogoutRedirectUri: browserOrigin + "/"
   },
@@ -23,6 +32,6 @@ export const msalConfig: Configuration = {
 };
 
 export const loginRequest: RedirectRequest = {
-  scopes: ["openid", "profile", "email", apiScope],
+  scopes: ["openid", "profile", "email", "offline_access", apiScope],
   prompt: "select_account"
 };
