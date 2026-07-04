@@ -1,6 +1,8 @@
 import { app, type HttpRequest, type InvocationContext } from "@azure/functions";
 import { config, missingSettings } from "./config.js";
 import { requireAdmin, requireInstructor, requireStudent, requireUser } from "./auth.js";
+import { exchangeBulkMailApiCourse, exchangeBulkMailFinalAssessment } from "./courseContent.js";
+import { requireCourseLesson, scoreFinalAssessment, validateProgressPayload, type AssessmentPayload, type CourseProgressPayload } from "./courseMiddleware.js";
 import { fallbackJobs } from "./fallbackData.js";
 import { empty, failure, json, readJson } from "./http.js";
 import {
@@ -56,6 +58,10 @@ app.http("health", {
       "GET /api/jobs",
       "GET /api/courses",
       "GET /api/classes",
+      "GET /api/courses/exchange-online-bulk-mail-management",
+      "GET /api/courses/exchange-online-bulk-mail-management/lessons/{lessonId}",
+      "POST /api/courses/exchange-online-bulk-mail-management/progress",
+      "POST /api/courses/exchange-online-bulk-mail-management/assessments/final",
       "POST /api/classes/{id}/register",
       "POST /api/classes/{id}/assign-instructor",
       "GET /api/me/classes",
@@ -97,6 +103,48 @@ app.http("getCourses", {
   authLevel: "anonymous",
   route: "courses",
   handler: async (request, context) => handle(request, context, async () => json(request, await getCourses()))
+});
+
+app.http("getExchangeBulkMailCourse", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "courses/exchange-online-bulk-mail-management",
+  handler: async (request, context) => handle(request, context, async () => json(request, {
+    ...exchangeBulkMailApiCourse,
+    finalAssessment: exchangeBulkMailFinalAssessment.map(({ answer: _answer, ...question }) => question),
+    completion: {
+      requiredLessons: exchangeBulkMailApiCourse.modules.flatMap((module) => module.lessons.map((lesson) => lesson.id)),
+      requiredAssessmentScore: exchangeBulkMailApiCourse.requiredAssessmentScore,
+      badge: exchangeBulkMailApiCourse.badge
+    }
+  }))
+});
+
+app.http("getExchangeBulkMailLesson", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "courses/exchange-online-bulk-mail-management/lessons/{lessonId}",
+  handler: async (request, context) => handle(request, context, async () => json(request, requireCourseLesson(request.params.lessonId)))
+});
+
+app.http("trackExchangeBulkMailProgress", {
+  methods: ["POST"],
+  authLevel: "anonymous",
+  route: "courses/exchange-online-bulk-mail-management/progress",
+  handler: async (request, context) => handle(request, context, async () => {
+    const payload = await readJson<CourseProgressPayload>(request);
+    return json(request, validateProgressPayload(payload), 202);
+  })
+});
+
+app.http("submitExchangeBulkMailAssessment", {
+  methods: ["POST"],
+  authLevel: "anonymous",
+  route: "courses/exchange-online-bulk-mail-management/assessments/final",
+  handler: async (request, context) => handle(request, context, async () => {
+    const payload = await readJson<AssessmentPayload>(request);
+    return json(request, scoreFinalAssessment(payload));
+  })
 });
 
 app.http("getClasses", {

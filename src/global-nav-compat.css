@@ -1,4 +1,4 @@
-/* Skunkworks Academy Portal global navigation compatibility. Version: 2026-06-25 */
+/* Skunkworks Academy Portal global navigation compatibility. Version: 2026-07-04 */
 
 body.swa-has-global-nav .top[data-fallback-header="true"] {
   display: none !important;
@@ -17,9 +17,106 @@ body.swa-has-global-nav .landing-page {
   min-height: calc(100vh - 76px);
 }
 
+.top[data-fallback-header="true"] .shell.nav,
+.top[data-fallback-header="true"] .nav {
+  position: relative !important;
+}
+
+.top[data-fallback-header="true"] .brand {
+  flex: 1 1 auto !important;
+}
+
+.global-menu-toggle {
+  width: 44px !important;
+  height: 44px !important;
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  border: 1px solid var(--academy-nav-line) !important;
+  border-radius: 999px !important;
+  background: color-mix(in srgb, var(--academy-nav-text) 6%, transparent) !important;
+  color: var(--academy-nav-text) !important;
+  cursor: pointer !important;
+}
+
+.global-menu-toggle span {
+  width: 18px !important;
+  height: 2px !important;
+  display: block !important;
+  border-radius: 999px !important;
+  background: currentColor !important;
+  transition: transform 160ms ease, opacity 160ms ease !important;
+}
+
+.top.global-menu-open .global-menu-toggle span:nth-child(1) {
+  transform: translateY(7px) rotate(45deg) !important;
+}
+
+.top.global-menu-open .global-menu-toggle span:nth-child(2) {
+  opacity: 0 !important;
+}
+
+.top.global-menu-open .global-menu-toggle span:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg) !important;
+}
+
+.top[data-fallback-header="true"]:not(.global-menu-open) .links {
+  display: none !important;
+}
+
+.top[data-fallback-header="true"].global-menu-open .links {
+  position: absolute !important;
+  top: calc(100% + 12px) !important;
+  right: 0 !important;
+  width: min(720px, calc(100vw - 32px)) !important;
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+  gap: 10px !important;
+  padding: 16px !important;
+  border: 1px solid var(--academy-nav-line) !important;
+  border-radius: 24px !important;
+  background: var(--academy-nav-bg) !important;
+  box-shadow: var(--academy-shadow) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  z-index: 120 !important;
+}
+
+.top[data-fallback-header="true"].global-menu-open .links a,
+.top[data-fallback-header="true"].global-menu-open .links .nav-action,
+.top[data-fallback-header="true"].global-menu-open .links .nav-user {
+  width: 100% !important;
+}
+
+@media (max-width: 920px) {
+  .top[data-fallback-header="true"] .shell.nav,
+  .top[data-fallback-header="true"] .nav {
+    min-height: 66px !important;
+    align-items: center !important;
+    flex-direction: row !important;
+    padding: 14px 0 !important;
+  }
+
+  .top[data-fallback-header="true"].global-menu-open .links {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
 @media (max-width: 760px) {
   body.swa-has-global-nav .portal-hero {
     min-height: auto;
     padding-top: 42px;
+  }
+}
+
+@media (max-width: 560px) {
+  .top[data-fallback-header="true"].global-menu-open .links {
+    grid-template-columns: 1fr !important;
   }
 }
