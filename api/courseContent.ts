@@ -1,7 +1,7 @@
 export type ApiCourseLesson = {
   id: string;
   title: string;
-  type: "lesson" | "lab" | "assessment";
+  type: "lesson" | "lab";
   minutes: number;
   moduleId: string;
   moduleTitle: string;
@@ -81,7 +81,7 @@ export const exchangeBulkMailApiCourse = {
       title: "Capstone: Bulk Mail Architecture Review",
       summary: "Design a safe messaging pattern for three business workloads.",
       lessons: [
-        { id: "capstone-brief", title: "Capstone brief", type: "assessment", minutes: 60, moduleId: "m6-capstone", moduleTitle: "Capstone: Bulk Mail Architecture Review", summary: "Submit an architecture review for three real-world scenarios" }
+        { id: "capstone-brief", title: "Capstone brief", type: "lab", minutes: 60, moduleId: "m6-capstone", moduleTitle: "Capstone: Bulk Mail Architecture Review", summary: "Submit an architecture review for three real-world scenarios" }
       ]
     }
   ] satisfies ApiCourseModule[]
