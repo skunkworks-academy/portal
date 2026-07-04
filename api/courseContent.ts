@@ -38,8 +38,8 @@ export const exchangeBulkMailApiCourse = {
       title: "Foundations: Bulk Mail in Exchange Online",
       summary: "Classify bulk-mail workloads before selecting a sending path.",
       lessons: [
-        { id: "bulk-mail-operating-model", title: "Bulk mail operating model", type: "lesson", minutes: 25, moduleId: "m1-foundations", moduleTitle: "Foundations: Bulk Mail in Exchange Online", summary: "Exchange Online bulk sending requires workload classification, governance and risk review." },
-        { id: "architecture-decision-tree", title: "Architecture decision tree", type: "lesson", minutes: 30, moduleId: "m1-foundations", moduleTitle: "Foundations: Bulk Mail in Exchange Online", summary: "Choose between distribution lists, HVE, ACS Email and specialist email platforms." }
+        { id: "bulk-mail-operating-model", title: "Bulk mail operating model", type: "lesson", minutes: 25, moduleId: "m1-foundations", moduleTitle: "Foundations: Bulk Mail in Exchange Online", su[...]
+        { id: "architecture-decision-tree", title: "Architecture decision tree", type: "lesson", minutes: 30, moduleId: "m1-foundations", moduleTitle: "Foundations: Bulk Mail in Exchange Online", [...]
       ]
     },
     {
@@ -47,8 +47,8 @@ export const exchangeBulkMailApiCourse = {
       title: "Exchange Online Limits and TERRL",
       summary: "Understand mailbox, message and tenant-level outbound controls.",
       lessons: [
-        { id: "limits-that-matter", title: "Limits that matter", type: "lesson", minutes: 35, moduleId: "m2-limits-terrl", moduleTitle: "Exchange Online Limits and TERRL", summary: "Map each Exchange Online limit to the operational symptom it creates." },
-        { id: "terrl-impact-simulator", title: "TERRL impact simulator", type: "lab", minutes: 40, moduleId: "m2-limits-terrl", moduleTitle: "Exchange Online Limits and TERRL", summary: "Model distribution group expansion and external-recipient consumption over a rolling window." }
+        { id: "limits-that-matter", title: "Limits that matter", type: "lesson", minutes: 35, moduleId: "m2-limits-terrl", moduleTitle: "Exchange Online Limits and TERRL", summary: "Map each Excha[...]
+        { id: "terrl-impact-simulator", title: "TERRL impact simulator", type: "lab", minutes: 40, moduleId: "m2-limits-terrl", moduleTitle: "Exchange Online Limits and TERRL", summary: "Model dis[...]
       ]
     },
     {
@@ -56,8 +56,8 @@ export const exchangeBulkMailApiCourse = {
       title: "Distribution List Design and Governance",
       summary: "Create safe, maintainable and auditable recipient structures.",
       lessons: [
-        { id: "dl-design-patterns", title: "Distribution list design patterns", type: "lesson", minutes: 30, moduleId: "m3-distribution-lists", moduleTitle: "Distribution List Design and Governance", summary: "Design groups with ownership, scope, moderation, allowed senders and review cadence." },
-        { id: "dl-powershell-runbook", title: "Distribution list PowerShell runbook", type: "lab", minutes: 45, moduleId: "m3-distribution-lists", moduleTitle: "Distribution List Design and Governance", summary: "Inspect group controls and export large membership sets for operational review." }
+        { id: "dl-design-patterns", title: "Distribution list design patterns", type: "lesson", minutes: 30, moduleId: "m3-distribution-lists", moduleTitle: "Distribution List Design and Governanc[...]
+        { id: "dl-powershell-runbook", title: "Distribution list PowerShell runbook", type: "lab", minutes: 45, moduleId: "m3-distribution-lists", moduleTitle: "Distribution List Design and Govern[...]
       ]
     },
     {
@@ -65,7 +65,7 @@ export const exchangeBulkMailApiCourse = {
       title: "Authentication and Deliverability",
       summary: "Protect sender reputation and align domains before operational or bulk sending.",
       lessons: [
-        { id: "sender-authentication", title: "SPF, DKIM, DMARC and subdomain strategy", type: "lesson", minutes: 35, moduleId: "m4-deliverability", moduleTitle: "Authentication and Deliverability", summary: "Plan authentication and domain separation for safer mail flow." }
+        { id: "sender-authentication", title: "SPF, DKIM, DMARC and subdomain strategy", type: "lesson", minutes: 35, moduleId: "m4-deliverability", moduleTitle: "Authentication and Deliverability[...]
       ]
     },
     {
@@ -73,7 +73,7 @@ export const exchangeBulkMailApiCourse = {
       title: "Monitoring and Troubleshooting",
       summary: "Use reports, message trace and evidence to detect risk early.",
       lessons: [
-        { id: "monitoring-runbook", title: "Monitoring runbook", type: "lesson", minutes: 35, moduleId: "m5-monitoring", moduleTitle: "Monitoring and Troubleshooting", summary: "Build an evidence pack for NDRs, blocking, throttling and moderation delays." }
+        { id: "monitoring-runbook", title: "Monitoring runbook", type: "lesson", minutes: 35, moduleId: "m5-monitoring", moduleTitle: "Monitoring and Troubleshooting", summary: "Build an evidence [...]
       ]
     },
     {
@@ -81,7 +81,7 @@ export const exchangeBulkMailApiCourse = {
       title: "Capstone: Bulk Mail Architecture Review",
       summary: "Design a safe messaging pattern for three business workloads.",
       lessons: [
-        { id: "capstone-brief", title: "Capstone brief", type: "assessment", minutes: 60, moduleId: "m6-capstone", moduleTitle: "Capstone: Bulk Mail Architecture Review", summary: "Submit an architecture decision record, risk matrix and monitoring plan." }
+        { id: "capstone-brief", title: "Capstone brief", type: "assessment", minutes: 60, moduleId: "m6-capstone", moduleTitle: "Capstone: Bulk Mail Architecture Review", summary: "Submit an archi[...]
       ]
     }
   ] satisfies ApiCourseModule[]
@@ -125,7 +125,7 @@ export const exchangeBulkMailFinalAssessment: ApiCourseQuestion[] = [
   }
 ];
 
-export function exchangeBulkMailLessons() {
+export function exchangeBulkMailLessons(): ApiCourseLesson[] {
   return exchangeBulkMailApiCourse.modules.flatMap((module) => module.lessons);
 }
 
