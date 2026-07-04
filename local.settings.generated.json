@@ -1,0 +1,15 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "ENTRA_TENANT_ID": "972e8de4-e365-43a3-99ec-c86a0cc249e8",
+    "API_CLIENT_ID": "",
+    "API_CLIENT_SECRET": "",
+    "SPA_CLIENT_ID": "",
+    "GRAPH_TENANT_ID": "972e8de4-e365-43a3-99ec-c86a0cc249e8",
+    "SHAREPOINT_HOSTNAME": "skunkworksacademy.sharepoint.com",
+    "SHAREPOINT_SITE_PATH": "/sites/InstructorPortal",
+    "ALLOWED_ORIGINS": "https://portal.skunkworksacademy.com,https://skunkworks-academy.github.io,http://localhost:5173"
+  }
+}
