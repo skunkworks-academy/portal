@@ -2,7 +2,16 @@ import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser"
 import { apiScope } from "./authConfig";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
+const productionApiBaseUrl = "https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api";
+const localApiBaseUrl = "http://localhost:7071/api";
+
+function defaultApiBaseUrl() {
+  if (typeof window === "undefined") return productionApiBaseUrl;
+  const hostname = window.location.hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1" ? localApiBaseUrl : productionApiBaseUrl;
+}
+
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl()).replace(/\/$/, "");
 
 async function getAccessToken(instance: IPublicClientApplication, account: AccountInfo) {
   const result = await instance.acquireTokenSilent({
