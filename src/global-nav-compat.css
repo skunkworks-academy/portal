@@ -1,4 +1,4 @@
-/* Skunkworks Academy Portal global navigation compatibility. Version: 2026-07-04 */
+/* Skunkworks Academy Portal global navigation compatibility. Version: 2026-07-05 */
 
 body.swa-has-global-nav .top[data-fallback-header="true"] {
   display: none !important;
@@ -71,7 +71,7 @@ body.swa-has-global-nav .landing-page {
   position: absolute !important;
   top: calc(100% + 12px) !important;
   right: 0 !important;
-  width: min(720px, calc(100vw - 32px)) !important;
+  width: min(760px, calc(100vw - 32px)) !important;
   display: grid !important;
   grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
   gap: 10px !important;
