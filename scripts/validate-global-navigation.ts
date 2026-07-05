@@ -36,12 +36,29 @@ function walk(dir: string, extensions: string[], ignored = new Set<string>()) {
 
 const app = read("src/App.tsx");
 const main = read("src/main.tsx");
-const css = read("src/global-nav-compat.css");
 const toggle = read("src/global-nav-toggle.ts");
 const pkg = read("package.json");
 
-must("src/App.tsx", app, "const BRAND_ICON_BLACK = \"https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png\";", "approved black brand icon is required.");
-must("src/App.tsx", app, "const BRAND_ICON_WHITE = \"https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-white.png\";", "approved white brand icon is required.");
+// Accept selectors from either a compatibility file or the consolidated stylesheet.
+const compatPath = "src/global-nav-compat.css";
+const stylesPath = "src/styles.css";
+
+let css = "";
+let cssSource = compatPath;
+
+if (existsSync(join(root, compatPath))) {
+  css = read(compatPath);
+  cssSource = compatPath;
+} else if (existsSync(join(root, stylesPath))) {
+  css = read(stylesPath);
+  cssSource = stylesPath;
+} else {
+  // Keep the original missing-file message (compat path) so CI output stays familiar.
+  failures.push(`Missing required file: ${compatPath}`);
+}
+
+must("src/App.tsx", app, "const BRAND_ICON_BLACK = \"https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png\";", "approved black brand icon is requir[...]");
+must("src/App.tsx", app, "const BRAND_ICON_WHITE = \"https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-white.png\";", "approved white brand icon is requir[...]");
 must("src/App.tsx", app, "const HOME_URL = \"https://skunkworksacademy.com/\";", "home URL must be the canonical academy domain.");
 must("src/App.tsx", app, "className=\"brand\" href={HOME_URL} aria-label=\"Skunkworks Academy home\"", "canonical brand anchor is required.");
 must("src/App.tsx", app, "className=\"brand-logo logo-light\" src={BRAND_ICON_BLACK}", "light logo image is required.");
@@ -67,9 +84,9 @@ must("src/App.tsx", app, "className=\"nav-action microsoft-signin\"", "Microsoft
 must("src/main.tsx", main, "import \"./global-nav-toggle\";", "entrypoint must load the burger toggle.");
 must("src/global-nav-toggle.ts", toggle, "global-menu-toggle", "burger toggle class is required.");
 must("src/global-nav-toggle.ts", toggle, "brand.insertAdjacentElement", "burger must be inserted after the brand.");
-must("src/global-nav-compat.css", css, ":not(.global-menu-open) .links", "links must be hidden until the burger is opened.");
-must("src/global-nav-compat.css", css, ".global-menu-open .links", "links must render when the burger is opened.");
-must("src/global-nav-compat.css", css, ".global-menu-toggle", "burger styling is required.");
+must(cssSource, css, ":not(.global-menu-open) .links", "links must be hidden until the burger is opened.");
+must(cssSource, css, ".global-menu-open .links", "links must render when the burger is opened.");
+must(cssSource, css, ".global-menu-toggle", "burger styling is required.");
 must("package.json", pkg, "\"validate:global-nav\": \"tsx scripts/validate-global-navigation.ts\"", "package must expose the global nav validator.");
 must("package.json", pkg, "\"prebuild\": \"npm run validate:global-nav\"", "build must fail before deployment when nav is invalid.");
 
