@@ -5,10 +5,6 @@ import { MsalProvider } from "@azure/msal-react";
 import { App } from "./App";
 import { msalConfig } from "./authConfig";
 import "./styles.css";
-import "./site-theme.css";
-import "./mobile-optimisation.css";
-import "./global-nav-compat.css";
-import "./responsive-contrast.css";
 import "./global-nav-toggle";
 
 const msalInstance = new PublicClientApplication(msalConfig);
