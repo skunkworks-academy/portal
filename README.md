@@ -95,6 +95,37 @@ SHAREPOINT_SITE_PATH=/sites/InstructorPortal
 ALLOWED_ORIGINS=http://localhost:5173,https://portal.skunkworksacademy.com,https://skunkworks-academy.github.io
 ```
 
+## Scope Fix for AADSTS70011
+
+`/access_as_user` is not a valid standalone Microsoft Entra scope. The delegated API permission must be requested as a fully qualified Application ID URI scope:
+
+```text
+api://8b1e77b3-3017-4c54-8ab3-0e4864511b55/access_as_user
+```
+
+The frontend now normalizes common bad values such as `/access_as_user`, `access_as_user`, or an accidentally pasted scope string like `openid profile email offline_access /access_as_user` into the correct API scope before MSAL redirects.
+
+Do not deploy this:
+
+```text
+VITE_API_SCOPE=/access_as_user
+```
+
+Deploy this:
+
+```text
+VITE_API_SCOPE=api://8b1e77b3-3017-4c54-8ab3-0e4864511b55/access_as_user
+```
+
+For usable GUI accounts, assign users or groups to the correct app roles on the Enterprise Application:
+
+- `Portal.Student`
+- `Portal.Instructor`
+- `Portal.Staff`
+- `Portal.Admin`
+
+The GUI reads role claims from the signed-in account and routes users to the matching workspace.
+
 ## Local Development
 
 ```bash
@@ -154,3 +185,4 @@ The provisioning script creates the operational lists and document libraries for
 6. Instructors can apply for instructor jobs and view submitted applications.
 7. Staff users with `Portal.Admin` or `Portal.Staff` can create job postings and class schedules.
 8. The global navigation validator passes before build.
+9. No deployed environment uses `/access_as_user` as the API scope.
