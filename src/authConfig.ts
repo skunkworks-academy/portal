@@ -15,7 +15,37 @@ export const portalSupportedAccountTypes = "All Microsoft account users";
 export const portalCredentialSummary = "0 certificates, 2 client secrets configured in Entra";
 
 export const portalApiScope = `${portalApplicationIdUri}/access_as_user`;
-export const apiScope = import.meta.env.VITE_API_SCOPE ?? portalApiScope;
+
+const reservedOidcScopes = new Set(["openid", "profile", "email", "offline_access"]);
+const guidScopePattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\//i;
+
+function normalizeApiScope(rawScope?: string) {
+  const configuredScope = rawScope?.trim();
+  if (!configuredScope) return portalApiScope;
+
+  const candidates = configuredScope
+    .split(/\s+/)
+    .map((scope) => scope.trim())
+    .filter((scope) => scope.length > 0 && !reservedOidcScopes.has(scope));
+
+  const candidate = candidates.at(-1) ?? configuredScope;
+
+  if (candidate === "access_as_user" || candidate === "/access_as_user") {
+    return portalApiScope;
+  }
+
+  if (candidate.startsWith("/")) {
+    return `${portalApplicationIdUri}${candidate}`;
+  }
+
+  if (candidate.startsWith("api://") || candidate.startsWith("https://") || guidScopePattern.test(candidate)) {
+    return candidate;
+  }
+
+  return `${portalApplicationIdUri}/${candidate.replace(/^\/+/, "")}`;
+}
+
+export const apiScope = normalizeApiScope(import.meta.env.VITE_API_SCOPE);
 
 const configuredAuthority = import.meta.env.VITE_MSAL_AUTHORITY;
 
