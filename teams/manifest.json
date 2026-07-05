@@ -1,7 +1,7 @@
 {
   "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
   "manifestVersion": "1.17",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "id": "21f093b0-e91a-4f62-ad71-2dee1e0cbc20",
   "developer": {
     "name": "Skunkworks Academy",
@@ -33,7 +33,9 @@
   ],
   "validDomains": [
     "portal.skunkworksacademy.com",
+    "skunkworksacademy.com",
     "skunkworks-academy.github.io",
+    "skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net",
     "login.microsoftonline.com"
   ],
   "webApplicationInfo": {
