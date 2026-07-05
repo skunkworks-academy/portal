@@ -1,0 +1,51 @@
+name: Brand Governance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'src/**'
+      - 'academy-branding-workflow/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/**'
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'src/**'
+      - 'academy-branding-workflow/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/**'
+
+jobs:
+  brand-governance:
+    name: Validate Skunkworks Academy portal brand
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate brand rules
+        run: node academy-branding-workflow/validation/check-branding.mjs
+
+      - name: Validate global navigation
+        run: npm run validate:global-nav
+
+      - name: Test
+        run: npm test
+
+      - name: Build frontend
+        run: npm run build
