@@ -1,0 +1,267 @@
+/* Responsive contrast and navigation hardening for Skunkworks Academy Portal. */
+:root {
+  --contrast-nav-bg: rgba(255,255,255,.96);
+  --contrast-nav-text: #050505;
+  --contrast-nav-muted: #1f2937;
+  --contrast-nav-line: #cbd5e1;
+  --contrast-menu-surface: #ffffff;
+  --contrast-menu-shadow: 0 24px 80px rgba(15,23,42,.18);
+  --contrast-focus: #0f766e;
+  --contrast-hero-text: #ffffff;
+  --contrast-hero-muted: #e6f3f7;
+  --contrast-hero-overlay: rgba(2,6,23,.72);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --contrast-nav-bg: rgba(5,5,5,.94);
+    --contrast-nav-text: #ffffff;
+    --contrast-nav-muted: #e5e7eb;
+    --contrast-nav-line: #3f3f46;
+    --contrast-menu-surface: #0b0b0b;
+    --contrast-menu-shadow: 0 24px 80px rgba(0,0,0,.55);
+    --contrast-focus: #75f0e5;
+    --contrast-hero-muted: #f1f5f9;
+    --contrast-hero-overlay: rgba(0,0,0,.78);
+  }
+}
+
+body {
+  color: var(--academy-text, var(--ink)) !important;
+}
+
+.top[data-fallback-header="true"],
+.top {
+  background: var(--contrast-nav-bg) !important;
+  border-bottom-color: var(--contrast-nav-line) !important;
+}
+
+.brand,
+.brand span,
+.brand-text,
+.brand-section {
+  color: var(--contrast-nav-text) !important;
+  text-shadow: none !important;
+}
+
+.brand-section,
+.brand small {
+  color: var(--contrast-nav-muted) !important;
+}
+
+.brand-logo {
+  background: color-mix(in srgb, var(--contrast-nav-text) 8%, transparent) !important;
+  border: 1px solid var(--contrast-nav-line) !important;
+  padding: 3px !important;
+}
+
+.logo-light {
+  display: inline-block !important;
+}
+
+.logo-dark {
+  display: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  .logo-light {
+    display: none !important;
+  }
+
+  .logo-dark {
+    display: inline-block !important;
+  }
+}
+
+.links a,
+.links .nav-action,
+.links .nav-user {
+  color: var(--contrast-nav-muted) !important;
+  border-color: var(--contrast-nav-line) !important;
+  background: color-mix(in srgb, var(--contrast-nav-text) 5%, transparent) !important;
+}
+
+.links a:hover,
+.links a:focus-visible,
+.links a[aria-current="page"],
+.links a[href="https://portal.skunkworksacademy.com/"],
+.links .nav-action:hover,
+.links .nav-action:focus-visible {
+  color: var(--contrast-nav-text) !important;
+  border-color: var(--contrast-focus) !important;
+  background: color-mix(in srgb, var(--contrast-focus) 16%, transparent) !important;
+  outline: 3px solid color-mix(in srgb, var(--contrast-focus) 24%, transparent) !important;
+  outline-offset: 2px !important;
+}
+
+.links .microsoft-signin {
+  color: #ffffff !important;
+  border-color: transparent !important;
+  background: linear-gradient(135deg, #5b21b6, #0e7490) !important;
+}
+
+.portal-hero {
+  color: var(--contrast-hero-text) !important;
+  background:
+    linear-gradient(180deg, var(--contrast-hero-overlay), var(--contrast-hero-overlay)),
+    radial-gradient(circle at top left, rgba(124,58,237,.34), transparent 34rem),
+    radial-gradient(circle at top right, rgba(6,182,212,.3), transparent 30rem),
+    var(--academy-bg, #050505) !important;
+}
+
+.hero-copy,
+.hero-copy h1,
+.hero-copy p,
+.hero-copy span,
+.portal-hero .eyebrow {
+  color: var(--contrast-hero-text) !important;
+}
+
+.hero-copy span {
+  color: var(--contrast-hero-muted) !important;
+  text-shadow: 0 1px 20px rgba(0,0,0,.25) !important;
+}
+
+.portal-hero .eyebrow,
+.hero-copy p {
+  color: #9ff6ee !important;
+}
+
+.ghost-action {
+  color: #ffffff !important;
+  border-color: rgba(255,255,255,.5) !important;
+  background: rgba(255,255,255,.14) !important;
+}
+
+.ghost-action:hover,
+.ghost-action:focus-visible,
+.primary-action:hover,
+.primary-action:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--contrast-focus) 34%, transparent) !important;
+  outline-offset: 3px !important;
+}
+
+.global-menu-toggle {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  border: 2px solid var(--contrast-nav-line) !important;
+  border-radius: 999px !important;
+  background: var(--contrast-menu-surface) !important;
+  color: var(--contrast-nav-text) !important;
+  box-shadow: 0 10px 28px rgba(0,0,0,.16) !important;
+  touch-action: manipulation !important;
+  cursor: pointer !important;
+}
+
+.global-menu-toggle:hover,
+.global-menu-toggle:focus-visible {
+  border-color: var(--contrast-focus) !important;
+  background: color-mix(in srgb, var(--contrast-focus) 12%, var(--contrast-menu-surface)) !important;
+  outline: 3px solid color-mix(in srgb, var(--contrast-focus) 26%, transparent) !important;
+  outline-offset: 3px !important;
+}
+
+.global-menu-toggle span {
+  width: 20px !important;
+  height: 2.5px !important;
+  background: currentColor !important;
+}
+
+.top[data-fallback-header="true"].global-menu-open .links {
+  background: var(--contrast-menu-surface) !important;
+  border-color: var(--contrast-nav-line) !important;
+  box-shadow: var(--contrast-menu-shadow) !important;
+}
+
+.top[data-fallback-header="true"].global-menu-open .links a,
+.top[data-fallback-header="true"].global-menu-open .links .nav-action,
+.top[data-fallback-header="true"].global-menu-open .links .nav-user {
+  min-height: 48px !important;
+  color: var(--contrast-nav-text) !important;
+  border-color: var(--contrast-nav-line) !important;
+  background: color-mix(in srgb, var(--contrast-nav-text) 6%, transparent) !important;
+}
+
+@media (max-width: 920px) {
+  .top[data-fallback-header="true"] .shell.nav,
+  .top[data-fallback-header="true"] .nav,
+  .shell.nav,
+  .nav {
+    width: min(100% - 24px, 1180px) !important;
+    min-height: 68px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    padding: 10px 0 !important;
+  }
+
+  .brand {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+  }
+
+  .brand span {
+    white-space: normal !important;
+    line-height: 1.15 !important;
+  }
+
+  .top[data-fallback-header="true"].global-menu-open .links {
+    top: calc(100% + 10px) !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-height: calc(100vh - 94px) !important;
+    overflow-y: auto !important;
+    grid-template-columns: 1fr 1fr !important;
+    padding: 14px !important;
+  }
+}
+
+@media (max-width: 560px) {
+  .brand {
+    gap: 10px !important;
+    font-size: 14px !important;
+  }
+
+  .brand-logo {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .global-menu-toggle {
+    width: 46px !important;
+    height: 46px !important;
+    min-width: 46px !important;
+    min-height: 46px !important;
+  }
+
+  .top[data-fallback-header="true"].global-menu-open .links {
+    grid-template-columns: 1fr !important;
+    border-radius: 20px !important;
+  }
+
+  .portal-main {
+    width: min(100% - 20px, 1240px) !important;
+  }
+
+  .portal-hero {
+    padding: 32px 20px !important;
+  }
+
+  .hero-copy h1 {
+    font-size: clamp(36px, 12vw, 56px) !important;
+  }
+
+  .hero-copy span {
+    font-size: 17px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .global-menu-toggle span {
+    transition: none !important;
+  }
+}
