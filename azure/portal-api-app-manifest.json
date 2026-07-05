@@ -1,0 +1,90 @@
+{
+  "appId": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
+  "displayName": "Skunkworks Academy Portal API",
+  "signInAudience": "AzureADMyOrg",
+  "identifierUris": [
+    "api://8b1e77b3-3017-4c54-8ab3-0e4864511b55"
+  ],
+  "api": {
+    "requestedAccessTokenVersion": 2,
+    "oauth2PermissionScopes": [
+      {
+        "adminConsentDescription": "Allow Skunkworks Academy Portal to access the Portal API as the signed-in user.",
+        "adminConsentDisplayName": "Access Skunkworks Academy Portal API",
+        "id": "0e4a9717-7fba-4ec8-9765-0d71c0f7d2b1",
+        "isEnabled": true,
+        "type": "User",
+        "userConsentDescription": "Allow the portal to access your Skunkworks Academy Portal profile and workspace data.",
+        "userConsentDisplayName": "Access Skunkworks Academy Portal",
+        "value": "access_as_user"
+      }
+    ],
+    "preAuthorizedApplications": [
+      {
+        "appId": "21f093b0-e91a-4f62-ad71-2dee1e0cbc20",
+        "delegatedPermissionIds": [
+          "0e4a9717-7fba-4ec8-9765-0d71c0f7d2b1"
+        ]
+      }
+    ]
+  },
+  "appRoles": [
+    {
+      "allowedMemberTypes": ["User", "Application"],
+      "description": "Student access for class registration, course discovery, profile management, and learner resources.",
+      "displayName": "Portal Student",
+      "id": "6b5f0c97-94c7-4c1c-9e7f-bc1020d0fd01",
+      "isEnabled": true,
+      "origin": "Application",
+      "value": "Portal.Student"
+    },
+    {
+      "allowedMemberTypes": ["User", "Application"],
+      "description": "Instructor access for job applications, instructor profile, document upload, and assigned classes.",
+      "displayName": "Portal Instructor",
+      "id": "fbf3c0b3-5a26-45d7-9c6a-b476f8c01588",
+      "isEnabled": true,
+      "origin": "Application",
+      "value": "Portal.Instructor"
+    },
+    {
+      "allowedMemberTypes": ["User", "Application"],
+      "description": "Staff operations access for job postings, applications, scheduling, profile monitoring, and resources.",
+      "displayName": "Portal Staff",
+      "id": "24123531-4968-4f9f-9355-47e312e1df59",
+      "isEnabled": true,
+      "origin": "Application",
+      "value": "Portal.Staff"
+    },
+    {
+      "allowedMemberTypes": ["User", "Application"],
+      "description": "Full administrator access for Skunkworks Academy Portal operations.",
+      "displayName": "Portal Admin",
+      "id": "4699f9d8-5327-49a2-9966-ec5d9720136b",
+      "isEnabled": true,
+      "origin": "Application",
+      "value": "Portal.Admin"
+    }
+  ],
+  "groupMembershipClaims": null,
+  "optionalClaims": {
+    "idToken": [
+      {
+        "name": "email",
+        "source": null,
+        "essential": false,
+        "additionalProperties": []
+      }
+    ],
+    "accessToken": [
+      {
+        "name": "email",
+        "source": null,
+        "essential": false,
+        "additionalProperties": []
+      }
+    ],
+    "saml2Token": []
+  },
+  "notes": "Apply this target state to the API app registration. If app roles or scope IDs already exist in Azure, preserve the existing IDs and update display names/descriptions/values only."
+}
