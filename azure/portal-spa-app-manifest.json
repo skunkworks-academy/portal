@@ -1,0 +1,43 @@
+{
+  "appId": "21f093b0-e91a-4f62-ad71-2dee1e0cbc20",
+  "displayName": "Skunkworks Academy Portal",
+  "signInAudience": "AzureADMyOrg",
+  "spa": {
+    "redirectUris": [
+      "https://portal.skunkworksacademy.com/",
+      "https://skunkworks-academy.github.io/portal/",
+      "http://localhost:5173/"
+    ]
+  },
+  "web": {
+    "redirectUris": [],
+    "implicitGrantSettings": {
+      "enableAccessTokenIssuance": false,
+      "enableIdTokenIssuance": false
+    }
+  },
+  "requiredResourceAccess": [
+    {
+      "resourceAppId": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
+      "resourceAccess": [
+        {
+          "id": "0e4a9717-7fba-4ec8-9765-0d71c0f7d2b1",
+          "type": "Scope"
+        }
+      ]
+    }
+  ],
+  "optionalClaims": {
+    "idToken": [
+      {
+        "name": "email",
+        "source": null,
+        "essential": false,
+        "additionalProperties": []
+      }
+    ],
+    "accessToken": [],
+    "saml2Token": []
+  },
+  "notes": "Apply this target state to the SPA app registration. The SPA client ID is used by VITE_MSAL_CLIENT_ID. The API scope remains api://8b1e77b3-3017-4c54-8ab3-0e4864511b55/access_as_user."
+}
