@@ -5,6 +5,7 @@ import { exchangeBulkMailApiCourse, exchangeBulkMailFinalAssessment } from "./co
 import { requireCourseLesson, scoreFinalAssessment, validateProgressPayload, type AssessmentPayload, type CourseProgressPayload } from "./courseMiddleware.js";
 import { fallbackJobs } from "./fallbackData.js";
 import { empty, failure, json, readJson } from "./http.js";
+import "./paymentFunctions.js";
 import {
   createApplication,
   createClass,
@@ -52,6 +53,12 @@ app.http("health", {
       "sharePointHostname",
       "sharePointSitePath"
     ]),
+    paymentSettings: {
+      payfastConfigured: Boolean(process.env.PAYFAST_MERCHANT_ID && process.env.PAYFAST_MERCHANT_KEY),
+      paypalConfigured: Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET && process.env.PAYPAL_WEBHOOK_ID),
+      payfastEnvironment: process.env.PAYFAST_ENV || "sandbox",
+      paypalEnvironment: process.env.PAYPAL_ENV || "sandbox"
+    },
     allowedOrigins: config.allowedOrigins,
     routes: [
       "GET /api/health",
@@ -79,7 +86,12 @@ app.http("health", {
       "POST /api/admin/jobs",
       "PATCH /api/admin/jobs/{id}",
       "GET /api/admin/tasks",
-      "PATCH /api/admin/tasks/{id}"
+      "PATCH /api/admin/tasks/{id}",
+      "GET /api/checkout/plans",
+      "POST /api/checkout/sessions",
+      "POST /api/checkout/paypal/capture",
+      "POST /api/webhooks/payfast/itn",
+      "POST /api/webhooks/paypal"
     ]
   })
 });

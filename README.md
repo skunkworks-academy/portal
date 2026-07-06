@@ -6,6 +6,9 @@ Production portal for students, instructors and staff operations. The rebuilt po
 
 - Frontend: Vite React SPA hosted at `https://portal.skunkworksacademy.com/`.
 - Navigation: global Skunkworks Academy menu with Home, Self-paced, Portal, Labs, Plans, Purchase, Jobs, Docs and IBM links.
+- Student account navigation: PortSwigger-style sidebar for Personal Details, Learning, Certifications, Jobs, Connections, Subscriptions, Order History and Reports.
+- Instructor workspace interface: command-centre sidebar for Dashboard, Instructor Profile, My Classes, My Applications, Jobs, Learners, Course Materials, Assessments and Reports.
+- Staff workspace interface: operations command-centre sidebar for Dashboard, Operations, Jobs, Applications, Instructors, Students, Scheduling, Resources, Settings and Reports.
 - Identity: Microsoft Entra ID with MSAL browser authentication.
 - API: Azure Functions at `/api`, issuing role-gated operations backed by Microsoft Graph and SharePoint.
 - Data: SharePoint site `/sites/InstructorPortal` for courses, classes, applications, profiles and onboarding records.
@@ -32,29 +35,34 @@ The SPA never exposes client-secret values. Client secrets remain in the Azure F
 
 ## Role Model
 
-Student workspace:
+Student workspace sidebar:
 
 ```text
-Dashboard
-Courses
-My Classes
-Register
-Resources
-Profile
-```
-
-Instructor workspace:
-
-```text
-Dashboard
+Personal Details
+Learning
+Certifications
 Jobs
-My Applications
-My Classes
-Resources
-Profile
+Connections
+Subscriptions
+Order History
+Reports
 ```
 
-Staff workspace:
+Instructor workspace sidebar:
+
+```text
+Dashboard
+Instructor Profile
+My Classes
+My Applications
+Jobs
+Learners
+Course Materials
+Assessments
+Reports
+```
+
+Staff workspace sidebar:
 
 ```text
 Dashboard
@@ -66,6 +74,7 @@ Students
 Scheduling
 Resources
 Settings
+Reports
 ```
 
 Staff operational API writes require `Portal.Admin` or `Portal.Staff` app role assignment in the Enterprise Application. Instructor application flows require `Portal.Instructor`. Student registration requires `Portal.Student`, `Portal.Staff` or `Portal.Admin`.
@@ -196,12 +205,14 @@ The provisioning script creates the operational lists and document libraries for
 ## Verification Checklist
 
 1. Signed-out users see the rebuilt branded landing page and global Academy menu.
-2. Microsoft sign-in uses client ID `8b1e77b3-3017-4c54-8ab3-0e4864511b55`.
-3. No deployed environment uses `21f093b0-e91a-4f62-ad71-2dee1e0cbc20`.
-4. The Enterprise Application panel displays tenant ID, object ID, Application ID URI, scope, redirect URI and authority.
-5. `/api/health` displays missing Azure Function settings when configuration is incomplete.
-6. Students can register for classes when assigned the correct Entra app role.
-7. Instructors can apply for instructor jobs and view submitted applications.
-8. Staff users with `Portal.Admin` or `Portal.Staff` can create job postings and class schedules.
-9. The global navigation validator passes before build.
-10. No deployed environment uses `/access_as_user` as the API scope.
+2. Microsoft sign-in uses client ID `8b1e77b3-3017-4c54-8ab3-0e4864511b55` unless explicitly overridden by environment.
+3. The Enterprise Application panel displays tenant ID, object ID, Application ID URI, scope, redirect URI and authority.
+4. `/api/health` displays missing Azure Function settings when configuration is incomplete.
+5. Students can register for classes when assigned the correct Entra app role.
+6. Instructors can apply for instructor jobs and view submitted applications.
+7. Staff users with `Portal.Admin` or `Portal.Staff` can create job postings and class schedules.
+8. The student account sidebar shows Personal Details, Learning, Certifications, Jobs, Connections, Subscriptions, Order History and Reports.
+9. The instructor workspace shows Dashboard, Instructor Profile, My Classes, My Applications, Jobs, Learners, Course Materials, Assessments and Reports.
+10. The staff workspace shows Dashboard, Operations, Jobs, Applications, Instructors, Students, Scheduling, Resources, Settings and Reports.
+11. The global navigation validator passes before build.
+12. No deployed environment uses `/access_as_user` as the API scope.
