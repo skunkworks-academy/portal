@@ -11,7 +11,8 @@ function defaultApiBaseUrl() {
   return hostname === "localhost" || hostname === "127.0.0.1" ? localApiBaseUrl : productionApiBaseUrl;
 }
 
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl()).replace(/\/$/, "");
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const apiBaseUrl = (configuredApiBaseUrl || defaultApiBaseUrl()).replace(/\/$/, "");
 
 async function getAccessToken(instance: IPublicClientApplication, account: AccountInfo) {
   const result = await instance.acquireTokenSilent({
