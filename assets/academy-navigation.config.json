@@ -1,80 +1,25 @@
 {
-    "repository":  "portal",
-    "standard":  "skunkworks-academy-global-navigation",
-    "version":  "v3",
-    "dropdownTitle":  "Pages",
-    "dropdownStatusLabel":  "Verified domains",
-    "canonicalNavigationUrl":  "https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.07.04",
-    "canonicalVersion":  "2026.07.04",
-    "globalAssetsBaseUrl":  "https://skunkworksacademy.com/assets",
-    "pages":  [
-                  {
-                      "label":  "Jobs",
-                      "domain":  "jobs.skunkworksacademy.com",
-                      "url":  "https://jobs.skunkworksacademy.com/",
-                      "verified":  true
-                  },
-                  {
-                      "label":  "Security",
-                      "domain":  "security.skunkworksacademy.com",
-                      "url":  "https://security.skunkworksacademy.com/",
-                      "verified":  true
-                  },
-                  {
-                      "label":  "Home",
-                      "domain":  "skunkworksacademy.com",
-                      "url":  "https://skunkworksacademy.com/",
-                      "verified":  true
-                  },
-                  {
-                      "label":  "IBM",
-                      "domain":  "ibm.skunkworksacademy.com",
-                      "url":  "https://ibm.skunkworksacademy.com/",
-                      "verified":  true
-                  },
-                  {
-                      "label":  "Portal",
-                      "domain":  "portal.skunkworksacademy.com",
-                      "url":  "https://portal.skunkworksacademy.com/",
-                      "verified":  true
-                  },
-                  {
-                      "label":  "Labs",
-                      "domain":  "labs.skunkworksacademy.com",
-                      "url":  "https://labs.skunkworksacademy.com/",
-                      "verified":  true
-                  },
-                  {
-                      "label":  "Badging",
-                      "domain":  "badging.skunkworksacademy.com",
-                      "url":  "https://badging.skunkworksacademy.com/",
-                      "verified":  true
-                  },
-                  {
-                      "label":  "Media",
-                      "domain":  "media.skunkworksacademy.com",
-                      "url":  "https://media.skunkworksacademy.com/",
-                      "verified":  true
-                  },
-                  {
-                      "label":  "App",
-                      "domain":  "app.skunkworksacademy.com",
-                      "url":  "https://app.skunkworksacademy.com/",
-                      "verified":  true
-                  },
-                  {
-                      "label":  "Learn",
-                      "domain":  "learn.skunkworksacademy.com",
-                      "url":  "https://learn.skunkworksacademy.com/",
-                      "verified":  true
-                  },
-                  {
-                      "label":  "Prompt",
-                      "domain":  "prompt.skunkworksacademy.com",
-                      "url":  "https://prompt.skunkworksacademy.com/",
-                      "verified":  true
-                  }
-              ],
-    "generatedOn":  "2026-07-04T21:33:13.3604055Z",
-    "notes":  "Public pages should use the central Skunkworks Academy global navigation shell. The burger dropdown must expose the verified domains listed in pages."
+  "repository": "portal",
+  "standard": "skunkworks-academy-global-navigation",
+  "version": "v6",
+  "dropdownTitle": "Pages",
+  "dropdownStatusLabel": "Verified domains",
+  "canonicalNavigationUrl": "https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.07.06.2",
+  "canonicalVersion": "2026.07.06.2",
+  "globalAssetsBaseUrl": "https://skunkworksacademy.com/assets",
+  "pages": [
+    { "label": "Home", "domain": "skunkworksacademy.com", "url": "https://skunkworksacademy.com/", "verified": true },
+    { "label": "Plans & Purchases", "domain": "skunkworksacademy.com", "url": "https://skunkworksacademy.com/plans-and-purchases/", "verified": true },
+    { "label": "Secure Checkout", "domain": "portal.skunkworksacademy.com", "url": "https://portal.skunkworksacademy.com/checkout/", "verified": true },
+    { "label": "Portal", "domain": "portal.skunkworksacademy.com", "url": "https://portal.skunkworksacademy.com/", "verified": true },
+    { "label": "Labs", "domain": "lab.skunkworksacademy.com", "aliases": ["labs.skunkworksacademy.com"], "url": "https://lab.skunkworksacademy.com/", "verified": true },
+    { "label": "Forms", "domain": "skunkworksacademy.com", "url": "https://skunkworksacademy.com/forms/", "verified": true },
+    { "label": "Jobs", "domain": "jobs.skunkworksacademy.com", "url": "https://jobs.skunkworksacademy.com/", "verified": true },
+    { "label": "Security", "domain": "security.skunkworksacademy.com", "url": "https://security.skunkworksacademy.com/", "verified": true },
+    { "label": "IBM", "domain": "ibm.skunkworksacademy.com", "url": "https://ibm.skunkworksacademy.com/", "verified": true },
+    { "label": "Badging", "domain": "badging.skunkworksacademy.com", "url": "https://badging.skunkworksacademy.com/", "verified": true },
+    { "label": "Media", "domain": "media.skunkworksacademy.com", "url": "https://media.skunkworksacademy.com/", "verified": true }
+  ],
+  "generatedOn": "2026-07-06T21:00:00+02:00",
+  "notes": "Portal uses the central Skunkworks Academy global navigation shell. Plans and purchases route to /plans-and-purchases/. Secure checkout routes to portal.skunkworksacademy.com/checkout/. Labs routes must use https://lab.skunkworksacademy.com/."
 }
