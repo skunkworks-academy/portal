@@ -32,9 +32,9 @@ function scrollToRoleInterface(role: string) {
   }, 75);
 }
 
-function activateWorkspaceEntry(entry: HTMLElement) {
+function activateWorkspaceEntry(entry: HTMLElement, triggerRoleButton = true) {
   const role = getEntryRole(entry);
-  entry.querySelector<HTMLButtonElement>("button")?.click();
+  if (triggerRoleButton) entry.querySelector<HTMLButtonElement>("button")?.click();
   scrollToRoleInterface(role);
 }
 
@@ -50,8 +50,8 @@ function prepareWorkspaceEntries() {
 document.addEventListener("click", (event) => {
   const target = event.target as HTMLElement | null;
   const entry = target?.closest<HTMLElement>(".role-entry");
-  if (!entry || target?.closest("button, a, input, select, textarea")) return;
-  activateWorkspaceEntry(entry);
+  if (!entry || target?.closest("a, input, select, textarea")) return;
+  activateWorkspaceEntry(entry, !target?.closest("button"));
 });
 
 document.addEventListener("keydown", (event) => {
