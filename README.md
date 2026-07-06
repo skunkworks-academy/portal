@@ -27,6 +27,7 @@ The portal is aligned to the provided Enterprise/App Registration record:
 | Supported account types | All Microsoft account users |
 | Client credentials | 0 certificates, 2 client secrets configured in Entra |
 | Redirect URI | `https://portal.skunkworksacademy.com/` |
+| Verification redirect URI | `https://verify.skunkworksacademy.com/` |
 | Application ID URI | `api://8b1e77b3-3017-4c54-8ab3-0e4864511b55` |
 | Delegated API scope | `api://8b1e77b3-3017-4c54-8ab3-0e4864511b55/access_as_user` |
 
@@ -86,6 +87,7 @@ Frontend `.env`:
 VITE_MSAL_CLIENT_ID=8b1e77b3-3017-4c54-8ab3-0e4864511b55
 VITE_API_CLIENT_ID=8b1e77b3-3017-4c54-8ab3-0e4864511b55
 VITE_APPLICATION_ID_URI=api://8b1e77b3-3017-4c54-8ab3-0e4864511b55
+VITE_MSAL_AUTHORITY=https://login.microsoftonline.com/972e8de4-e365-43a3-99ec-c86a0cc249e8
 VITE_API_SCOPE=api://8b1e77b3-3017-4c54-8ab3-0e4864511b55/access_as_user
 VITE_API_BASE_URL=https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api
 VITE_SKUNKWORKS_TENANT_ID=972e8de4-e365-43a3-99ec-c86a0cc249e8
@@ -101,8 +103,24 @@ API_CLIENT_SECRET=<SECRET_VALUE_FROM_ENTRA>
 GRAPH_TENANT_ID=972e8de4-e365-43a3-99ec-c86a0cc249e8
 SHAREPOINT_HOSTNAME=skunkworksacademy.sharepoint.com
 SHAREPOINT_SITE_PATH=/sites/InstructorPortal
-ALLOWED_ORIGINS=http://localhost:5173,https://portal.skunkworksacademy.com,https://skunkworks-academy.github.io
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173,https://portal.skunkworksacademy.com,https://verify.skunkworksacademy.com,https://skunkworks-academy.github.io
 ```
+
+## Client ID Fix for AADSTS700016
+
+`AADSTS700016` means the sign-in request is using an application/client ID that Microsoft Entra cannot find in the selected tenant. Do not deploy the retired/missing SPA client ID:
+
+```text
+21f093b0-e91a-4f62-ad71-2dee1e0cbc20
+```
+
+Deploy the active portal app ID instead:
+
+```text
+8b1e77b3-3017-4c54-8ab3-0e4864511b55
+```
+
+The frontend now also ignores `VITE_MSAL_CLIENT_ID=21f093b0-e91a-4f62-ad71-2dee1e0cbc20` if that stale value is still present in a deployment environment and falls back to the active app ID.
 
 ## Scope Fix for AADSTS70011
 

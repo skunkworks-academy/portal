@@ -1,7 +1,9 @@
 {
   "appId": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
+  "id": "3646dd6d-5ed7-4ea6-96b7-3c8f45fb93c9",
   "displayName": "Skunkworks Academy Portal API",
-  "signInAudience": "AzureADMyOrg",
+  "publisherDomain": "portal.skunkworksacademy.com",
+  "signInAudience": "AzureADandPersonalMicrosoftAccount",
   "identifierUris": [
     "api://8b1e77b3-3017-4c54-8ab3-0e4864511b55"
   ],
@@ -9,26 +11,45 @@
     "requestedAccessTokenVersion": 2,
     "oauth2PermissionScopes": [
       {
-        "adminConsentDescription": "Allow Skunkworks Academy Portal to access the Portal API as the signed-in user.",
+        "adminConsentDescription": "Allow the application to access Skunkworks Academy Portal API on behalf of the signed-in user.",
         "adminConsentDisplayName": "Access Skunkworks Academy Portal API",
-        "id": "0e4a9717-7fba-4ec8-9765-0d71c0f7d2b1",
+        "id": "3698d6c7-6a9e-4880-8de5-445c94cecf79",
         "isEnabled": true,
         "type": "User",
-        "userConsentDescription": "Allow the portal to access your Skunkworks Academy Portal profile and workspace data.",
-        "userConsentDisplayName": "Access Skunkworks Academy Portal",
+        "userConsentDescription": "Allow the application to access Skunkworks Academy Portal API on your behalf.",
+        "userConsentDisplayName": "Access Skunkworks Academy Portal API",
         "value": "access_as_user"
       }
     ],
-    "preAuthorizedApplications": [
-      {
-        "appId": "21f093b0-e91a-4f62-ad71-2dee1e0cbc20",
-        "delegatedPermissionIds": [
-          "0e4a9717-7fba-4ec8-9765-0d71c0f7d2b1"
-        ]
-      }
+    "preAuthorizedApplications": []
+  },
+  "spa": {
+    "redirectUris": [
+      "https://portal.skunkworksacademy.com/",
+      "https://verify.skunkworksacademy.com/",
+      "http://localhost:3000/",
+      "http://localhost:5173/"
     ]
   },
+  "web": {
+    "homePageUrl": "https://portal.skunkworksacademy.com/",
+    "logoutUrl": "https://portal.skunkworksacademy.com/",
+    "redirectUris": [],
+    "implicitGrantSettings": {
+      "enableAccessTokenIssuance": true,
+      "enableIdTokenIssuance": true
+    }
+  },
   "appRoles": [
+    {
+      "allowedMemberTypes": ["Application"],
+      "description": "Allows a trusted automation application to call the Skunkworks Academy Portal API using client credentials.",
+      "displayName": "Portal Automation",
+      "id": "230fb942-783b-46ef-b787-0202c5792d2f",
+      "isEnabled": true,
+      "origin": "Application",
+      "value": "Portal.Automation"
+    },
     {
       "allowedMemberTypes": ["User", "Application"],
       "description": "Student access for class registration, course discovery, profile management, and learner resources.",
@@ -67,24 +88,6 @@
     }
   ],
   "groupMembershipClaims": null,
-  "optionalClaims": {
-    "idToken": [
-      {
-        "name": "email",
-        "source": null,
-        "essential": false,
-        "additionalProperties": []
-      }
-    ],
-    "accessToken": [
-      {
-        "name": "email",
-        "source": null,
-        "essential": false,
-        "additionalProperties": []
-      }
-    ],
-    "saml2Token": []
-  },
-  "notes": "Apply this target state to the API app registration. If app roles or scope IDs already exist in Azure, preserve the existing IDs and update display names/descriptions/values only."
+  "optionalClaims": null,
+  "notes": "Target manifest aligned to the exported Skunkworks Academy Portal API registration. Preserve existing GUIDs in production. Scope ID 3698d6c7-6a9e-4880-8de5-445c94cecf79 comes from the active Entra export. The retired SPA client ID 21f093b0-e91a-4f62-ad71-2dee1e0cbc20 must not be used for sign-in unless recreated in the tenant."
 }
