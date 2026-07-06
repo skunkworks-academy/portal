@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Payment Processing | Skunkworks Academy</title>
+  <link rel="stylesheet" href="/checkout/checkout.css?v=2026.06.25" />
+  <script src="https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.06.25" defer></script>
+</head>
+<body>
+  <main class="checkout-shell checkout-hero">
+    <section>
+      <p class="eyebrow">Payment return</p>
+      <h1>Payment received by the gateway.</h1>
+      <p class="lead" id="message">We are checking the payment status. Access is granted only after the verified gateway webhook confirms the payment.</p>
+      <div class="gateway-actions" style="max-width:360px;margin-top:24px">
+        <a class="notice" href="https://portal.skunkworksacademy.com/">Return to portal</a>
+        <a class="notice" href="https://portal.skunkworksacademy.com/checkout/">Back to checkout</a>
+      </div>
+    </section>
+    <aside class="trust-panel">
+      <strong>Entitlement status</strong>
+      <ul>
+        <li>PayFast confirmations are processed through ITN.</li>
+        <li>PayPal orders are captured server-side and confirmed through webhook.</li>
+        <li>Portal access is not granted from this browser return page alone.</li>
+      </ul>
+    </aside>
+  </main>
+  <script src="/checkout/success/success.js?v=2026.06.25" defer></script>
+</body>
+</html>
