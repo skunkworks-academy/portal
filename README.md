@@ -7,6 +7,7 @@ Production portal for students, instructors and staff operations. The rebuilt po
 - Frontend: Vite React SPA hosted at `https://portal.skunkworksacademy.com/`.
 - Navigation: global Skunkworks Academy menu with Home, Self-paced, Portal, Labs, Plans, Purchase, Jobs, Docs and IBM links.
 - Student account navigation: PortSwigger-style sidebar for Personal Details, Learning, Certifications, Jobs, Connections, Subscriptions, Order History and Reports.
+- Instructor workspace interface: command-centre sidebar for Dashboard, Instructor Profile, My Classes, My Applications, Jobs, Learners, Course Materials, Assessments and Reports.
 - Identity: Microsoft Entra ID with MSAL browser authentication.
 - API: Azure Functions at `/api`, issuing role-gated operations backed by Microsoft Graph and SharePoint.
 - Data: SharePoint site `/sites/InstructorPortal` for courses, classes, applications, profiles and onboarding records.
@@ -45,15 +46,18 @@ Order History
 Reports
 ```
 
-Instructor workspace:
+Instructor workspace sidebar:
 
 ```text
 Dashboard
-Jobs
-My Applications
+Instructor Profile
 My Classes
-Resources
-Profile
+My Applications
+Jobs
+Learners
+Course Materials
+Assessments
+Reports
 ```
 
 Staff workspace:
@@ -188,5 +192,6 @@ The provisioning script creates the operational lists and document libraries for
 6. Instructors can apply for instructor jobs and view submitted applications.
 7. Staff users with `Portal.Admin` or `Portal.Staff` can create job postings and class schedules.
 8. The student account sidebar shows Personal Details, Learning, Certifications, Jobs, Connections, Subscriptions, Order History and Reports.
-9. The global navigation validator passes before build.
-10. No deployed environment uses `/access_as_user` as the API scope.
+9. The instructor workspace shows Dashboard, Instructor Profile, My Classes, My Applications, Jobs, Learners, Course Materials, Assessments and Reports.
+10. The global navigation validator passes before build.
+11. No deployed environment uses `/access_as_user` as the API scope.
