@@ -6,10 +6,10 @@
     "ENTRA_TENANT_ID": "972e8de4-e365-43a3-99ec-c86a0cc249e8",
     "API_CLIENT_ID": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
     "API_CLIENT_SECRET": "replace-in-local-only",
-    "SPA_CLIENT_ID": "21f093b0-e91a-4f62-ad71-2dee1e0cbc20",
+    "SPA_CLIENT_ID": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
     "GRAPH_TENANT_ID": "972e8de4-e365-43a3-99ec-c86a0cc249e8",
     "SHAREPOINT_HOSTNAME": "skunkworksacademy.sharepoint.com",
     "SHAREPOINT_SITE_PATH": "/sites/InstructorPortal",
-    "ALLOWED_ORIGINS": "http://localhost:5173,https://portal.skunkworksacademy.com,https://skunkworks-academy.github.io"
+    "ALLOWED_ORIGINS": "http://localhost:3000,http://localhost:5173,https://portal.skunkworksacademy.com,https://verify.skunkworksacademy.com,https://skunkworks-academy.github.io"
   }
 }
