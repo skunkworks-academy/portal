@@ -8,6 +8,7 @@ import "./styles.css";
 import "./global-nav-toggle";
 import "./student-account-navigation";
 import "./instructor-account-navigation";
+import "./staff-account-navigation";
 
 const msalInstance = new PublicClientApplication(msalConfig);
 const rootElement = document.getElementById("root");
