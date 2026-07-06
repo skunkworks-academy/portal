@@ -126,6 +126,22 @@ Deploy this:
 VITE_API_SCOPE=api://8b1e77b3-3017-4c54-8ab3-0e4864511b55/access_as_user
 ```
 
+## Sign-in Fix for AADSTS700016
+
+The portal must not request sign-in or API tokens for the retired or missing Entra application ID:
+
+```text
+21f093b0-e91a-4f62-ad71-2dee1e0cbc20
+```
+
+The frontend now guards the MSAL client ID, API client ID, Application ID URI and API scope against that missing application ID. If any deployed `VITE_*` environment variable still references it, the SPA falls back to the canonical Skunkworks Academy Portal API application:
+
+```text
+8b1e77b3-3017-4c54-8ab3-0e4864511b55
+```
+
+Remove stale deployment settings that contain `21f093b0-e91a-4f62-ad71-2dee1e0cbc20`, redeploy the frontend, then clear browser session storage before signing in again.
+
 For usable GUI accounts, assign users or groups to the correct app roles on the Enterprise Application:
 
 - `Portal.Student`
@@ -187,14 +203,15 @@ The provisioning script creates the operational lists and document libraries for
 ## Verification Checklist
 
 1. Signed-out users see the rebuilt branded landing page and global Academy menu.
-2. Microsoft sign-in uses client ID `8b1e77b3-3017-4c54-8ab3-0e4864511b55` unless explicitly overridden by environment.
-3. The Enterprise Application panel displays tenant ID, object ID, Application ID URI, scope, redirect URI and authority.
-4. `/api/health` displays missing Azure Function settings when configuration is incomplete.
-5. Students can register for classes when assigned the correct Entra app role.
-6. Instructors can apply for instructor jobs and view submitted applications.
-7. Staff users with `Portal.Admin` or `Portal.Staff` can create job postings and class schedules.
-8. The student account sidebar shows Personal Details, Learning, Certifications, Jobs, Connections, Subscriptions, Order History and Reports.
-9. The instructor workspace shows Dashboard, Instructor Profile, My Classes, My Applications, Jobs, Learners, Course Materials, Assessments and Reports.
-10. The staff workspace shows Dashboard, Operations, Jobs, Applications, Instructors, Students, Scheduling, Resources, Settings and Reports.
-11. The global navigation validator passes before build.
-12. No deployed environment uses `/access_as_user` as the API scope.
+2. Microsoft sign-in uses client ID `8b1e77b3-3017-4c54-8ab3-0e4864511b55` unless explicitly overridden through the guarded auth config.
+3. The portal never requests application ID `21f093b0-e91a-4f62-ad71-2dee1e0cbc20` for MSAL sign-in or API scope consent.
+4. The Enterprise Application panel displays tenant ID, object ID, Application ID URI, scope, redirect URI and authority.
+5. `/api/health` displays missing Azure Function settings when configuration is incomplete.
+6. Students can register for classes when assigned the correct Entra app role.
+7. Instructors can apply for instructor jobs and view submitted applications.
+8. Staff users with `Portal.Admin` or `Portal.Staff` can create job postings and class schedules.
+9. The student account sidebar shows Personal Details, Learning, Certifications, Jobs, Connections, Subscriptions, Order History and Reports.
+10. The instructor workspace shows Dashboard, Instructor Profile, My Classes, My Applications, Jobs, Learners, Course Materials, Assessments and Reports.
+11. The staff workspace shows Dashboard, Operations, Jobs, Applications, Instructors, Students, Scheduling, Resources, Settings and Reports.
+12. The global navigation validator passes before build.
+13. No deployed environment uses `/access_as_user` as the API scope.
