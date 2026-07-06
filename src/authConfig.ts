@@ -25,6 +25,18 @@ function isCanonicalApplicationValue(value?: string) {
   return value === canonicalPortalClientId || value === `api://${canonicalPortalClientId}` || value.startsWith(`api://${canonicalPortalClientId}/`);
 }
 
+function resolveTenantId(rawValue?: string) {
+  const value = configuredValue(rawValue);
+  if (!value) return canonicalTenantId;
+
+  if (!allowCustomEntraApp && value !== canonicalTenantId) {
+    authConfigurationWarnings.push("VITE_SKUNKWORKS_TENANT_ID attempted to use a non-canonical tenant; using the Skunkworks Academy tenant.");
+    return canonicalTenantId;
+  }
+
+  return value;
+}
+
 function resolvePortalApplicationId(rawValue: string | undefined, settingName: string) {
   const value = configuredValue(rawValue);
   if (!value) return canonicalPortalClientId;
@@ -59,6 +71,19 @@ function resolveApplicationIdUri(rawValue: string | undefined, clientId: string)
 
   if (!allowCustomEntraApp && !isCanonicalApplicationValue(value)) {
     authConfigurationWarnings.push("VITE_APPLICATION_ID_URI attempted to use a non-canonical application URI; using the Skunkworks Academy Portal API URI.");
+    return fallback;
+  }
+
+  return value.replace(/\/$/, "");
+}
+
+function resolveAuthority(rawValue: string | undefined, tenantId: string) {
+  const fallback = `https://login.microsoftonline.com/${tenantId}`;
+  const value = configuredValue(rawValue);
+  if (!value) return fallback;
+
+  if (!allowCustomEntraApp && !value.toLowerCase().includes(tenantId.toLowerCase())) {
+    authConfigurationWarnings.push("VITE_MSAL_AUTHORITY attempted to use a non-canonical authority; using the Skunkworks Academy tenant authority.");
     return fallback;
   }
 
@@ -103,7 +128,7 @@ function normalizeApiScope(rawScope?: string) {
 
 export const authConfigurationWarnings: string[] = [];
 
-export const skunkworksTenantId = configuredValue(import.meta.env.VITE_SKUNKWORKS_TENANT_ID) ?? canonicalTenantId;
+export const skunkworksTenantId = resolveTenantId(import.meta.env.VITE_SKUNKWORKS_TENANT_ID);
 export const defaultPortalClientId = canonicalPortalClientId;
 export const portalApiClientId = resolvePortalApplicationId(import.meta.env.VITE_API_CLIENT_ID, "VITE_API_CLIENT_ID");
 export const portalClientId = resolvePortalApplicationId(import.meta.env.VITE_MSAL_CLIENT_ID, "VITE_MSAL_CLIENT_ID");
@@ -114,13 +139,7 @@ export const portalSupportedAccountTypes = "All Microsoft account users";
 export const portalCredentialSummary = "0 certificates, 2 client secrets configured in Entra";
 export const portalApiScope = `${portalApplicationIdUri}/access_as_user`;
 export const apiScope = normalizeApiScope(import.meta.env.VITE_API_SCOPE);
-
-const configuredAuthority = configuredValue(import.meta.env.VITE_MSAL_AUTHORITY);
-
-export const msalAuthority =
-  configuredAuthority && configuredAuthority.length > 0
-    ? configuredAuthority
-    : `https://login.microsoftonline.com/${skunkworksTenantId}`;
+export const msalAuthority = resolveAuthority(import.meta.env.VITE_MSAL_AUTHORITY, skunkworksTenantId);
 
 const redirectBase = browserOrigin.endsWith("/") ? browserOrigin.slice(0, -1) : browserOrigin;
 
