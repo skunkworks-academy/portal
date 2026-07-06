@@ -8,6 +8,7 @@ Production portal for students, instructors and staff operations. The rebuilt po
 - Navigation: global Skunkworks Academy menu with Home, Self-paced, Portal, Labs, Plans, Purchase, Jobs, Docs and IBM links.
 - Student account navigation: PortSwigger-style sidebar for Personal Details, Learning, Certifications, Jobs, Connections, Subscriptions, Order History and Reports.
 - Instructor workspace interface: command-centre sidebar for Dashboard, Instructor Profile, My Classes, My Applications, Jobs, Learners, Course Materials, Assessments and Reports.
+- Staff workspace interface: operations command-centre sidebar for Dashboard, Operations, Jobs, Applications, Instructors, Students, Scheduling, Resources, Settings and Reports.
 - Identity: Microsoft Entra ID with MSAL browser authentication.
 - API: Azure Functions at `/api`, issuing role-gated operations backed by Microsoft Graph and SharePoint.
 - Data: SharePoint site `/sites/InstructorPortal` for courses, classes, applications, profiles and onboarding records.
@@ -60,7 +61,7 @@ Assessments
 Reports
 ```
 
-Staff workspace:
+Staff workspace sidebar:
 
 ```text
 Dashboard
@@ -72,6 +73,7 @@ Students
 Scheduling
 Resources
 Settings
+Reports
 ```
 
 Staff operational API writes require `Portal.Admin` or `Portal.Staff` app role assignment in the Enterprise Application. Instructor application flows require `Portal.Instructor`. Student registration requires `Portal.Student`, `Portal.Staff` or `Portal.Admin`.
@@ -193,5 +195,6 @@ The provisioning script creates the operational lists and document libraries for
 7. Staff users with `Portal.Admin` or `Portal.Staff` can create job postings and class schedules.
 8. The student account sidebar shows Personal Details, Learning, Certifications, Jobs, Connections, Subscriptions, Order History and Reports.
 9. The instructor workspace shows Dashboard, Instructor Profile, My Classes, My Applications, Jobs, Learners, Course Materials, Assessments and Reports.
-10. The global navigation validator passes before build.
-11. No deployed environment uses `/access_as_user` as the API scope.
+10. The staff workspace shows Dashboard, Operations, Jobs, Applications, Instructors, Students, Scheduling, Resources, Settings and Reports.
+11. The global navigation validator passes before build.
+12. No deployed environment uses `/access_as_user` as the API scope.
