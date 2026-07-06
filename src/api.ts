@@ -2,8 +2,8 @@ import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser"
 import { apiScope } from "./authConfig";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
-const productionApiBaseUrl = "https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api";
-const localApiBaseUrl = "http://localhost:7071/api";
+const productionApiBaseUrl = "https://api.skunkworksacademy.com/api";
+const localApiBaseUrl = "http://localhost:8080/api";
 
 function defaultApiBaseUrl() {
   if (typeof window === "undefined") return productionApiBaseUrl;
