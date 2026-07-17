@@ -12,6 +12,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         portal: resolve(repoRoot, "index.html"),
+        connections: resolve(repoRoot, "connections/index.html"),
         exchangeOnlineBulkMail: resolve(repoRoot, "courses/exchange-online-bulk-mail-management/index.html")
       }
     }
