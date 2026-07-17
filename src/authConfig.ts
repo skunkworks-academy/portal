@@ -160,7 +160,10 @@ export const msalConfig: Configuration = {
   }
 };
 
+// Keep interactive sign-in limited to OpenID Connect scopes. Requesting the
+// custom API scope here makes the entire login fail with AADSTS500011 when the
+// API service principal or delegated scope has not yet been provisioned.
 export const loginRequest: RedirectRequest = {
-  scopes: ["openid", "profile", "email", "offline_access", apiScope],
+  scopes: ["openid", "profile", "email", "offline_access"],
   prompt: "select_account"
 };
