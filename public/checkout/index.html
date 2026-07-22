@@ -3,35 +3,36 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Skunkworks Academy Checkout | Secure PayFast & PayPal Payments</title>
-  <meta name="description" content="Secure Skunkworks Academy checkout for PayFast ZAR payments and PayPal international payments." />
+  <title>Skunkworks Academy Checkout | PayFast & PayPal Subscriptions</title>
+  <meta name="description" content="Secure Skunkworks Academy subscription checkout with PayFast ZAR recurring payments and PayPal USD subscriptions." />
   <meta name="robots" content="index, follow" />
+  <meta name="color-scheme" content="light dark" />
   <link rel="canonical" href="https://portal.skunkworksacademy.com/checkout/" />
-  <link rel="stylesheet" href="/checkout/checkout.css?v=2026.06.25" />
+  <link rel="stylesheet" href="/checkout/checkout.css?v=2026.07.22" />
   <script src="https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.07.06.2" defer></script>
 </head>
 <body>
   <main class="checkout-shell">
     <section class="checkout-hero">
       <div>
-        <p class="eyebrow">Secure Academy Checkout</p>
-        <h1>Choose your plan and pay through a hosted gateway.</h1>
-        <p class="lead">PayFast is used for South African ZAR checkout. PayPal is used for international USD checkout. Course access is granted only after a verified webhook confirms payment.</p>
+        <p class="eyebrow">Secure Academy Subscription Checkout</p>
+        <h1>Choose your plan and subscribe through a hosted gateway.</h1>
+        <p class="lead">PayFast supports South African ZAR recurring payments. PayPal supports international USD subscriptions through the PayPal JavaScript SDK and Billing Subscriptions API. Course access is granted only after a verified gateway notification.</p>
       </div>
       <aside class="trust-panel">
         <strong>Security model</strong>
         <ul>
-          <li>No card data is processed by Skunkworks Academy.</li>
-          <li>Prices are validated server-side.</li>
-          <li>Entitlements are issued after webhook verification.</li>
-          <li>Gateway secrets never load in the browser.</li>
+          <li>No card data is processed or stored by Skunkworks Academy.</li>
+          <li>Prices and PayPal billing plan IDs are validated server-side.</li>
+          <li>PayPal client secrets never load in the browser.</li>
+          <li>Entitlements are issued after verified PayFast ITN or PayPal webhooks.</li>
         </ul>
       </aside>
     </section>
 
     <section class="customer-panel" aria-labelledby="customer-title">
       <div>
-        <p class="eyebrow">Buyer details</p>
+        <p class="eyebrow">Subscriber details</p>
         <h2 id="customer-title">Who should receive the entitlement?</h2>
       </div>
       <label>
@@ -46,9 +47,9 @@
 
     <section aria-labelledby="plans-title">
       <div class="section-head">
-        <p class="eyebrow">Plans</p>
-        <h2 id="plans-title">Available checkout options</h2>
-        <span id="status" role="status" aria-live="polite">Loading plans...</span>
+        <p class="eyebrow">Subscriptions</p>
+        <h2 id="plans-title">Available recurring plans</h2>
+        <span id="status" role="status" aria-live="polite">Loading plans…</span>
       </div>
       <div class="plan-grid" id="plans"></div>
     </section>
@@ -61,6 +62,6 @@
       <a href="https://skunkworksacademy.com/plans-and-purchases/">Plans & Purchases</a>
     </div>
   </footer>
-  <script src="/checkout/checkout.js?v=2026.06.25" defer></script>
+  <script src="/checkout/checkout.js?v=2026.07.22" defer></script>
 </body>
 </html>
