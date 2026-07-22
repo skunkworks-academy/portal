@@ -1,4 +1,4 @@
-/* Skunkworks Academy checkout styling. Version: 2026-06-25 */
+/* Skunkworks Academy checkout styling. Version: 2026-07-22 */
 :root {
   color-scheme: dark light;
   --bg: #05070d;
@@ -39,6 +39,8 @@ body {
   color: var(--text);
 }
 
+a { color: inherit; }
+
 .checkout-shell {
   width: min(1180px, calc(100% - 32px));
   margin-inline: auto;
@@ -67,7 +69,7 @@ h2 { margin: 0; font-size: clamp(28px, 4vw, 46px); line-height: 1; }
 h3 { margin: 0 0 8px; font-size: 24px; }
 
 .lead {
-  max-width: 760px;
+  max-width: 780px;
   color: var(--muted);
   font-size: clamp(18px, 2vw, 22px);
   line-height: 1.5;
@@ -115,6 +117,11 @@ input {
   font-weight: 750;
 }
 
+input:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--cyan) 42%, transparent);
+  outline-offset: 2px;
+}
+
 .section-head {
   display: grid;
   gap: 8px;
@@ -131,10 +138,15 @@ input {
 }
 
 .plan-card {
-  min-height: 430px;
+  min-height: 500px;
   padding: 20px;
   display: flex;
   flex-direction: column;
+}
+
+.plan-card:target,
+.plan-card[data-highlight="true"] {
+  border-color: color-mix(in srgb, var(--cyan) 70%, var(--line));
 }
 
 .price-block {
@@ -178,8 +190,25 @@ button {
 
 button:hover { border-color: color-mix(in srgb, var(--cyan) 58%, var(--line)); }
 button[data-gateway="payfast"] { color: #052e16; background: var(--green); border-color: var(--green); }
-button[data-gateway="paypal"] { color: #fff; background: linear-gradient(135deg, var(--blue), var(--cyan)); border: 0; }
 button:disabled { cursor: wait; opacity: .72; }
+
+.paypal-button-slot {
+  min-height: 46px;
+  position: relative;
+  z-index: 0;
+}
+
+.paypal-button-slot:empty {
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-2) 84%, transparent);
+}
+
+.gateway-note {
+  min-height: 38px;
+  font-size: 12px;
+  line-height: 1.45 !important;
+}
 
 .checkout-footer {
   border-top: 1px solid var(--line);
@@ -191,11 +220,16 @@ button:disabled { cursor: wait; opacity: .72; }
 .checkout-footer a { color: inherit; font-weight: 850; text-decoration: none; }
 
 .notice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--line);
   border-radius: 18px;
   padding: 16px;
   background: var(--surface);
   color: var(--muted);
+  text-decoration: none;
+  font-weight: 800;
 }
 
 @media (max-width: 1080px) {
