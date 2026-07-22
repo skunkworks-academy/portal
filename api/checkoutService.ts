@@ -24,6 +24,7 @@ interface Plan {
   features: string[];
   zar: number;
   usd: number;
+  paypalPlanEnv: string;
 }
 
 interface Transaction {
@@ -38,6 +39,7 @@ interface Transaction {
   customerName: string;
   merchantReference: string;
   paypalOrderId: string;
+  paypalSubscriptionId: string;
 }
 
 const graphRoot = "https://graph.microsoft.com/v1.0";
@@ -56,6 +58,7 @@ export const plans: Plan[] = [
     entitlement: "academy.starter",
     zar: 149,
     usd: 9,
+    paypalPlanEnv: "PAYPAL_PLAN_STARTER_MONTHLY",
     features: ["Learner portal access", "Starter catalogue", "Community resources", "Progress evidence"]
   },
   {
@@ -66,6 +69,7 @@ export const plans: Plan[] = [
     entitlement: "academy.pro",
     zar: 399,
     usd: 22,
+    paypalPlanEnv: "PAYPAL_PLAN_PRO_MONTHLY",
     features: ["Everything in Starter", "Expanded course catalogue", "Guided labs", "Certificate pathway tracking"]
   },
   {
@@ -76,6 +80,7 @@ export const plans: Plan[] = [
     entitlement: "academy.mentor",
     zar: 999,
     usd: 55,
+    paypalPlanEnv: "PAYPAL_PLAN_MENTOR_MONTHLY",
     features: ["Everything in Pro", "Mentor support", "Portfolio review", "Instructor-led support windows"]
   },
   {
@@ -86,72 +91,115 @@ export const plans: Plan[] = [
     entitlement: "academy.team_seat",
     zar: 450,
     usd: 25,
+    paypalPlanEnv: "PAYPAL_PLAN_TEAM_SEAT_MONTHLY",
     features: ["Team learner seat", "Admin reporting", "Cohort tracking", "Partner-ready delivery"]
   }
 ];
 
 export function publicCheckoutPlans() {
   return plans.map((plan) => ({
-    ...plan,
+    id: plan.id,
+    name: plan.name,
+    description: plan.description,
+    interval: plan.interval,
+    entitlement: plan.entitlement,
+    features: plan.features,
+    zar: plan.zar,
+    usd: plan.usd,
+    paypalPlanId: paypalPlanId(plan, false),
     gateways: ["payfast", "paypal"] as Gateway[],
-    currencyNote: "PayFast uses ZAR. PayPal uses USD."
+    currencyNote: "PayFast uses ZAR. PayPal subscriptions use USD."
   }));
 }
 
-export async function createCheckoutSession(request: HttpRequest) {
-  const input = await request.json() as {
-    planId?: string;
-    gateway?: string;
-    customerEmail?: string;
-    customerName?: string;
-    successUrl?: string;
-    cancelUrl?: string;
+export function publicPayPalConfig() {
+  const clientId = clean(process.env.PAYPAL_CLIENT_ID);
+  return {
+    enabled: Boolean(clientId && plans.some((plan) => paypalPlanId(plan, false))),
+    clientId,
+    environment: process.env.PAYPAL_ENV === "live" ? "live" : "sandbox",
+    currency: "USD",
+    intent: "subscription",
+    vault: true
   };
+}
 
+export async function createCheckoutSession(request: HttpRequest) {
+  const input = await readCheckoutInput(request);
   const plan = getPlan(input.planId);
   const gateway = getGateway(input.gateway);
-  const email = clean(input.customerEmail).toLowerCase();
-  const name = clean(input.customerName);
-  if (!email || !email.includes("@")) {
-    throw new HttpError(400, "A valid customer email address is required before checkout.");
+  const customer = validateCustomer(input.customerEmail, input.customerName);
+
+  if (gateway === "paypal") {
+    return createPayPalIntent(plan, customer.email, customer.name);
   }
 
-  const amount = gateway === "payfast" ? plan.zar : plan.usd;
-  const currency = gateway === "payfast" ? "ZAR" : "USD";
-  const transaction = await createTransaction(plan, gateway, amount, currency, email, name);
+  const transaction = await createTransaction(plan, gateway, plan.zar, "ZAR", customer.email, customer.name);
   const successUrl = safeUrl(input.successUrl, `${portalCheckout}success/`);
   const cancelUrl = safeUrl(input.cancelUrl, `${portalCheckout}cancel/`);
+  const payfast = buildPayFastCheckout(plan, transaction, successUrl, cancelUrl);
 
-  if (gateway === "payfast") {
-    const payfast = buildPayFastCheckout(plan, transaction, successUrl, cancelUrl);
-    await updateTransaction(transaction.id, {
-      Status: "Redirected",
-      ProviderReference: transaction.merchantReference,
-      UpdatedAt: now()
-    });
-    return {
-      gateway,
-      transactionId: transaction.id,
-      checkoutMode: "form-post",
-      action: payfast.action,
-      method: "POST",
-      fields: payfast.fields
-    };
-  }
-
-  const paypal = await createPayPalOrder(plan, transaction, successUrl, cancelUrl);
   await updateTransaction(transaction.id, {
     Status: "Redirected",
-    PaypalOrderId: paypal.orderId,
-    ProviderReference: paypal.orderId,
+    ProviderReference: transaction.merchantReference,
     UpdatedAt: now()
   });
+
   return {
     gateway,
     transactionId: transaction.id,
-    checkoutMode: "redirect",
-    approvalUrl: paypal.approvalUrl,
-    orderId: paypal.orderId
+    checkoutMode: "form-post",
+    action: payfast.action,
+    method: "POST",
+    fields: payfast.fields
+  };
+}
+
+export async function createPayPalSubscriptionIntent(request: HttpRequest) {
+  const input = await readCheckoutInput(request);
+  const plan = getPlan(input.planId);
+  const customer = validateCustomer(input.customerEmail, input.customerName);
+  return createPayPalIntent(plan, customer.email, customer.name);
+}
+
+export async function approvePayPalSubscription(request: HttpRequest) {
+  const payload = await request.json() as { transactionId?: string; subscriptionId?: string };
+  const transactionId = clean(payload.transactionId);
+  const subscriptionId = clean(payload.subscriptionId);
+  if (!transactionId || !subscriptionId) {
+    throw new HttpError(400, "PayPal transactionId and subscriptionId are required.");
+  }
+
+  const transaction = await getTransaction(transactionId);
+  if (!transaction) throw new HttpError(404, "Payment transaction was not found.");
+  if (transaction.gateway !== "paypal") throw new HttpError(400, "Payment transaction gateway mismatch.");
+
+  const plan = getPlan(transaction.planId);
+  const subscription = await getPayPalSubscription(subscriptionId);
+  const providerPlanId = stringProp(subscription, "plan_id");
+  const providerCustomId = stringProp(subscription, "custom_id");
+  const providerStatus = stringProp(subscription, "status").toUpperCase();
+
+  if (providerPlanId !== paypalPlanId(plan)) throw new HttpError(400, "PayPal billing plan mismatch.");
+  if (providerCustomId && providerCustomId !== transaction.id) throw new HttpError(400, "PayPal transaction reference mismatch.");
+  if (!["APPROVAL_PENDING", "APPROVED", "ACTIVE"].includes(providerStatus)) {
+    throw new HttpError(409, `PayPal subscription is not approved. Current status: ${providerStatus || "UNKNOWN"}.`);
+  }
+
+  await updateTransaction(transaction.id, {
+    Status: providerStatus === "ACTIVE" ? "Complete" : "Approved",
+    PaypalSubscriptionId: subscriptionId,
+    ProviderReference: subscriptionId,
+    RawProviderStatus: JSON.stringify(subscription).slice(0, 2000),
+    UpdatedAt: now()
+  });
+
+  return {
+    ok: true,
+    transactionId: transaction.id,
+    subscriptionId,
+    status: providerStatus,
+    entitlementPendingWebhook: true
   };
 }
 
@@ -205,7 +253,7 @@ export async function handlePayFastWebhook(request: HttpRequest) {
     RawProviderStatus: JSON.stringify(fields).slice(0, 2000),
     UpdatedAt: now()
   });
-  if (complete) await grantEntitlement(transaction, providerReference);
+  if (complete) await upsertEntitlement(transaction, providerReference);
   return { ok: true };
 }
 
@@ -213,33 +261,94 @@ export async function handlePayPalWebhook(request: HttpRequest) {
   const body = await request.json() as Record<string, unknown>;
   if (!(await verifyPayPalWebhook(request, body))) throw new HttpError(400, "Invalid PayPal webhook signature.");
 
-  const eventType = stringProp(body, "event_type");
+  const eventType = stringProp(body, "event_type").toUpperCase();
   const resource = recordProp(body, "resource");
-  const supplementaryData = recordProp(resource, "supplementary_data");
-  const relatedIds = recordProp(supplementaryData, "related_ids");
-  const orderId = stringProp(relatedIds, "order_id") || stringProp(resource, "id");
-  if (!orderId) return { ok: true, ignored: true };
+  const subscriptionId = paypalSubscriptionIdFromEvent(eventType, resource);
+  const customId = stringProp(resource, "custom_id");
 
-  const transaction = await findByPayPalOrderId(orderId);
+  let transaction = subscriptionId ? await findByPayPalSubscriptionId(subscriptionId) : null;
+  if (!transaction && customId) transaction = await getTransaction(customId);
   if (!transaction) return { ok: true, ignored: true };
 
-  if (eventType === "PAYMENT.CAPTURE.COMPLETED") {
-    const providerReference = stringProp(resource, "id") || orderId;
-    await updateTransaction(transaction.id, {
-      Status: "Complete",
-      ProviderReference: providerReference,
-      RawProviderStatus: JSON.stringify(body).slice(0, 2000),
-      UpdatedAt: now()
-    });
-    await grantEntitlement(transaction, providerReference);
-  } else if (["DENIED", "FAILED", "CANCELLED"].some((value) => eventType.includes(value))) {
-    await updateTransaction(transaction.id, {
-      Status: "Failed",
-      RawProviderStatus: JSON.stringify(body).slice(0, 2000),
-      UpdatedAt: now()
-    });
+  const providerPlanId = stringProp(resource, "plan_id");
+  if (providerPlanId) {
+    const expectedPlanId = paypalPlanId(getPlan(transaction.planId));
+    if (providerPlanId !== expectedPlanId) throw new HttpError(400, "PayPal webhook billing plan mismatch.");
   }
-  return { ok: true };
+
+  const providerReference = paypalProviderReference(resource, subscriptionId);
+  const commonFields = {
+    PaypalSubscriptionId: subscriptionId || transaction.paypalSubscriptionId,
+    ProviderReference: providerReference,
+    RawProviderStatus: JSON.stringify(body).slice(0, 2000),
+    UpdatedAt: now()
+  };
+
+  if (eventType === "BILLING.SUBSCRIPTION.ACTIVATED" || eventType === "PAYMENT.SALE.COMPLETED") {
+    await updateTransaction(transaction.id, { ...commonFields, Status: "Complete" });
+    transaction = { ...transaction, paypalSubscriptionId: subscriptionId || transaction.paypalSubscriptionId };
+    await upsertEntitlement(transaction, providerReference);
+  } else if (eventType === "BILLING.SUBSCRIPTION.CANCELLED") {
+    await updateTransaction(transaction.id, { ...commonFields, Status: "Cancelled" });
+    await updateEntitlementStatus(transaction.id, "Cancelled", providerReference);
+  } else if (eventType === "BILLING.SUBSCRIPTION.EXPIRED") {
+    await updateTransaction(transaction.id, { ...commonFields, Status: "Cancelled" });
+    await updateEntitlementStatus(transaction.id, "Expired", providerReference);
+  } else if (eventType === "BILLING.SUBSCRIPTION.SUSPENDED") {
+    await updateTransaction(transaction.id, { ...commonFields, Status: "Failed" });
+    await updateEntitlementStatus(transaction.id, "Suspended", providerReference);
+  } else if (eventType === "PAYMENT.SALE.REFUNDED" || eventType === "PAYMENT.SALE.REVERSED") {
+    await updateTransaction(transaction.id, { ...commonFields, Status: "Failed" });
+    await updateEntitlementStatus(transaction.id, "Suspended", providerReference);
+  } else if (eventType === "BILLING.SUBSCRIPTION.PAYMENT.FAILED") {
+    await updateTransaction(transaction.id, { ...commonFields, Status: "Failed" });
+  } else if (
+    eventType === "BILLING.SUBSCRIPTION.CREATED" ||
+    eventType === "BILLING.SUBSCRIPTION.UPDATED"
+  ) {
+    await updateTransaction(transaction.id, { ...commonFields, Status: "Approved" });
+  } else {
+    await updateTransaction(transaction.id, commonFields);
+  }
+
+  return { ok: true, eventType, subscriptionId: subscriptionId || undefined };
+}
+
+async function readCheckoutInput(request: HttpRequest) {
+  return await request.json() as {
+    planId?: string;
+    gateway?: string;
+    customerEmail?: string;
+    customerName?: string;
+    successUrl?: string;
+    cancelUrl?: string;
+  };
+}
+
+function validateCustomer(emailValue: unknown, nameValue: unknown) {
+  const email = clean(emailValue).toLowerCase();
+  const name = clean(nameValue);
+  if (!email || !email.includes("@")) {
+    throw new HttpError(400, "A valid customer email address is required before checkout.");
+  }
+  return { email, name };
+}
+
+async function createPayPalIntent(plan: Plan, email: string, name: string) {
+  const providerPlanId = paypalPlanId(plan);
+  const transaction = await createTransaction(plan, "paypal", plan.usd, "USD", email, name);
+  await updateTransaction(transaction.id, {
+    Status: "Pending",
+    UpdatedAt: now()
+  });
+  return {
+    gateway: "paypal",
+    checkoutMode: "paypal-subscription",
+    transactionId: transaction.id,
+    paypalPlanId: providerPlanId,
+    customerEmail: email,
+    customerName: name
+  };
 }
 
 function getPlan(id = "") {
@@ -292,13 +401,27 @@ async function findByPayPalOrderId(orderId: string) {
   return result.value[0] ? toTransaction(result.value[0]) : null;
 }
 
+async function findByPayPalSubscriptionId(subscriptionId: string) {
+  const result = await listItems("PaymentTransactions", `fields/PaypalSubscriptionId eq '${escapeOData(subscriptionId)}'`);
+  return result.value[0] ? toTransaction(result.value[0]) : null;
+}
+
 async function updateTransaction(id: string, fields: Record<string, unknown>) {
   return toTransaction(await patchItem("PaymentTransactions", id, fields));
 }
 
-async function grantEntitlement(transaction: Transaction, providerReference: string) {
+async function upsertEntitlement(transaction: Transaction, providerReference: string) {
   const existing = await listItems("Entitlements", `fields/PaymentTransactionId eq '${escapeOData(transaction.id)}'`);
-  if (existing.value[0]) return existing.value[0];
+  const validUntil = new Date(Date.now() + 32 * 24 * 60 * 60 * 1000).toISOString();
+
+  if (existing.value[0]) {
+    return patchItem("Entitlements", existing.value[0].id, {
+      Status: "Active",
+      ProviderReference: providerReference,
+      ValidUntil: validUntil
+    });
+  }
+
   return createItem("Entitlements", {
     Title: `${transaction.customerEmail} - ${transaction.entitlement}`,
     CustomerEmail: transaction.customerEmail,
@@ -310,7 +433,20 @@ async function grantEntitlement(transaction: Transaction, providerReference: str
     PaymentTransactionId: transaction.id,
     ProviderReference: providerReference,
     GrantedAt: now(),
-    ValidUntil: new Date(Date.now() + 32 * 24 * 60 * 60 * 1000).toISOString()
+    ValidUntil: validUntil
+  });
+}
+
+async function updateEntitlementStatus(
+  paymentTransactionId: string,
+  status: "Suspended" | "Cancelled" | "Expired",
+  providerReference: string
+) {
+  const existing = await listItems("Entitlements", `fields/PaymentTransactionId eq '${escapeOData(paymentTransactionId)}'`);
+  if (!existing.value[0]) return null;
+  return patchItem("Entitlements", existing.value[0].id, {
+    Status: status,
+    ProviderReference: providerReference
   });
 }
 
@@ -363,42 +499,16 @@ async function validatePayFastItn(rawBody: string) {
   return response.ok && text.trim().toUpperCase() === "VALID";
 }
 
-async function createPayPalOrder(plan: Plan, transaction: Transaction, successUrl: string, cancelUrl: string) {
+async function getPayPalSubscription(subscriptionId: string) {
   const token = await paypalAccessToken();
-  const response = await fetch(`${paypalBase()}/v2/checkout/orders`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      intent: "CAPTURE",
-      purchase_units: [
-        {
-          reference_id: transaction.id,
-          custom_id: transaction.id,
-          description: `Skunkworks Academy ${plan.name}`,
-          amount: { currency_code: "USD", value: plan.usd.toFixed(2) }
-        }
-      ],
-      application_context: {
-        brand_name: "Skunkworks Academy",
-        shipping_preference: "NO_SHIPPING",
-        user_action: "PAY_NOW",
-        return_url: `${successUrl}?provider=paypal`,
-        cancel_url: cancelUrl
-      }
-    })
+  const response = await fetch(`${paypalBase()}/v1/billing/subscriptions/${encodeURIComponent(subscriptionId)}`, {
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
   });
   const result = await jsonRecord(response);
   if (!response.ok) {
-    throw new HttpError(response.status, stringProp(result, "message") || "PayPal order creation failed.");
+    throw new HttpError(response.status, stringProp(result, "message") || "Unable to verify PayPal subscription.");
   }
-
-  const links = Array.isArray(result.links) ? result.links : [];
-  const approvalLink = links.find((link) => recordProp(link, "").rel === "approve") as Record<string, unknown> | undefined;
-  const approvalUrl = approvalLink ? stringProp(approvalLink, "href") : "";
-  const orderId = stringProp(result, "id");
-  if (!orderId) throw new HttpError(502, "PayPal did not return an order ID.");
-  if (!approvalUrl) throw new HttpError(502, "PayPal did not return an approval URL.");
-  return { orderId, approvalUrl };
+  return result;
 }
 
 async function paypalAccessToken() {
@@ -436,6 +546,27 @@ async function verifyPayPalWebhook(request: HttpRequest, body: Record<string, un
   return response.ok && stringProp(result, "verification_status") === "SUCCESS";
 }
 
+function paypalSubscriptionIdFromEvent(eventType: string, resource: Record<string, unknown>) {
+  const supplementaryData = recordProp(resource, "supplementary_data");
+  const relatedIds = recordProp(supplementaryData, "related_ids");
+  return (
+    stringProp(resource, "billing_agreement_id") ||
+    stringProp(relatedIds, "subscription_id") ||
+    stringProp(relatedIds, "billing_agreement_id") ||
+    (eventType.startsWith("BILLING.SUBSCRIPTION.") ? stringProp(resource, "id") : "")
+  );
+}
+
+function paypalProviderReference(resource: Record<string, unknown>, subscriptionId: string) {
+  return stringProp(resource, "id") || subscriptionId;
+}
+
+function paypalPlanId(plan: Plan, required = true) {
+  const value = clean(process.env[plan.paypalPlanEnv]);
+  if (!value && required) throw new HttpError(500, `Missing required payment setting: ${plan.paypalPlanEnv}`);
+  return value;
+}
+
 function toTransaction(item: GraphListItem): Transaction {
   const fields = item.fields;
   return {
@@ -449,7 +580,8 @@ function toTransaction(item: GraphListItem): Transaction {
     customerEmail: stringProp(fields, "CustomerEmail"),
     customerName: stringProp(fields, "CustomerName"),
     merchantReference: stringProp(fields, "MerchantReference"),
-    paypalOrderId: stringProp(fields, "PaypalOrderId")
+    paypalOrderId: stringProp(fields, "PaypalOrderId"),
+    paypalSubscriptionId: stringProp(fields, "PaypalSubscriptionId")
   };
 }
 
