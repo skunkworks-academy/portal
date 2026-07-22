@@ -12,6 +12,7 @@
     "build:api": "tsc -p tsconfig.api.json",
     "provision:sharepoint": "tsx scripts/provision-sharepoint.ts",
     "provision:payments": "tsx scripts/provision-payment-sharepoint.ts",
+    "provision:paypal": "tsx scripts/provision-paypal-subscriptions.ts",
     "teams:icons": "tsx scripts/generate-teams-icons.ts",
     "teams:validate": "tsx scripts/validate-teams-manifest.ts",
     "teams:validate:production": "tsx scripts/validate-teams-manifest.ts --production",
