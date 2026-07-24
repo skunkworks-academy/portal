@@ -1,0 +1,120 @@
+name: Recover Portal Functions API
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: portal-api-recovery
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PUBLISH_PROFILE: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Resolve Function App name from publish profile
+        id: profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
+
+          raw = os.environ.get('PUBLISH_PROFILE', '').strip()
+          if not raw:
+              raise SystemExit('AZURE_FUNCTIONAPP_PUBLISH_PROFILE is missing.')
+
+          root = ET.fromstring(raw)
+          profiles = root.findall('.//publishProfile')
+          app_name = ''
+          destination = ''
+          for profile in profiles:
+              candidate = (profile.attrib.get('msdeploySite') or '').strip()
+              if candidate:
+                  app_name = candidate
+                  destination = (profile.attrib.get('destinationAppUrl') or '').strip()
+                  break
+
+          if not app_name:
+              raise SystemExit('Could not resolve the Function App name from the publish profile.')
+
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              output.write(f'app_name={app_name}\n')
+              output.write(f'destination={destination}\n')
+
+          print(f'Resolved Function App: {app_name}')
+          if destination:
+              print(f'Destination: {destination}')
+          PY
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build Azure Functions API
+        run: npm run build:api
+
+      - name: Assemble deployment package
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf function-package
+          mkdir -p function-package
+          cp host.json package.json package-lock.json function-package/
+          cp -R api-dist function-package/api-dist
+          cd function-package
+          npm ci --omit=dev --no-audit --no-fund
+
+      - name: Deploy Azure Functions API
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ steps.profile.outputs.app_name }}
+          package: function-package
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+
+      - name: Verify health and checkout plans
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api'
+
+          for attempt in $(seq 1 36); do
+            echo "Health check attempt ${attempt}/36"
+            health_status=$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 \
+              --output /tmp/health.json --write-out '%{http_code}' "${base}/health" || true)
+            plans_status=$(curl --silent --show-error --location --connect-timeout 10 --max-time 30 \
+              --output /tmp/plans.json --write-out '%{http_code}' "${base}/checkout/plans" || true)
+
+            if [[ "${health_status}" == '200' && "${plans_status}" == '200' ]] \
+              && grep -q 'starter-monthly' /tmp/plans.json; then
+              echo 'Portal Functions API and checkout plans are healthy.'
+              cat /tmp/health.json
+              exit 0
+            fi
+
+            echo "health=${health_status} plans=${plans_status}"
+            sleep 10
+          done
+
+          echo 'The Function App did not become healthy after deployment.' >&2
+          echo 'Health response:' >&2
+          cat /tmp/health.json >&2 || true
+          echo 'Plans response:' >&2
+          cat /tmp/plans.json >&2 || true
+          exit 1
