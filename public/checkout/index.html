@@ -8,7 +8,28 @@
   <meta name="robots" content="index, follow" />
   <meta name="color-scheme" content="light dark" />
   <link rel="canonical" href="https://portal.skunkworksacademy.com/checkout/" />
-  <link rel="stylesheet" href="/checkout/checkout.css?v=2026.07.22" />
+  <link rel="stylesheet" href="/checkout/checkout.css?v=2026.07.24.1" />
+  <script>
+    window.SWA_PAYMENT_API_BASE = 'https://api.skunkworksacademy.com/api';
+
+    window.addEventListener('DOMContentLoaded', function () {
+      const params = new URLSearchParams(window.location.search);
+      const course = params.get('course');
+      const source = params.get('source');
+      const context = document.getElementById('courseContext');
+      const courseName = document.getElementById('courseName');
+
+      if (course && context && courseName) {
+        courseName.textContent = course;
+        context.hidden = false;
+        document.title = `${course} Checkout | Skunkworks Academy`;
+      }
+
+      if (source === 'osint') {
+        document.documentElement.dataset.checkoutSource = 'osint';
+      }
+    });
+  </script>
   <script src="https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.07.06.2" defer></script>
 </head>
 <body>
@@ -28,6 +49,15 @@
           <li>Entitlements are issued after verified PayFast ITN or PayPal webhooks.</li>
         </ul>
       </aside>
+    </section>
+
+    <section class="course-context" id="courseContext" hidden aria-labelledby="course-context-title">
+      <div>
+        <p class="eyebrow">Course enrolment</p>
+        <h2 id="course-context-title">Continue with <span id="courseName">your selected course</span></h2>
+        <p>Use the same email address that you will use in the Academy Portal. Your learner entitlement is issued only after the payment provider confirms the transaction.</p>
+      </div>
+      <a class="notice" href="https://portal.skunkworksacademy.com/">Already subscribed? Sign in to the Portal</a>
     </section>
 
     <section class="customer-panel" aria-labelledby="customer-title">
@@ -51,7 +81,9 @@
         <h2 id="plans-title">Available recurring plans</h2>
         <span id="status" role="status" aria-live="polite">Loading plans…</span>
       </div>
-      <div class="plan-grid" id="plans"></div>
+      <div class="plan-grid" id="plans">
+        <a class="notice" href="mailto:training@skunkworks.africa?subject=Checkout%20support">Checkout is loading. Contact training support if the plan list does not appear.</a>
+      </div>
     </section>
   </main>
 
@@ -60,8 +92,9 @@
       <span>© <span id="year"></span> Skunkworks Academy</span>
       <a href="https://portal.skunkworksacademy.com/">Back to portal</a>
       <a href="https://skunkworksacademy.com/plans-and-purchases/">Plans & Purchases</a>
+      <a href="mailto:training@skunkworks.africa?subject=Checkout%20support">Checkout support</a>
     </div>
   </footer>
-  <script src="/checkout/checkout.js?v=2026.07.22" defer></script>
+  <script src="/checkout/checkout.js?v=2026.07.24.1" defer></script>
 </body>
 </html>
