@@ -28,13 +28,14 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Resolve Function App name from publish profile
+      - name: Resolve Kudu endpoint from publish profile
         id: profile
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           import os
+          import pathlib
           import xml.etree.ElementTree as ET
 
           raw = os.environ.get('PUBLISH_PROFILE', '').strip()
@@ -43,25 +44,43 @@ jobs:
 
           root = ET.fromstring(raw)
           profiles = root.findall('.//publishProfile')
-          app_name = ''
-          destination = ''
+          selected = None
           for profile in profiles:
-              candidate = (profile.attrib.get('msdeploySite') or '').strip()
-              if candidate:
-                  app_name = candidate
-                  destination = (profile.attrib.get('destinationAppUrl') or '').strip()
+              if (profile.attrib.get('publishMethod') or '').lower() == 'msdeploy':
+                  selected = profile
                   break
+          if selected is None and profiles:
+              selected = profiles[0]
+          if selected is None:
+              raise SystemExit('No publish profile entry was found.')
 
-          if not app_name:
-              raise SystemExit('Could not resolve the Function App name from the publish profile.')
+          app_name = (selected.attrib.get('msdeploySite') or '').strip()
+          destination = (selected.attrib.get('destinationAppUrl') or '').strip()
+          publish_url = (selected.attrib.get('publishUrl') or '').strip()
+          username = selected.attrib.get('userName') or ''
+          password = selected.attrib.get('userPWD') or ''
+
+          if not publish_url or not username or not password:
+              raise SystemExit('Publish profile does not contain Kudu deployment credentials.')
+
+          if not publish_url.startswith(('http://', 'https://')):
+              publish_url = f'https://{publish_url}'
+          publish_url = publish_url.rstrip('/')
+
+          pathlib.Path('/tmp/kudu-url').write_text(publish_url, encoding='utf-8')
+          pathlib.Path('/tmp/kudu-user').write_text(username, encoding='utf-8')
+          pathlib.Path('/tmp/kudu-password').write_text(password, encoding='utf-8')
+          os.chmod('/tmp/kudu-user', 0o600)
+          os.chmod('/tmp/kudu-password', 0o600)
 
           with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
               output.write(f'app_name={app_name}\n')
               output.write(f'destination={destination}\n')
 
-          print(f'Resolved Function App: {app_name}')
+          print(f'Resolved Function App: {app_name or "unknown"}')
           if destination:
               print(f'Destination: {destination}')
+          print('Kudu deployment endpoint resolved from the protected publish profile.')
           PY
 
       - name: Install dependencies
@@ -74,19 +93,44 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf function-package
+          rm -rf function-package function-package.zip
           mkdir -p function-package
           cp host.json package.json package-lock.json function-package/
           cp -R api-dist function-package/api-dist
           cd function-package
           npm ci --omit=dev --no-audit --no-fund
+          zip -qr ../function-package.zip .
 
-      - name: Deploy Azure Functions API
-        uses: Azure/functions-action@v1
-        with:
-          app-name: ${{ steps.profile.outputs.app_name }}
-          package: function-package
-          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+      - name: Deploy package through Kudu ZIP deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          kudu_url=$(cat /tmp/kudu-url)
+          kudu_user=$(cat /tmp/kudu-user)
+          kudu_password=$(cat /tmp/kudu-password)
+          response_file=/tmp/kudu-response.txt
+
+          status=$(curl \
+            --silent \
+            --show-error \
+            --location \
+            --connect-timeout 20 \
+            --max-time 300 \
+            --user "${kudu_user}:${kudu_password}" \
+            --request POST \
+            --header 'Content-Type: application/zip' \
+            --data-binary @function-package.zip \
+            --output "${response_file}" \
+            --write-out '%{http_code}' \
+            "${kudu_url}/api/zipdeploy" || true)
+
+          echo "Kudu ZIP deployment HTTP status: ${status}"
+          cat "${response_file}" || true
+
+          if [[ "${status}" != '200' && "${status}" != '202' ]]; then
+            echo 'Kudu rejected the deployment package.' >&2
+            exit 1
+          fi
 
       - name: Verify health and checkout plans
         shell: bash
