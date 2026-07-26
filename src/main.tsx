@@ -16,6 +16,11 @@ const rootElement = document.getElementById("root");
 
 async function bootstrapPortal() {
   await msalInstance.initialize();
+  const redirectResult = await msalInstance.handleRedirectPromise();
+  const activeAccount = redirectResult?.account ?? msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
+  if (activeAccount) {
+    msalInstance.setActiveAccount(activeAccount);
+  }
 
   if (rootElement) {
     ReactDOM.createRoot(rootElement).render(
