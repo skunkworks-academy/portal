@@ -12,7 +12,25 @@ export default defineConfig({
     rollupOptions: {
       input: {
         portal: resolve(repoRoot, "index.html"),
-        exchangeOnlineBulkMail: resolve(repoRoot, "courses/exchange-online-bulk-mail-management/index.html")
+        connections: resolve(repoRoot, "connections/index.html"),
+        exchangeOnlineBulkMail: resolve(repoRoot, "courses/exchange-online-bulk-mail-management/index.html"),
+        register: resolve(repoRoot, "register/index.html"),
+        registerMarketingFundamentals: resolve(repoRoot, "register/marketing-fundamentals/index.html"),
+        registerDigitalMarketingStrategy: resolve(repoRoot, "register/digital-marketing-strategy/index.html"),
+        registerContentMarketingEditorialPlanning: resolve(repoRoot, "register/content-marketing-editorial-planning/index.html"),
+        registerSeoFoundations: resolve(repoRoot, "register/seo-foundations/index.html"),
+        registerSocialMediaCampaignOperations: resolve(repoRoot, "register/social-media-campaign-operations/index.html"),
+        registerEmailMarketingLifecycleAutomation: resolve(repoRoot, "register/email-marketing-lifecycle-automation/index.html"),
+        registerMarketingAnalyticsWorkbook: resolve(repoRoot, "register/marketing-analytics-workbook/index.html"),
+        registerCampaignPlanningToolkit: resolve(repoRoot, "register/campaign-planning-toolkit/index.html"),
+        registerAiForMarketingProductivity: resolve(repoRoot, "register/ai-for-marketing-productivity/index.html"),
+        registerLandingPagesConversionOptimisation: resolve(repoRoot, "register/landing-pages-conversion-optimisation/index.html"),
+        registerMarketingCampaignPractitioner: resolve(repoRoot, "register/marketing-campaign-practitioner/index.html"),
+        registerAiEnabledMarketingOperations: resolve(repoRoot, "register/ai-enabled-marketing-operations/index.html"),
+        registerExchangeOnlineBulkMailManagement: resolve(repoRoot, "register/exchange-online-bulk-mail-management/index.html"),
+        registerAiTools: resolve(repoRoot, "register/ai-tools/index.html"),
+        registerCybersecurity: resolve(repoRoot, "register/cybersecurity/index.html"),
+        registerCloud: resolve(repoRoot, "register/cloud/index.html")
       }
     }
   },

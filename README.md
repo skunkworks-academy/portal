@@ -1,99 +1,154 @@
 # Skunkworks Academy Portal
 
-Production portal for students, instructors and staff operations. The rebuilt portal provides a single Academy front door for Microsoft Entra sign-in, role-based workspaces, course discovery, class registration, instructor applications, profile capture, API health checks and staff readiness.
+Production portal for students, instructors and staff operations. The portal provides a single Academy front door for Microsoft Entra sign-in, role-based workspaces, course discovery, class registration, instructor applications, profile capture, API health checks and staff readiness.
 
 ## Current Rebuild Scope
 
 - Frontend: Vite React SPA hosted at `https://portal.skunkworksacademy.com/`.
-- Navigation: global Skunkworks Academy menu with Home, Self-paced, Portal, Labs, Plans, Purchase, Jobs, Docs and IBM links.
-- Identity: Microsoft Entra ID with MSAL browser authentication.
+- Identity: Microsoft Entra ID using MSAL browser and authorization code flow with PKCE.
+- Tenant: `SKUNKWORKS` (`skunkworks.digital`).
 - API: Azure Functions at `/api`, issuing role-gated operations backed by Microsoft Graph and SharePoint.
 - Data: SharePoint site `/sites/InstructorPortal` for courses, classes, applications, profiles and onboarding records.
-- Resilience: public course, class and job fallbacks keep the portal usable while API or SharePoint setup is incomplete.
 
 ## Microsoft Entra Application Details
 
-The portal is aligned to the provided Enterprise/App Registration record:
-
 | Field | Value |
 |---|---|
-| Display name | Skunkworks Academy Portal API |
-| Application / client ID | `8b1e77b3-3017-4c54-8ab3-0e4864511b55` |
-| Object ID | `3646dd6d-5ed7-4ea6-96b7-3c8f45fb93c9` |
-| Directory / tenant ID | `972e8de4-e365-43a3-99ec-c86a0cc249e8` |
-| Supported account types | All Microsoft account users |
-| Client credentials | 0 certificates, 2 client secrets configured in Entra |
-| Redirect URI | `https://portal.skunkworksacademy.com/` |
-| Application ID URI | `api://8b1e77b3-3017-4c54-8ab3-0e4864511b55` |
-| Delegated API scope | `api://8b1e77b3-3017-4c54-8ab3-0e4864511b55/access_as_user` |
+| Display name | Skunkworks Academy Portal |
+| Application / client ID | `e22672ae-61a6-434e-b135-3360557819ec` |
+| Object ID | `5546429d-1373-49ab-b587-67deba7e84c0` |
+| Directory / tenant ID | `338a8916-80d9-467c-a94a-7f61d04ef7d5` |
+| Primary domain | `skunkworks.digital` |
+| Supported account types | Accounts in any Microsoft Entra ID tenant and personal Microsoft accounts |
+| SPA redirect URI | `https://portal.skunkworksacademy.com/` |
+| Local SPA redirect URI | `http://localhost:5173/` |
+| Post-logout redirect URI | `https://portal.skunkworksacademy.com/` |
+| Application ID URI | `api://e22672ae-61a6-434e-b135-3360557819ec` |
+| Delegated API scope | `api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user` |
 
-The SPA never exposes client-secret values. Client secrets remain in the Azure Function App setting `API_CLIENT_SECRET` only.
+The SPA must never contain a client secret. Browser authentication uses PKCE. A client secret is required only if the Azure Functions backend uses application permissions to Microsoft Graph or SharePoint.
+
+## Required Entra Portal Configuration
+
+In **App registrations → Skunkworks Academy Portal → Authentication**:
+
+1. Add platform **Single-page application**.
+2. Add redirect URIs:
+   - `https://portal.skunkworksacademy.com/`
+   - `http://localhost:5173/`
+3. Set logout URL to `https://portal.skunkworksacademy.com/` where supported.
+4. Leave implicit grant disabled for a modern MSAL SPA using authorization code flow with PKCE.
+
+In **API permissions** add delegated Microsoft Graph permissions:
+
+- `openid`
+- `profile`
+- `email`
+- `offline_access`
+- `User.Read`
+
+Grant admin consent where tenant policy requires it.
+
+In **Expose an API**:
+
+1. Set Application ID URI to `api://e22672ae-61a6-434e-b135-3360557819ec`.
+2. Add delegated scope `access_as_user`.
+3. Add the SPA client application as an authorized client application when the API and SPA use separate registrations. When using this single registration for both SPA and API, ensure the delegated scope exists before the frontend requests it.
+
+In **Enterprise applications → Skunkworks Academy Portal → Properties**:
+
+- Set **Assignment required?** to `No` for open learner sign-in, or keep it `Yes` only if every user/group will be explicitly assigned.
+- Ensure the service principal is enabled for users to sign in.
 
 ## Role Model
 
-Student workspace:
+For role-based portal access, define and assign these application roles on the Enterprise Application:
+
+- `Portal.Student`
+- `Portal.Instructor`
+- `Portal.Staff`
+- `Portal.Admin`
+
+The GUI reads the `roles` claim and routes the signed-in user to the appropriate workspace. Users without a role default to the Student workspace unless tenant assignment policy blocks sign-in.
+
+## Frontend Environment
 
 ```text
-Dashboard
-Courses
-My Classes
-Register
-Resources
-Profile
-```
-
-Instructor workspace:
-
-```text
-Dashboard
-Jobs
-My Applications
-My Classes
-Resources
-Profile
-```
-
-Staff workspace:
-
-```text
-Dashboard
-Operations
-Jobs
-Applications
-Instructors
-Students
-Scheduling
-Resources
-Settings
-```
-
-Staff operational API writes require `Portal.Admin` or `Portal.Staff` app role assignment in the Enterprise Application. Instructor application flows require `Portal.Instructor`. Student registration requires `Portal.Student`, `Portal.Staff` or `Portal.Admin`.
-
-## Required Environment
-
-Frontend `.env`:
-
-```text
-VITE_MSAL_CLIENT_ID=8b1e77b3-3017-4c54-8ab3-0e4864511b55
-VITE_API_CLIENT_ID=8b1e77b3-3017-4c54-8ab3-0e4864511b55
-VITE_APPLICATION_ID_URI=api://8b1e77b3-3017-4c54-8ab3-0e4864511b55
-VITE_API_SCOPE=api://8b1e77b3-3017-4c54-8ab3-0e4864511b55/access_as_user
+VITE_MSAL_CLIENT_ID=e22672ae-61a6-434e-b135-3360557819ec
+VITE_API_CLIENT_ID=e22672ae-61a6-434e-b135-3360557819ec
+VITE_APPLICATION_ID_URI=api://e22672ae-61a6-434e-b135-3360557819ec
+VITE_MSAL_AUTHORITY=https://login.microsoftonline.com/338a8916-80d9-467c-a94a-7f61d04ef7d5
+VITE_API_SCOPE=api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user
 VITE_API_BASE_URL=https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api
-VITE_SKUNKWORKS_TENANT_ID=972e8de4-e365-43a3-99ec-c86a0cc249e8
+VITE_SKUNKWORKS_TENANT_ID=338a8916-80d9-467c-a94a-7f61d04ef7d5
 ```
 
-Azure Function App settings:
+## Azure Function App Settings
 
 ```text
-ENTRA_TENANT_ID=972e8de4-e365-43a3-99ec-c86a0cc249e8
-API_CLIENT_ID=8b1e77b3-3017-4c54-8ab3-0e4864511b55
-SPA_CLIENT_ID=8b1e77b3-3017-4c54-8ab3-0e4864511b55
-API_CLIENT_SECRET=<SECRET_VALUE_FROM_ENTRA>
-GRAPH_TENANT_ID=972e8de4-e365-43a3-99ec-c86a0cc249e8
+ENTRA_TENANT_ID=338a8916-80d9-467c-a94a-7f61d04ef7d5
+API_CLIENT_ID=e22672ae-61a6-434e-b135-3360557819ec
+SPA_CLIENT_ID=e22672ae-61a6-434e-b135-3360557819ec
+API_CLIENT_SECRET=<ONLY_IF_BACKEND_APP_PERMISSIONS_ARE_USED>
+GRAPH_TENANT_ID=338a8916-80d9-467c-a94a-7f61d04ef7d5
 SHAREPOINT_HOSTNAME=skunkworksacademy.sharepoint.com
 SHAREPOINT_SITE_PATH=/sites/InstructorPortal
 ALLOWED_ORIGINS=http://localhost:5173,https://portal.skunkworksacademy.com,https://skunkworks-academy.github.io
 ```
+
+## Authentication Fixes Included
+
+- Replaces the previous tenant and client IDs with the active SKUNKWORKS tenant and portal application.
+- Blocks retired portal application IDs from deployment overrides.
+- Processes `handleRedirectPromise()` before React renders so the returned account becomes active immediately.
+- Persists the MSAL account in `localStorage` to reduce login loops across reloads.
+- Uses `navigateToLoginRequestUrl: true` so users return to the page that initiated sign-in.
+- Keeps interactive login limited to OIDC scopes. The custom API scope is requested only when the frontend calls the protected API.
+- Uses the fully qualified API scope rather than `/access_as_user`.
+
+## Common Errors
+
+### AADSTS50011 — redirect URI mismatch
+
+The URI in Entra must exactly match:
+
+```text
+https://portal.skunkworksacademy.com/
+```
+
+The trailing slash matters.
+
+### AADSTS700016 — application not found
+
+Verify the request uses:
+
+```text
+e22672ae-61a6-434e-b135-3360557819ec
+```
+
+and authority:
+
+```text
+https://login.microsoftonline.com/338a8916-80d9-467c-a94a-7f61d04ef7d5
+```
+
+### AADSTS70011 — invalid scope
+
+Use:
+
+```text
+api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user
+```
+
+Do not use `/access_as_user` by itself.
+
+### AADSTS50105 — user not assigned
+
+Either assign the user/group to the Enterprise Application or set **Assignment required?** to `No`.
+
+### Login succeeds but portal still appears signed out
+
+Clear browser storage for `portal.skunkworksacademy.com`, then sign in again. The updated bootstrap now processes the redirect response before rendering and sets the active account.
 
 ## Local Development
 
@@ -110,13 +165,9 @@ npm test
 npm run validate:global-nav
 npm run build
 npm run build:api
-npm run teams:icons
-npm run teams:validate
 ```
 
 ## API Health Check
-
-After deploying the Azure Function App, verify:
 
 ```text
 https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api/health
@@ -131,26 +182,3 @@ Expected healthy shape:
   "missingSettings": []
 }
 ```
-
-If `missingSettings` includes `apiClientSecret`, create a new secret in the `Skunkworks Academy Portal API` app registration and add only the secret value to `API_CLIENT_SECRET`. Restart the Function App after saving.
-
-## SharePoint Provisioning
-
-Create the SharePoint site `/sites/InstructorPortal`, then run:
-
-```bash
-npm run provision:sharepoint
-```
-
-The provisioning script creates the operational lists and document libraries for job postings, courses, class sessions, registrations, applications, profiles, candidates, onboarding tasks, audit events and uploads.
-
-## Verification Checklist
-
-1. Signed-out users see the rebuilt branded landing page and global Academy menu.
-2. Microsoft sign-in uses client ID `8b1e77b3-3017-4c54-8ab3-0e4864511b55` unless explicitly overridden by environment.
-3. The Enterprise Application panel displays tenant ID, object ID, Application ID URI, scope, redirect URI and authority.
-4. `/api/health` displays missing Azure Function settings when configuration is incomplete.
-5. Students can register for classes when assigned the correct Entra app role.
-6. Instructors can apply for instructor jobs and view submitted applications.
-7. Staff users with `Portal.Admin` or `Portal.Staff` can create job postings and class schedules.
-8. The global navigation validator passes before build.

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Subscription Processing | Skunkworks Academy</title>
+  <link rel="stylesheet" href="/checkout/checkout.css?v=2026.07.22" />
+  <script src="https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.07.06.2" defer></script>
+</head>
+<body>
+  <main class="checkout-shell checkout-hero">
+    <section>
+      <p class="eyebrow">Gateway return</p>
+      <h1>Your subscription approval was received.</h1>
+      <p class="lead" id="message">Skunkworks Academy is waiting for the verified gateway notification before activating access.</p>
+      <div class="gateway-actions" style="max-width:360px;margin-top:24px">
+        <a class="notice" href="https://portal.skunkworksacademy.com/">Return to portal</a>
+        <a class="notice" href="https://portal.skunkworksacademy.com/checkout/">Back to checkout</a>
+      </div>
+    </section>
+    <aside class="trust-panel">
+      <strong>Entitlement status</strong>
+      <ul>
+        <li>PayFast confirmations are processed through verified ITN.</li>
+        <li>PayPal subscriptions are verified through signed subscription and payment webhooks.</li>
+        <li>Recurring payment events renew the entitlement validity period.</li>
+        <li>This browser page cannot grant access by itself.</li>
+      </ul>
+    </aside>
+  </main>
+  <script src="/checkout/success/success.js?v=2026.07.22" defer></script>
+</body>
+</html>
