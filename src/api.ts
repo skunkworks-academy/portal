@@ -2,7 +2,7 @@ import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser"
 import { apiScope } from "./authConfig";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
-const productionApiBaseUrl = "https://skunkworks-academy-portal-api-za.azurewebsites.net/api";
+const productionApiBaseUrl = "https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api";
 const localApiBaseUrl = "http://localhost:8080/api";
 
 function defaultApiBaseUrl() {
@@ -47,7 +47,7 @@ async function request<T>(
     });
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Network request failed";
-    throw new Error(`The Portal API could not be reached at ${requestUrl}. ${reason}`);
+    throw new Error(`The Portal API could not be reached at ${requestUrl}. Verify ${apiBaseUrl}/health, the Azure Function default hostname, and CORS for https://portal.skunkworksacademy.com. ${reason}`);
   }
 
   if (!response.ok) {
