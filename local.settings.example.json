@@ -20,6 +20,11 @@
     "PAYPAL_ENV": "sandbox",
     "PAYPAL_CLIENT_ID": "replace-with-paypal-client-id",
     "PAYPAL_CLIENT_SECRET": "replace-with-paypal-client-secret",
+    "PAYPAL_PRODUCT_ID": "PROD-REPLACE",
+    "PAYPAL_PLAN_STARTER_MONTHLY": "P-REPLACE-STARTER",
+    "PAYPAL_PLAN_PRO_MONTHLY": "P-REPLACE-PRO",
+    "PAYPAL_PLAN_MENTOR_MONTHLY": "P-REPLACE-MENTOR",
+    "PAYPAL_PLAN_TEAM_SEAT_MONTHLY": "P-REPLACE-TEAM",
     "PAYPAL_WEBHOOK_ID": "replace-with-paypal-webhook-id"
   }
 }
