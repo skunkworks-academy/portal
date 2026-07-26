@@ -22,7 +22,7 @@ function autocompleteFor(field: HTMLInputElement | HTMLSelectElement | HTMLTextA
   if (token.includes("phone") || token.includes("mobile") || (field instanceof HTMLInputElement && field.type === "tel")) return "tel";
   if (token.includes("display name") || token.includes("applicantname") || /(^|\s)name($|\s)/.test(token)) return "name";
   if (token.includes("location")) return "address-level2";
-  if (token.includes("role") || token.includes("discipline")) return "organization-title";
+  if (token.includes("role") || token.includes("discipline")) return "organization";
   return "off";
 }
 
@@ -51,13 +51,13 @@ function refreshFormFieldMetadata(root: ParentNode = document) {
 refreshFormFieldMetadata();
 
 const observer = new MutationObserver((mutations) => {
-  for (const mutation of mutations) {
-    for (const node of mutation.addedNodes) {
-      if (!(node instanceof Element)) continue;
+  mutations.forEach((mutation) => {
+    mutation.addedNodes.forEach((node) => {
+      if (!(node instanceof Element)) return;
       if (node.matches(fieldSelector)) applyFieldMetadata(node);
       refreshFormFieldMetadata(node);
-    }
-  }
+    });
+  });
 });
 
 observer.observe(document.documentElement, { childList: true, subtree: true });
