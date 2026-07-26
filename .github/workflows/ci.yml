@@ -16,7 +16,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
@@ -32,4 +32,17 @@ jobs:
         run: npm run teams:validate
 
       - name: Build frontend and API
-        run: npm run build && npm run build:api
+        id: build
+        shell: bash
+        run: |
+          set -o pipefail
+          (npm run build && npm run build:api) 2>&1 | tee build-output.log
+
+      - name: Upload build diagnostics
+        if: failure() && steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-build-diagnostics
+          path: build-output.log
+          if-no-files-found: error
+          retention-days: 7
