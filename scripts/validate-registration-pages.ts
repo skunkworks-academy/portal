@@ -1,9 +1,25 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { registrationCourseSlugs } from "../src/register/courseRegistry";
 
 const root = process.cwd();
-const slugs = registrationCourseSlugs();
+const slugs = [
+  "marketing-fundamentals",
+  "digital-marketing-strategy",
+  "content-marketing-editorial-planning",
+  "seo-foundations",
+  "social-media-campaign-operations",
+  "email-marketing-lifecycle-automation",
+  "marketing-analytics-workbook",
+  "campaign-planning-toolkit",
+  "ai-for-marketing-productivity",
+  "landing-pages-conversion-optimisation",
+  "marketing-campaign-practitioner",
+  "ai-enabled-marketing-operations",
+  "exchange-online-bulk-mail-management",
+  "ai-tools",
+  "cybersecurity",
+  "cloud"
+];
 const errors: string[] = [];
 
 function requireFile(path: string) {
@@ -25,12 +41,9 @@ function requireContent(path: string, text: string, description: string) {
 }
 
 requireFile("register/index.html");
-requireFile("src/register/main.tsx");
-requireFile("src/register/styles.css");
-requireFile("src/register/courseRegistry.ts");
 requireContent("register/index.html", "data-registration-page=\"generic\"", "generic registration marker is present");
-requireContent("src/register/main.tsx", "course=", "course query parameter handling exists");
-requireContent("src/register/main.tsx", "formsubmit.co", "registration form submission route exists");
+requireContent("register/index.html", "course=", "course query parameter handling exists");
+requireContent("register/index.html", "formsubmit.co", "registration form submission route exists");
 requireContent("vite.config.ts", "register: resolve(repoRoot, \"register/index.html\")", "generic registration page is part of the Vite build");
 
 for (const slug of slugs) {
@@ -38,6 +51,7 @@ for (const slug of slugs) {
   requireFile(pagePath);
   requireContent(pagePath, `data-course-slug=\"${slug}\"`, `registration page marker for ${slug}`);
   requireContent(pagePath, `/register/?course=${slug}`, `redirect URL for ${slug}`);
+  requireContent("register/index.html", slug, `generic registration page knows ${slug}`);
   requireContent("vite.config.ts", `register/${slug}/index.html`, `Vite input for ${slug}`);
 }
 
