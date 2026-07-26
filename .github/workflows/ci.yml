@@ -22,6 +22,33 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate PowerShell script syntax
+        shell: pwsh
+        run: |
+          $Failed = $false
+
+          Get-ChildItem -Path ./scripts -Filter *.ps1 -File -Recurse | ForEach-Object {
+            $Tokens = $null
+            $ParseErrors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$Tokens,
+              [ref]$ParseErrors
+            )
+
+            if (@($ParseErrors).Count -gt 0) {
+              $Failed = $true
+              Write-Error "PowerShell syntax validation failed: $($_.FullName)"
+              $ParseErrors | ForEach-Object {
+                Write-Error "$($_.Extent.StartLineNumber):$($_.Extent.StartColumnNumber) $($_.Message)"
+              }
+            }
+          }
+
+          if ($Failed) {
+            throw "One or more PowerShell scripts contain parser errors."
+          }
+
       - name: Run tests
         run: npm test
 
