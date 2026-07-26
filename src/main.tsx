@@ -10,6 +10,7 @@ import "./student-account-navigation";
 import "./instructor-account-navigation";
 import "./staff-account-navigation";
 import "./workspace-card-navigation";
+import "./form-field-metadata";
 
 const msalInstance = new PublicClientApplication(msalConfig);
 const rootElement = document.getElementById("root");
