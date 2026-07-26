@@ -5,15 +5,13 @@ on:
     inputs:
       function_app_name:
         description: Globally unique Azure Function App name
-        required: true
-        default: skunkworks-academy-portal-api-za
+        required: false
       storage_account_name:
         description: Globally unique lowercase storage account name
-        required: true
-        default: stskunkportal12345
+        required: false
       location:
         description: Azure region
-        required: true
+        required: false
         default: southafricanorth
   push:
     branches: [main]
@@ -24,6 +22,7 @@ on:
       - package-lock.json
       - tsconfig.api.json
       - infra/**
+      - scripts/bootstrap-azure-oidc.ps1
       - .github/workflows/deploy-azure-function.yml
 
 permissions:
@@ -44,6 +43,9 @@ env:
   LOCATION: ${{ inputs.location || vars.AZURE_LOCATION || 'southafricanorth' }}
   PORTAL_ENTRA_TENANT_ID: ${{ vars.PORTAL_ENTRA_TENANT_ID || '338a8916-80d9-467c-a94a-7f61d04ef7d5' }}
   PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
+  PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
+  PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
+  PORTAL_ALLOWED_ORIGINS: ${{ vars.PORTAL_ALLOWED_ORIGINS || 'https://portal.skunkworksacademy.com,http://localhost:5173' }}
 
 jobs:
   validate:
@@ -75,28 +77,63 @@ jobs:
       - run: npm ci
       - run: npm run build:api
 
-      - name: Verify deployment variables
+      - name: Verify deployment variables and identity contract
         shell: bash
         run: |
           set -euo pipefail
-          for name in AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_CLIENT_ID FUNCTION_APP_NAME STORAGE_ACCOUNT_NAME PORTAL_ENTRA_TENANT_ID PORTAL_ENTRA_CLIENT_ID; do
+          for name in AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_CLIENT_ID FUNCTION_APP_NAME STORAGE_ACCOUNT_NAME PORTAL_ENTRA_TENANT_ID PORTAL_ENTRA_CLIENT_ID PORTAL_APPLICATION_ID_URI PORTAL_API_SCOPE PORTAL_ALLOWED_ORIGINS; do
             if [ -z "${!name:-}" ]; then
               echo "Missing required GitHub Actions variable: $name" >&2
               exit 1
             fi
           done
+          if [[ ! "$STORAGE_ACCOUNT_NAME" =~ ^[a-z0-9]{3,24}$ ]]; then
+            echo "AZURE_STORAGE_ACCOUNT_NAME must be 3-24 lowercase alphanumeric characters." >&2
+            exit 1
+          fi
+          if [[ "$PORTAL_APPLICATION_ID_URI" != "api://${PORTAL_ENTRA_CLIENT_ID}" ]]; then
+            echo "PORTAL_APPLICATION_ID_URI must match api://PORTAL_ENTRA_CLIENT_ID." >&2
+            exit 1
+          fi
+          if [[ "$PORTAL_API_SCOPE" != "${PORTAL_APPLICATION_ID_URI}/access_as_user" ]]; then
+            echo "PORTAL_API_SCOPE must match PORTAL_APPLICATION_ID_URI/access_as_user." >&2
+            exit 1
+          fi
+          if [[ "$PORTAL_ALLOWED_ORIGINS" != *"https://portal.skunkworksacademy.com"* ]]; then
+            echo "PORTAL_ALLOWED_ORIGINS must include https://portal.skunkworksacademy.com." >&2
+            exit 1
+          fi
 
       - name: Azure login using workload identity
-        uses: azure/login@v2
+        uses: azure/login@v3
         with:
           client-id: ${{ env.AZURE_CLIENT_ID }}
           tenant-id: ${{ env.AZURE_TENANT_ID }}
           subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          auth-type: SERVICE_PRINCIPAL
+
+      - name: Confirm Azure context
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            actual_subscription="$(az account show --query id -o tsv)"
+            actual_tenant="$(az account show --query tenantId -o tsv)"
+            if [ "$actual_subscription" != "$AZURE_SUBSCRIPTION_ID" ]; then
+              echo "Azure login selected unexpected subscription: $actual_subscription" >&2
+              exit 1
+            fi
+            if [ "$actual_tenant" != "$AZURE_TENANT_ID" ]; then
+              echo "Azure login selected unexpected tenant: $actual_tenant" >&2
+              exit 1
+            fi
+            az account show --query '{subscription:id,tenant:tenantId,name:name}' -o json
 
       - name: Provision Function App infrastructure
         uses: azure/cli@v2
         with:
           inlineScript: |
+            set -euo pipefail
             az deployment sub create \
               --name portal-api-${{ github.run_number }} \
               --location "$LOCATION" \
@@ -107,7 +144,10 @@ jobs:
                 functionAppName="$FUNCTION_APP_NAME" \
                 storageAccountName="$STORAGE_ACCOUNT_NAME" \
                 entraTenantId="$PORTAL_ENTRA_TENANT_ID" \
-                portalClientId="$PORTAL_ENTRA_CLIENT_ID"
+                portalClientId="$PORTAL_ENTRA_CLIENT_ID" \
+                applicationIdUri="$PORTAL_APPLICATION_ID_URI" \
+                apiScope="$PORTAL_API_SCOPE" \
+                allowedOrigins="$PORTAL_ALLOWED_ORIGINS"
 
       - name: Assemble Function deployment package
         shell: bash
@@ -121,11 +161,34 @@ jobs:
           npm ci --omit=dev
           zip -qr ../function-package.zip .
 
-      - name: Deploy Function package
-        uses: azure/functions-action@v1
+      - name: Deploy Function package through Azure CLI
+        uses: azure/cli@v2
         with:
-          app-name: ${{ env.FUNCTION_APP_NAME }}
-          package: function-package.zip
+          inlineScript: |
+            set -euo pipefail
+            az functionapp deployment source config-zip \
+              --resource-group "$RESOURCE_GROUP_NAME" \
+              --name "$FUNCTION_APP_NAME" \
+              --src function-package.zip \
+              --build-remote false \
+              --timeout 600 \
+              --output json
+
+      - name: Restart Function App
+        uses: azure/cli@v2
+        with:
+          inlineScript: az functionapp restart --resource-group "$RESOURCE_GROUP_NAME" --name "$FUNCTION_APP_NAME"
+
+      - name: Verify deployed application settings
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            az functionapp config appsettings list \
+              --resource-group "$RESOURCE_GROUP_NAME" \
+              --name "$FUNCTION_APP_NAME" \
+              --query "[?name=='ENTRA_TENANT_ID' || name=='API_CLIENT_ID' || name=='SPA_CLIENT_ID' || name=='APPLICATION_ID_URI' || name=='API_SCOPE' || name=='ALLOWED_ORIGINS'].{name:name,value:value}" \
+              -o table
 
       - name: Verify API health
         shell: bash
@@ -133,10 +196,13 @@ jobs:
           set -euo pipefail
           API_URL="https://${FUNCTION_APP_NAME}.azurewebsites.net/api/health"
           echo "Checking $API_URL"
-          for attempt in {1..12}; do
-            if curl --fail --silent --show-error "$API_URL"; then
+          for attempt in {1..18}; do
+            if response=$(curl --fail --silent --show-error --max-time 20 "$API_URL"); then
+              echo "$response"
               exit 0
             fi
+            echo "Health check attempt $attempt failed; retrying in 10 seconds."
             sleep 10
           done
+          echo "Function health check failed after 18 attempts." >&2
           exit 1
