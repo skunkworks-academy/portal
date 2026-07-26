@@ -1,0 +1,222 @@
+/*
+  Skunkworks Academy Portal Theme Reference
+  Purpose: Copy or import patterns from this file when building new portal pages, Lovable screens, or generated components.
+  Source alignment: src/styles.css + src/site-theme.css + src/mobile-optimisation.css + src/global-nav-compat.css
+*/
+
+:root {
+  color-scheme: light dark;
+  --swa-bg: #050505;
+  --swa-text: #f5f5f5;
+  --swa-muted: #a3a3a3;
+  --swa-line: #2a2a2a;
+  --swa-surface: rgba(255,255,255,.055);
+  --swa-surface-strong: rgba(255,255,255,.085);
+  --swa-accent: #7c3aed;
+  --swa-accent-2: #06b6d4;
+  --swa-teal: #0f766e;
+  --swa-cyan: #75f0e5;
+  --swa-radius: 24px;
+  --swa-shadow: 0 24px 80px rgba(0,0,0,.35);
+  --swa-shell: min(1180px, calc(100% - 32px));
+  --swa-portal: min(1240px, calc(100% - 32px));
+  --swa-font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --swa-bg: #f8fafc;
+    --swa-text: #0a0a0a;
+    --swa-muted: #525252;
+    --swa-line: #e5e7eb;
+    --swa-surface: rgba(255,255,255,.82);
+    --swa-surface-strong: #ffffff;
+    --swa-shadow: 0 24px 80px rgba(15,23,42,.08);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: var(--swa-font);
+  background:
+    radial-gradient(circle at top left, rgba(124,58,237,.22), transparent 34rem),
+    radial-gradient(circle at top right, rgba(6,182,212,.18), transparent 32rem),
+    var(--swa-bg);
+  color: var(--swa-text);
+}
+
+.swa-shell {
+  width: var(--swa-shell);
+  margin-inline: auto;
+}
+
+.swa-portal-main {
+  width: var(--swa-portal);
+  margin-inline: auto;
+  padding: 28px 0 72px;
+}
+
+.swa-card,
+.swa-panel,
+.swa-role-entry,
+.swa-form-panel {
+  border: 1px solid var(--swa-line);
+  border-radius: var(--swa-radius);
+  background: linear-gradient(180deg, var(--swa-surface), color-mix(in srgb, var(--swa-surface) 72%, transparent));
+  box-shadow: var(--swa-shadow);
+  color: var(--swa-text);
+}
+
+.swa-hero {
+  min-height: 70vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: 28px;
+  align-items: end;
+  border: 1px solid var(--swa-line);
+  border-radius: 28px;
+  padding: clamp(28px, 6vw, 72px);
+  background:
+    radial-gradient(circle at top left, rgba(124,58,237,.28), transparent 34rem),
+    radial-gradient(circle at top right, rgba(6,182,212,.24), transparent 30rem),
+    linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015)),
+    var(--swa-bg);
+  color: #fff;
+}
+
+.swa-eyebrow {
+  margin: 0 0 12px;
+  color: var(--swa-cyan);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+}
+
+.swa-hero h1,
+.swa-panel h2,
+.swa-card h3 {
+  margin: 0;
+  letter-spacing: -.035em;
+}
+
+.swa-hero h1 {
+  font-size: clamp(42px, 7vw, 86px);
+  line-height: .96;
+}
+
+.swa-muted {
+  color: var(--swa-muted);
+  line-height: 1.55;
+}
+
+.swa-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.swa-primary-action,
+.swa-secondary-action {
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  padding: 0 22px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.swa-primary-action {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, var(--swa-accent), var(--swa-accent-2));
+}
+
+.swa-secondary-action {
+  border: 1px solid color-mix(in srgb, var(--swa-text) 18%, var(--swa-line));
+  color: var(--swa-text);
+  background: color-mix(in srgb, var(--swa-text) 8%, transparent);
+}
+
+.swa-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.swa-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.swa-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 0 10px;
+  color: #245b89;
+  background: #e3eef8;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.swa-alert {
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  color: #1f7a4d;
+  background: #e3f5ea;
+  border: 1px solid #bde5cc;
+  border-radius: 14px;
+}
+
+.swa-alert.is-error {
+  color: #b42318;
+  background: #fee4e2;
+  border-color: #f7c4bd;
+}
+
+@media (max-width: 980px) {
+  .swa-hero,
+  .swa-grid-2,
+  .swa-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .swa-portal-main {
+    width: min(100% - 20px, 1240px);
+    padding-top: 16px;
+  }
+
+  .swa-hero {
+    min-height: auto;
+    padding: 34px 18px 72px;
+    border-radius: 22px;
+  }
+
+  .swa-actions {
+    display: grid;
+  }
+
+  .swa-primary-action,
+  .swa-secondary-action {
+    width: 100%;
+  }
+}

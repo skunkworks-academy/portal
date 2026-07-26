@@ -2,7 +2,17 @@ import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser"
 import { apiScope } from "./authConfig";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "/api";
+const productionApiBaseUrl = "https://api.skunkworksacademy.com/api";
+const localApiBaseUrl = "http://localhost:8080/api";
+
+function defaultApiBaseUrl() {
+  if (typeof window === "undefined") return productionApiBaseUrl;
+  const hostname = window.location.hostname;
+  return hostname === "localhost" || hostname === "127.0.0.1" ? localApiBaseUrl : productionApiBaseUrl;
+}
+
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const apiBaseUrl = (configuredApiBaseUrl || defaultApiBaseUrl()).replace(/\/$/, "");
 
 async function getAccessToken(instance: IPublicClientApplication, account: AccountInfo) {
   const result = await instance.acquireTokenSilent({
@@ -18,7 +28,10 @@ async function request<T>(
   auth?: { instance: IPublicClientApplication; account: AccountInfo }
 ): Promise<T> {
   const headers = new Headers(options.headers);
-  headers.set("Content-Type", "application/json");
+
+  if (options.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
 
   if (auth) {
     headers.set("Authorization", `Bearer ${await getAccessToken(auth.instance, auth.account)}`);
@@ -35,6 +48,11 @@ async function request<T>(
   }
 
   if (response.status === 204) {
+    return undefined as T;
+  }
+
+  const contentType = response.headers.get("Content-Type") ?? "";
+  if (!contentType.includes("application/json")) {
     return undefined as T;
   }
 

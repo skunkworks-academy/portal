@@ -14,6 +14,12 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  PORTAL_ENTRA_TENANT_ID: ${{ vars.PORTAL_ENTRA_TENANT_ID || '338a8916-80d9-467c-a94a-7f61d04ef7d5' }}
+  PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
+  PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
+  PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -21,14 +27,36 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-      - run: npm install
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify frontend authentication configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in PORTAL_ENTRA_TENANT_ID PORTAL_ENTRA_CLIENT_ID PORTAL_APPLICATION_ID_URI PORTAL_API_SCOPE; do
+            if [ -z "${!name:-}" ]; then
+              echo "Missing required portal authentication variable: $name" >&2
+              exit 1
+            fi
+          done
+          case "$PORTAL_APPLICATION_ID_URI" in
+            "api://${PORTAL_ENTRA_CLIENT_ID}") ;;
+            *) echo "PORTAL_APPLICATION_ID_URI must match api://PORTAL_ENTRA_CLIENT_ID" >&2; exit 1 ;;
+          esac
+          case "$PORTAL_API_SCOPE" in
+            "${PORTAL_APPLICATION_ID_URI}/"*) ;;
+            *) echo "PORTAL_API_SCOPE must be a scope exposed by PORTAL_APPLICATION_ID_URI" >&2; exit 1 ;;
+          esac
       - run: npm run build
         env:
-          VITE_MSAL_CLIENT_ID: ${{ secrets.VITE_MSAL_CLIENT_ID }}
-          VITE_API_SCOPE: ${{ secrets.VITE_API_SCOPE }}
+          VITE_MSAL_CLIENT_ID: ${{ env.PORTAL_ENTRA_CLIENT_ID }}
+          VITE_API_CLIENT_ID: ${{ env.PORTAL_ENTRA_CLIENT_ID }}
+          VITE_APPLICATION_ID_URI: ${{ env.PORTAL_APPLICATION_ID_URI }}
+          VITE_MSAL_AUTHORITY: https://login.microsoftonline.com/${{ env.PORTAL_ENTRA_TENANT_ID }}
+          VITE_API_SCOPE: ${{ env.PORTAL_API_SCOPE }}
           VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-          VITE_SKUNKWORKS_TENANT_ID: 972e8de4-e365-43a3-99ec-c86a0cc249e8
+          VITE_SKUNKWORKS_TENANT_ID: ${{ env.PORTAL_ENTRA_TENANT_ID }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

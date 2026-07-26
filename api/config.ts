@@ -1,16 +1,14 @@
 export const config = {
-  entraTenantId: setting("ENTRA_TENANT_ID", "972e8de4-e365-43a3-99ec-c86a0cc249e8"),
-  // Default to the Skunkworks API app registration if no environment override is supplied
-  apiClientId: setting("API_CLIENT_ID", "8b1e77b3-3017-4c54-8ab3-0e4864511b55"),
+  entraTenantId: setting("ENTRA_TENANT_ID", "338a8916-80d9-467c-a94a-7f61d04ef7d5"),
+  apiClientId: setting("API_CLIENT_ID", "e22672ae-61a6-434e-b135-3360557819ec"),
   apiClientSecret: setting("API_CLIENT_SECRET"),
-  // Default to the Skunkworks SPA app registration if no environment override is supplied
-  spaClientId: setting("SPA_CLIENT_ID", "21f093b0-e91a-4f62-ad71-2dee1e0cbc20"),
-  graphTenantId: setting("GRAPH_TENANT_ID", "972e8de4-e365-43a3-99ec-c86a0cc249e8"),
-  sharePointHostname: setting("SHAREPOINT_HOSTNAME"),
+  spaClientId: setting("SPA_CLIENT_ID", "e22672ae-61a6-434e-b135-3360557819ec"),
+  graphTenantId: setting("GRAPH_TENANT_ID", "338a8916-80d9-467c-a94a-7f61d04ef7d5"),
+  sharePointHostname: setting("SHAREPOINT_HOSTNAME", "skunkworksacademy.sharepoint.com"),
   sharePointSitePath: setting("SHAREPOINT_SITE_PATH", "/sites/InstructorPortal"),
-  allowedOrigins: (process.env.ALLOWED_ORIGINS ?? "http://localhost:5173,https://portal.skunkworksacademy.com")
+  allowedOrigins: (process.env.ALLOWED_ORIGINS ?? "http://localhost:5173,https://portal.skunkworksacademy.com,https://skunkworks-academy.github.io")
     .split(",")
-    .map((origin) => origin.trim())
+    .map((origin) => origin.trim().replace(/\/$/, ""))
     .filter(Boolean)
 };
 
