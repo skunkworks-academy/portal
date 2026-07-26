@@ -13,9 +13,16 @@ param entraTenantId string
 @description('Application/client ID used for API audience validation.')
 param portalClientId string
 
+@description('Application ID URI used by the Portal API.')
+param applicationIdUri string = 'api://${portalClientId}'
+
+@description('Delegated scope exposed by the Portal API.')
+param apiScope string = '${applicationIdUri}/access_as_user'
+
 @description('Comma-separated allowed browser origins.')
 param allowedOrigins string
 
+var parsedAllowedOrigins = [for origin in split(allowedOrigins, ','): trim(origin)]
 var hostingPlanName = '${functionAppName}-plan'
 var appInsightsName = '${functionAppName}-insights'
 var workspaceName = '${functionAppName}-logs'
@@ -86,10 +93,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
       minTlsVersion: '1.2'
       alwaysOn: false
       cors: {
-        allowedOrigins: [
-          'https://portal.skunkworksacademy.com'
-          'http://localhost:5173'
-        ]
+        allowedOrigins: parsedAllowedOrigins
         supportCredentials: false
       }
       appSettings: [
@@ -128,6 +132,14 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'SPA_CLIENT_ID'
           value: portalClientId
+        }
+        {
+          name: 'APPLICATION_ID_URI'
+          value: applicationIdUri
+        }
+        {
+          name: 'API_SCOPE'
+          value: apiScope
         }
         {
           name: 'GRAPH_TENANT_ID'
