@@ -20,10 +20,15 @@ function selectedSlugFromLocation() {
 }
 
 function App() {
-  const [account, setAccount] = useState<AccountInfo | null>(null);
+  const [account, setAccount] = useState<AccountInfo | null>(() => msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0] ?? null);
   const [selectedSlug, setSelectedSlug] = useState(selectedSlugFromLocation());
   const course = useMemo(() => findRegistrationCourse(selectedSlug), [selectedSlug]);
   const submitted = new URLSearchParams(window.location.search).get("submitted") === "1";
+
+  useEffect(() => {
+    const activeAccount = msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0] ?? null;
+    setAccount(activeAccount);
+  }, []);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -190,12 +195,12 @@ async function bootstrap() {
   await msalInstance.handleRedirectPromise();
   const accounts = msalInstance.getAllAccounts();
 
-  if (root) {
-    createRoot(root).render(<App />);
-  }
-
   if (accounts[0]) {
     msalInstance.setActiveAccount(accounts[0]);
+  }
+
+  if (root) {
+    createRoot(root).render(<App />);
   }
 }
 
