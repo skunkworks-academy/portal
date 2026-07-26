@@ -1,11 +1,14 @@
 import { app } from "@azure/functions";
 import { empty, failure, json } from "./http.js";
 import {
+  approvePayPalSubscription,
   capturePayPalOrder,
   createCheckoutSession,
+  createPayPalSubscriptionIntent,
   handlePayFastWebhook,
   handlePayPalWebhook,
-  publicCheckoutPlans
+  publicCheckoutPlans,
+  publicPayPalConfig
 } from "./payments.js";
 
 app.http("checkoutCors", {
@@ -36,6 +39,13 @@ app.http("checkoutPlans", {
   handler: async (request) => json(request, publicCheckoutPlans())
 });
 
+app.http("paypalConfig", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "checkout/paypal/config",
+  handler: async (request) => json(request, publicPayPalConfig())
+});
+
 app.http("createCheckoutSession", {
   methods: ["POST"],
   authLevel: "anonymous",
@@ -43,6 +53,34 @@ app.http("createCheckoutSession", {
   handler: async (request, context) => {
     try {
       return json(request, await createCheckoutSession(request), 201);
+    } catch (error) {
+      context.error(error);
+      return failure(request, error);
+    }
+  }
+});
+
+app.http("createPayPalSubscriptionIntent", {
+  methods: ["POST"],
+  authLevel: "anonymous",
+  route: "checkout/paypal/subscription-intents",
+  handler: async (request, context) => {
+    try {
+      return json(request, await createPayPalSubscriptionIntent(request), 201);
+    } catch (error) {
+      context.error(error);
+      return failure(request, error);
+    }
+  }
+});
+
+app.http("approvePayPalSubscription", {
+  methods: ["POST"],
+  authLevel: "anonymous",
+  route: "checkout/paypal/subscriptions/approve",
+  handler: async (request, context) => {
+    try {
+      return json(request, await approvePayPalSubscription(request));
     } catch (error) {
       context.error(error);
       return failure(request, error);

@@ -14,23 +14,41 @@ import "./workspace-card-navigation";
 const msalInstance = new PublicClientApplication(msalConfig);
 const rootElement = document.getElementById("root");
 
+function renderStartupError() {
+  if (!rootElement) return;
+  rootElement.innerHTML = `
+    <main class="portal-main startup-error" id="main" tabindex="-1">
+      <section class="alert error" role="alert">
+        <h1>Portal startup failed</h1>
+        <p>Refresh the page. If the problem continues, contact Skunkworks Academy support.</p>
+        <div class="startup-actions">
+          <button type="button" data-reload-page>Reload portal</button>
+          <a href="mailto:training@skunkworks.africa">Contact support</a>
+        </div>
+      </section>
+    </main>`;
+  rootElement.querySelector<HTMLButtonElement>("[data-reload-page]")?.addEventListener("click", () => window.location.reload());
+  rootElement.querySelector<HTMLElement>("#main")?.focus();
+}
+
 async function bootstrapPortal() {
   await msalInstance.initialize();
+  const redirectResult = await msalInstance.handleRedirectPromise();
+  const activeAccount = redirectResult?.account ?? msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
+  if (activeAccount) msalInstance.setActiveAccount(activeAccount);
 
-  if (rootElement) {
-    ReactDOM.createRoot(rootElement).render(
-      <React.StrictMode>
-        <MsalProvider instance={msalInstance}>
-          <App />
-        </MsalProvider>
-      </React.StrictMode>
-    );
-  }
+  if (!rootElement) throw new Error("Portal root element is missing.");
+
+  ReactDOM.createRoot(rootElement).render(
+    <React.StrictMode>
+      <MsalProvider instance={msalInstance}>
+        <App />
+      </MsalProvider>
+    </React.StrictMode>
+  );
 }
 
 void bootstrapPortal().catch((error) => {
   console.error("Portal startup failed", error);
-  if (rootElement) {
-    rootElement.innerHTML = `<main class="portal-main"><div class="alert error">Portal startup failed. Please refresh the page or contact Skunkworks Academy support.</div></main>`;
-  }
+  renderStartupError();
 });
