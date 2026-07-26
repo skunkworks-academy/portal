@@ -286,7 +286,7 @@ function GlobalCourseHeader() {
   return (
     <header className="course-header" data-fallback-header="true">
       <a className="course-brand" href="https://skunkworksacademy.com/" aria-label="Skunkworks Academy home">
-        <img src="https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-white.png" alt="" />
+        <img src="https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-white.png" alt="" />
         <span>Skunkworks Academy <small>Self-paced</small></span>
       </a>
       <nav aria-label="Academy navigation">
