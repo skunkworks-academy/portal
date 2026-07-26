@@ -1,8 +1,8 @@
 {
   "$schema": "https://developer.microsoft.com/en-us/json-schemas/teams/v1.17/MicrosoftTeams.schema.json",
   "manifestVersion": "1.17",
-  "version": "1.0.0",
-  "id": "21f093b0-e91a-4f62-ad71-2dee1e0cbc20",
+  "version": "1.0.2",
+  "id": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
   "developer": {
     "name": "Skunkworks Academy",
     "websiteUrl": "https://portal.skunkworksacademy.com",
@@ -33,11 +33,14 @@
   ],
   "validDomains": [
     "portal.skunkworksacademy.com",
+    "verify.skunkworksacademy.com",
+    "skunkworksacademy.com",
     "skunkworks-academy.github.io",
+    "skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net",
     "login.microsoftonline.com"
   ],
   "webApplicationInfo": {
-    "id": "21f093b0-e91a-4f62-ad71-2dee1e0cbc20",
+    "id": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
     "resource": "api://8b1e77b3-3017-4c54-8ab3-0e4864511b55"
   },
   "authorization": {
