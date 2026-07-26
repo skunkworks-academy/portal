@@ -1,0 +1,30 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "ENTRA_TENANT_ID": "972e8de4-e365-43a3-99ec-c86a0cc249e8",
+    "API_CLIENT_ID": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
+    "API_CLIENT_SECRET": "replace-with-local-secret",
+    "SPA_CLIENT_ID": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
+    "GRAPH_TENANT_ID": "972e8de4-e365-43a3-99ec-c86a0cc249e8",
+    "SHAREPOINT_HOSTNAME": "skunkworksacademy.sharepoint.com",
+    "SHAREPOINT_SITE_PATH": "/sites/InstructorPortal",
+    "ALLOWED_ORIGINS": "http://localhost:5173,https://portal.skunkworksacademy.com,https://skunkworksacademy.com",
+    "PUBLIC_API_BASE_URL": "http://localhost:7071/api",
+    "PAYFAST_ENV": "sandbox",
+    "PAYFAST_MERCHANT_ID": "replace-with-payfast-merchant-id",
+    "PAYFAST_MERCHANT_KEY": "replace-with-payfast-merchant-key",
+    "PAYFAST_PASSPHRASE": "replace-with-payfast-passphrase",
+    "PAYFAST_SKIP_SERVER_VALIDATION": "false",
+    "PAYPAL_ENV": "sandbox",
+    "PAYPAL_CLIENT_ID": "replace-with-paypal-client-id",
+    "PAYPAL_CLIENT_SECRET": "replace-with-paypal-client-secret",
+    "PAYPAL_PRODUCT_ID": "PROD-REPLACE",
+    "PAYPAL_PLAN_STARTER_MONTHLY": "P-REPLACE-STARTER",
+    "PAYPAL_PLAN_PRO_MONTHLY": "P-REPLACE-PRO",
+    "PAYPAL_PLAN_MENTOR_MONTHLY": "P-REPLACE-MENTOR",
+    "PAYPAL_PLAN_TEAM_SEAT_MONTHLY": "P-REPLACE-TEAM",
+    "PAYPAL_WEBHOOK_ID": "replace-with-paypal-webhook-id"
+  }
+}

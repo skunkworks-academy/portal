@@ -1,0 +1,44 @@
+{
+  "appId": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
+  "displayName": "Skunkworks Academy Portal API",
+  "signInAudience": "AzureADandPersonalMicrosoftAccount",
+  "spa": {
+    "redirectUris": [
+      "https://portal.skunkworksacademy.com/",
+      "https://verify.skunkworksacademy.com/",
+      "http://localhost:3000/",
+      "http://localhost:5173/"
+    ]
+  },
+  "web": {
+    "homePageUrl": "https://portal.skunkworksacademy.com/",
+    "logoutUrl": "https://portal.skunkworksacademy.com/",
+    "redirectUris": [],
+    "implicitGrantSettings": {
+      "enableAccessTokenIssuance": true,
+      "enableIdTokenIssuance": true
+    }
+  },
+  "requiredResourceAccess": [
+    {
+      "resourceAppId": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
+      "resourceAccess": [
+        {
+          "id": "3698d6c7-6a9e-4880-8de5-445c94cecf79",
+          "type": "Scope"
+        }
+      ]
+    },
+    {
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "resourceAccess": [
+        {
+          "id": "e1fe6dd8-ba31-4d61-89e7-88639da4683d",
+          "type": "Scope"
+        }
+      ]
+    }
+  ],
+  "optionalClaims": null,
+  "notes": "Current single-registration mode. The SPA sign-in client ID and API resource app ID are both 8b1e77b3-3017-4c54-8ab3-0e4864511b55. Do not use retired client ID 21f093b0-e91a-4f62-ad71-2dee1e0cbc20 unless that app is recreated in the tenant."
+}

@@ -1,5 +1,5 @@
 import { HttpError } from "./http.js";
-import { exchangeBulkMailFinalAssessment, findExchangeBulkMailLesson } from "./courseContent.js";
+import { ApiCourseLesson, exchangeBulkMailFinalAssessment, findExchangeBulkMailLesson } from "./courseContent.js";
 
 export type CourseProgressPayload = {
   lessonId?: string;
@@ -13,7 +13,7 @@ export type AssessmentPayload = {
   answers?: Record<string, string>;
 };
 
-export function requireCourseLesson(lessonId: string) {
+export function requireCourseLesson(lessonId: string): ApiCourseLesson {
   const lesson = findExchangeBulkMailLesson(lessonId);
   if (!lesson) throw new HttpError(404, `Course lesson ${lessonId} was not found.`);
   return lesson;

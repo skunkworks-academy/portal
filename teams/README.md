@@ -19,6 +19,20 @@ Portal.Staff
 Portal.Admin
 ```
 
+Recommended Microsoft 365 / Teams role groups:
+
+```text
+Skunkworks Academy Portal - Students     -> Portal.Student
+Skunkworks Academy Portal - Instructors  -> Portal.Instructor
+Skunkworks Academy Portal - Staff        -> Portal.Staff
+```
+
+See `teams/role-groups.md` for the full Microsoft 365 group, Teams, and Entra app-role assignment setup. The helper script is available at:
+
+```powershell
+pwsh ./scripts/create-m365-role-groups.ps1
+```
+
 Recommended production role source order:
 
 ```text
@@ -56,11 +70,13 @@ Teams configuration checklist:
 2. Add https://skunkworks-academy.github.io/portal/ if GitHub Pages remains a deployment target.
 3. Expose the API scope api://<API_CLIENT_ID>/access_as_user.
 4. Grant the SPA permission to request the API scope.
-5. Assign Portal.Admin or Portal.Staff through the Enterprise Application for staff users.
-6. Replace the placeholder Teams package id, SPA client id, and API app id in manifest.json.
-7. Add the portal domain to validDomains in the Teams manifest.
-8. Run npm run teams:icons and npm run teams:validate:production.
-9. Zip manifest.json, outline.png, and color.png for upload to Teams Admin Center.
+5. Create or confirm the Microsoft 365 / Teams role groups for Students, Instructors, and Staff.
+6. Assign each role group to the matching Enterprise Application app role.
+7. Assign Portal.Admin or Portal.Staff through the Enterprise Application for staff users.
+8. Replace the placeholder Teams package id, SPA client id, and API app id in manifest.json.
+9. Add the portal domain to validDomains in the Teams manifest.
+10. Run npm run teams:icons and npm run teams:validate:production.
+11. Zip manifest.json, outline.png, and color.png for upload to Teams Admin Center.
 ```
 
 Staff workflows inside Teams should use the same portal screens and server-side API authorization. The Teams package should not grant permissions by itself; Microsoft Entra app roles remain the source of authority.

@@ -16,11 +16,38 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Validate PowerShell script syntax
+        shell: pwsh
+        run: |
+          $Failed = $false
+
+          Get-ChildItem -Path ./scripts -Filter *.ps1 -File -Recurse | ForEach-Object {
+            $Tokens = $null
+            $ParseErrors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              $_.FullName,
+              [ref]$Tokens,
+              [ref]$ParseErrors
+            )
+
+            if (@($ParseErrors).Count -gt 0) {
+              $Failed = $true
+              Write-Error "PowerShell syntax validation failed: $($_.FullName)"
+              $ParseErrors | ForEach-Object {
+                Write-Error "$($_.Extent.StartLineNumber):$($_.Extent.StartColumnNumber) $($_.Message)"
+              }
+            }
+          }
+
+          if ($Failed) {
+            throw "One or more PowerShell scripts contain parser errors."
+          }
 
       - name: Run tests
         run: npm test
@@ -32,4 +59,17 @@ jobs:
         run: npm run teams:validate
 
       - name: Build frontend and API
-        run: npm run build && npm run build:api
+        id: build
+        shell: bash
+        run: |
+          set -o pipefail
+          (npm run build && npm run build:api) 2>&1 | tee build-output.log
+
+      - name: Upload build diagnostics
+        if: failure() && steps.build.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-build-diagnostics
+          path: build-output.log
+          if-no-files-found: error
+          retention-days: 7
