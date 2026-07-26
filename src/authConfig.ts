@@ -2,9 +2,12 @@ import type { Configuration, RedirectRequest } from "@azure/msal-browser";
 
 const browserOrigin = typeof window === "undefined" ? "http://localhost" : window.location.origin;
 
-const canonicalTenantId = "972e8de4-e365-43a3-99ec-c86a0cc249e8";
-const canonicalPortalClientId = "8b1e77b3-3017-4c54-8ab3-0e4864511b55";
-const blockedApplicationIds = ["21f093b0-e91a-4f62-ad71-2dee1e0cbc20"];
+const canonicalTenantId = "338a8916-80d9-467c-a94a-7f61d04ef7d5";
+const canonicalPortalClientId = "e22672ae-61a6-434e-b135-3360557819ec";
+const blockedApplicationIds = [
+  "21f093b0-e91a-4f62-ad71-2dee1e0cbc20",
+  "8b1e77b3-3017-4c54-8ab3-0e4864511b55"
+];
 const guidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const guidScopePattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\//i;
 const allowCustomEntraApp = import.meta.env.VITE_ALLOW_CUSTOM_ENTRA_APP === "true";
@@ -25,12 +28,14 @@ function isCanonicalApplicationValue(value?: string) {
   return value === canonicalPortalClientId || value === `api://${canonicalPortalClientId}` || value.startsWith(`api://${canonicalPortalClientId}/`);
 }
 
+export const authConfigurationWarnings: string[] = [];
+
 function resolveTenantId(rawValue?: string) {
   const value = configuredValue(rawValue);
   if (!value) return canonicalTenantId;
 
   if (!allowCustomEntraApp && value !== canonicalTenantId) {
-    authConfigurationWarnings.push("VITE_SKUNKWORKS_TENANT_ID attempted to use a non-canonical tenant; using the Skunkworks Academy tenant.");
+    authConfigurationWarnings.push("VITE_SKUNKWORKS_TENANT_ID attempted to use a non-canonical tenant; using the SKUNKWORKS tenant.");
     return canonicalTenantId;
   }
 
@@ -42,7 +47,7 @@ function resolvePortalApplicationId(rawValue: string | undefined, settingName: s
   if (!value) return canonicalPortalClientId;
 
   if (usesBlockedApplicationId(value)) {
-    authConfigurationWarnings.push(`${settingName} referenced retired or missing application ${blockedApplicationIds[0]}; using ${canonicalPortalClientId}.`);
+    authConfigurationWarnings.push(`${settingName} referenced a retired portal application; using ${canonicalPortalClientId}.`);
     return canonicalPortalClientId;
   }
 
@@ -65,7 +70,7 @@ function resolveApplicationIdUri(rawValue: string | undefined, clientId: string)
   if (!value) return fallback;
 
   if (usesBlockedApplicationId(value)) {
-    authConfigurationWarnings.push(`VITE_APPLICATION_ID_URI referenced retired or missing application ${blockedApplicationIds[0]}; using ${fallback}.`);
+    authConfigurationWarnings.push(`VITE_APPLICATION_ID_URI referenced a retired portal application; using ${fallback}.`);
     return fallback;
   }
 
@@ -83,19 +88,30 @@ function resolveAuthority(rawValue: string | undefined, tenantId: string) {
   if (!value) return fallback;
 
   if (!allowCustomEntraApp && !value.toLowerCase().includes(tenantId.toLowerCase())) {
-    authConfigurationWarnings.push("VITE_MSAL_AUTHORITY attempted to use a non-canonical authority; using the Skunkworks Academy tenant authority.");
+    authConfigurationWarnings.push("VITE_MSAL_AUTHORITY attempted to use a non-canonical authority; using the SKUNKWORKS tenant authority.");
     return fallback;
   }
 
   return value.replace(/\/$/, "");
 }
 
+export const skunkworksTenantId = resolveTenantId(import.meta.env.VITE_SKUNKWORKS_TENANT_ID);
+export const defaultPortalClientId = canonicalPortalClientId;
+export const portalApiClientId = resolvePortalApplicationId(import.meta.env.VITE_API_CLIENT_ID, "VITE_API_CLIENT_ID");
+export const portalClientId = resolvePortalApplicationId(import.meta.env.VITE_MSAL_CLIENT_ID, "VITE_MSAL_CLIENT_ID");
+export const portalApplicationObjectId = "5546429d-1373-49ab-b587-67deba7e84c0";
+export const portalApplicationIdUri = resolveApplicationIdUri(import.meta.env.VITE_APPLICATION_ID_URI, portalApiClientId);
+export const portalManagedApplicationName = "Skunkworks Academy Portal";
+export const portalSupportedAccountTypes = "Accounts in any Microsoft Entra ID tenant and personal Microsoft accounts";
+export const portalCredentialSummary = "SPA authentication uses authorization code flow with PKCE; no client secret is used in the browser";
+export const portalApiScope = `${portalApplicationIdUri}/access_as_user`;
+
 function normalizeApiScope(rawScope?: string) {
   const configuredScope = configuredValue(rawScope);
   if (!configuredScope) return portalApiScope;
 
   if (usesBlockedApplicationId(configuredScope)) {
-    authConfigurationWarnings.push(`VITE_API_SCOPE referenced retired or missing application ${blockedApplicationIds[0]}; using ${portalApiScope}.`);
+    authConfigurationWarnings.push(`VITE_API_SCOPE referenced a retired portal application; using ${portalApiScope}.`);
     return portalApiScope;
   }
 
@@ -126,18 +142,6 @@ function normalizeApiScope(rawScope?: string) {
   return `${portalApplicationIdUri}/${candidate.replace(/^\/+/, "")}`;
 }
 
-export const authConfigurationWarnings: string[] = [];
-
-export const skunkworksTenantId = resolveTenantId(import.meta.env.VITE_SKUNKWORKS_TENANT_ID);
-export const defaultPortalClientId = canonicalPortalClientId;
-export const portalApiClientId = resolvePortalApplicationId(import.meta.env.VITE_API_CLIENT_ID, "VITE_API_CLIENT_ID");
-export const portalClientId = resolvePortalApplicationId(import.meta.env.VITE_MSAL_CLIENT_ID, "VITE_MSAL_CLIENT_ID");
-export const portalApplicationObjectId = "3646dd6d-5ed7-4ea6-96b7-3c8f45fb93c9";
-export const portalApplicationIdUri = resolveApplicationIdUri(import.meta.env.VITE_APPLICATION_ID_URI, portalApiClientId);
-export const portalManagedApplicationName = "Skunkworks Academy Portal API";
-export const portalSupportedAccountTypes = "All Microsoft account users";
-export const portalCredentialSummary = "0 certificates, 2 client secrets configured in Entra";
-export const portalApiScope = `${portalApplicationIdUri}/access_as_user`;
 export const apiScope = normalizeApiScope(import.meta.env.VITE_API_SCOPE);
 export const msalAuthority = resolveAuthority(import.meta.env.VITE_MSAL_AUTHORITY, skunkworksTenantId);
 
@@ -149,10 +153,10 @@ export const msalConfig: Configuration = {
     authority: msalAuthority,
     redirectUri: `${redirectBase}/`,
     postLogoutRedirectUri: `${redirectBase}/`,
-    navigateToLoginRequestUrl: false
+    navigateToLoginRequestUrl: true
   },
   cache: {
-    cacheLocation: "sessionStorage",
+    cacheLocation: "localStorage",
     storeAuthStateInCookie: false
   },
   system: {
@@ -160,9 +164,6 @@ export const msalConfig: Configuration = {
   }
 };
 
-// Keep interactive sign-in limited to OpenID Connect scopes. Requesting the
-// custom API scope here makes the entire login fail with AADSTS500011 when the
-// API service principal or delegated scope has not yet been provisioned.
 export const loginRequest: RedirectRequest = {
   scopes: ["openid", "profile", "email", "offline_access"],
   prompt: "select_account"
