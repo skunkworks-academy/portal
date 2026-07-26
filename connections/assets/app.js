@@ -26,13 +26,13 @@
   function setMenu(open) {
     if (!header || !menuToggle) return;
     header.setAttribute('data-open', String(open));
+    header.classList.toggle('global-menu-open', open);
     menuToggle.setAttribute('aria-expanded', String(open));
     menuToggle.setAttribute('aria-label', open ? 'Close navigation' : 'Toggle navigation');
   }
   menuToggle?.addEventListener('click', () => setMenu(header?.getAttribute('data-open') !== 'true'));
-  $('#academy-nav')?.addEventListener('click', (event) => { if (event.target instanceof Element && event.target.closest('a')) setMenu(false); });
+  $('#primary-portal-navigation')?.addEventListener('click', (event) => { if (event.target instanceof Element && event.target.closest('a')) setMenu(false); });
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && header?.getAttribute('data-open') === 'true') { setMenu(false); menuToggle?.focus(); } });
-  window.addEventListener('resize', () => { if (window.innerWidth > 980) setMenu(false); });
 
   const grid = $('#connectionGrid');
   function cardMarkup(item) {
