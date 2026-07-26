@@ -42,6 +42,8 @@ env:
   FUNCTION_APP_NAME: ${{ inputs.function_app_name || vars.AZURE_FUNCTIONAPP_NAME }}
   STORAGE_ACCOUNT_NAME: ${{ inputs.storage_account_name || vars.AZURE_STORAGE_ACCOUNT_NAME }}
   LOCATION: ${{ inputs.location || vars.AZURE_LOCATION || 'southafricanorth' }}
+  PORTAL_ENTRA_TENANT_ID: ${{ vars.PORTAL_ENTRA_TENANT_ID || '338a8916-80d9-467c-a94a-7f61d04ef7d5' }}
+  PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
 
 jobs:
   validate:
@@ -77,7 +79,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for name in AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_CLIENT_ID FUNCTION_APP_NAME STORAGE_ACCOUNT_NAME; do
+          for name in AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_CLIENT_ID FUNCTION_APP_NAME STORAGE_ACCOUNT_NAME PORTAL_ENTRA_TENANT_ID PORTAL_ENTRA_CLIENT_ID; do
             if [ -z "${!name:-}" ]; then
               echo "Missing required GitHub Actions variable: $name" >&2
               exit 1
@@ -104,8 +106,8 @@ jobs:
                 resourceGroupName="$RESOURCE_GROUP_NAME" \
                 functionAppName="$FUNCTION_APP_NAME" \
                 storageAccountName="$STORAGE_ACCOUNT_NAME" \
-                entraTenantId="338a8916-80d9-467c-a94a-7f61d04ef7d5" \
-                portalClientId="e22672ae-61a6-434e-b135-3360557819ec"
+                entraTenantId="$PORTAL_ENTRA_TENANT_ID" \
+                portalClientId="$PORTAL_ENTRA_CLIENT_ID"
 
       - name: Assemble Function deployment package
         shell: bash
