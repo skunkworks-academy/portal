@@ -38,4 +38,4 @@ All shared tokens, responsive breakpoints, contrast rules, focus states and comp
 
 ## Audit result
 
-The previous styling model split navigation and theme behaviour across multiple files with overlapping `!important` overrides. The consolidated model removes that cascade conflict and makes the portal easier to maintain, test and copy into other Skunkworks Academy ecosystem sites.
+The previous styling model split navigation and theme behaviour across multiple files with overlapping `!important` overrides. The consolidated model removes that cascade conflict and makes the portal easier to maintain, test and copy into other Skunkworks Academy sites.

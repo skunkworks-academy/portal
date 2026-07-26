@@ -1,6 +1,6 @@
 # Skunkworks Academy Portal Branding Workflow
 
-This folder is the single root-level operating pack for keeping the `skunkworks-academy/portal` repository visually aligned with the Skunkworks Academy ecosystem.
+This folder is the single root-level operating pack for keeping the `skunkworks-academy/portal` repository visually aligned with Skunkworks Academy.
 
 It is designed for three audiences:
 
@@ -43,7 +43,7 @@ academy-branding-workflow/
 The repo-level source of truth is the live portal styling, not an external mock-up:
 
 - `src/styles.css` defines the base portal variables, layout primitives, form controls, hero, workspace grid, cards, pills, alerts, and responsive breakpoints.
-- `src/site-theme.css` aligns the portal to the broader Skunkworks Academy dark/light ecosystem.
+- `src/site-theme.css` aligns the portal to the broader Skunkworks Academy dark/light design system.
 - `src/mobile-optimisation.css` applies mobile-first polish and safe responsive behaviour.
 - `src/global-nav-compat.css` protects the fallback portal header and global navigation behaviour.
 

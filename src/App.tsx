@@ -31,8 +31,8 @@ import type {
   UserProfile
 } from "./types";
 
-const BRAND_ICON_BLACK = "https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png";
-const BRAND_ICON_WHITE = "https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-white.png";
+const BRAND_ICON_BLACK = "https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-black.png";
+const BRAND_ICON_WHITE = "https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-white.png";
 const HOME_URL = "https://skunkworksacademy.com/";
 const PORTAL_URL = "https://portal.skunkworksacademy.com/";
 

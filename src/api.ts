@@ -2,7 +2,7 @@ import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser"
 import { apiScope } from "./authConfig";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
-const productionApiBaseUrl = "https://api.skunkworksacademy.com/api";
+const productionApiBaseUrl = "https://skunkworks-academy-portal-api-za.azurewebsites.net/api";
 const localApiBaseUrl = "http://localhost:8080/api";
 
 function defaultApiBaseUrl() {
@@ -37,14 +37,22 @@ async function request<T>(
     headers.set("Authorization", `Bearer ${await getAccessToken(auth.instance, auth.account)}`);
   }
 
-  const response = await fetch(`${apiBaseUrl}${path}`, {
-    ...options,
-    headers
-  });
+  const requestUrl = `${apiBaseUrl}${path}`;
+  let response: Response;
+
+  try {
+    response = await fetch(requestUrl, {
+      ...options,
+      headers
+    });
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : "Network request failed";
+    throw new Error(`The Portal API could not be reached at ${requestUrl}. ${reason}`);
+  }
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(message || `Request failed with ${response.status}`);
+    throw new Error(message || `Portal API request failed with ${response.status} at ${requestUrl}`);
   }
 
   if (response.status === 204) {

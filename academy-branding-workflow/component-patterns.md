@@ -1,6 +1,6 @@
 # Portal Component Patterns
 
-Use these patterns when adding or refactoring portal UI. The goal is consistency with the current React app and the wider Skunkworks Academy ecosystem.
+Use these patterns when adding or refactoring portal UI. The goal is consistency with the current React app and the wider Skunkworks Academy.
 
 ## 1. Page shell
 
