@@ -22,12 +22,18 @@ Create these under **Repository settings → Secrets and variables → Actions �
 | Variable | Value |
 |---|---|
 | `AZURE_SUBSCRIPTION_ID` | The subscription ID returned by `az account show --query id -o tsv` |
-| `AZURE_TENANT_ID` | `338a8916-80d9-467c-a94a-7f61d04ef7d5` |
+| `AZURE_TENANT_ID` | Tenant used by the GitHub deployment identity |
 | `AZURE_CLIENT_ID` | Client ID of the GitHub deployment app/service principal with federated credentials |
 | `AZURE_RESOURCE_GROUP_NAME` | `rg-skunkworks-academy-portal-prod` |
 | `AZURE_FUNCTIONAPP_NAME` | A globally unique app name, for example `skunkworks-academy-portal-api-za` |
 | `AZURE_STORAGE_ACCOUNT_NAME` | A globally unique lowercase storage name, 3–24 characters |
 | `AZURE_LOCATION` | `southafricanorth` |
+| `PORTAL_ENTRA_TENANT_ID` | `338a8916-80d9-467c-a94a-7f61d04ef7d5` |
+| `PORTAL_ENTRA_CLIENT_ID` | `e22672ae-61a6-434e-b135-3360557819ec` |
+| `PORTAL_APPLICATION_ID_URI` | `api://e22672ae-61a6-434e-b135-3360557819ec` |
+| `PORTAL_API_SCOPE` | `api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user` |
+
+The frontend Pages workflow and Function App deployment workflow both consume the shared `PORTAL_ENTRA_*` variables. This prevents the frontend from requesting tokens for a different tenant or resource than the API accepts.
 
 The workflow uses OpenID Connect. Do not store an Azure client secret or publish profile when OIDC is configured.
 
@@ -53,7 +59,7 @@ Assign the deployment service principal **Contributor** on the target subscripti
 
 ## Frontend API URL
 
-Set the repository variable or secret used by the frontend build:
+Set the repository secret used by the frontend build:
 
 `VITE_API_BASE_URL=https://<function-app-name>.azurewebsites.net/api`
 
@@ -61,9 +67,13 @@ Redeploy the portal frontend after changing this value.
 
 ## Entra values deployed to the Function App
 
+The workflow passes the shared portal identity variables into Bicep. With the current production values, the Function App receives:
+
 - `ENTRA_TENANT_ID=338a8916-80d9-467c-a94a-7f61d04ef7d5`
 - `API_CLIENT_ID=e22672ae-61a6-434e-b135-3360557819ec`
 - `SPA_CLIENT_ID=e22672ae-61a6-434e-b135-3360557819ec`
 - `GRAPH_TENANT_ID=338a8916-80d9-467c-a94a-7f61d04ef7d5`
+
+The Pages build receives the matching values for `VITE_MSAL_CLIENT_ID`, `VITE_API_CLIENT_ID`, `VITE_APPLICATION_ID_URI`, `VITE_MSAL_AUTHORITY`, `VITE_API_SCOPE`, and `VITE_SKUNKWORKS_TENANT_ID`.
 
 `API_CLIENT_SECRET` is intentionally not provisioned by Bicep. Add it only to Azure Function App settings or Key Vault if the backend needs application-only Microsoft Graph operations. Never expose it through a `VITE_*` variable.
