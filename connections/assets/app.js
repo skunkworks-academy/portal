@@ -21,18 +21,20 @@
   const normalise = (value) => String(value || '').trim().toLowerCase();
   const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 
-  const header = $('[data-nav]');
-  const menuToggle = $('[data-nav-toggle]');
+  const header = $('.top[data-fallback-header="true"]');
+  const menuToggle = $('.global-menu-toggle');
+  const globalNav = $('#primary-portal-navigation');
   function setMenu(open) {
     if (!header || !menuToggle) return;
-    header.setAttribute('data-open', String(open));
     header.classList.toggle('global-menu-open', open);
+    document.body.classList.toggle('menu-open', open);
     menuToggle.setAttribute('aria-expanded', String(open));
-    menuToggle.setAttribute('aria-label', open ? 'Close navigation' : 'Toggle navigation');
+    menuToggle.setAttribute('aria-label', open ? 'Close global navigation menu' : 'Open global navigation menu');
   }
-  menuToggle?.addEventListener('click', () => setMenu(header?.getAttribute('data-open') !== 'true'));
-  $('#primary-portal-navigation')?.addEventListener('click', (event) => { if (event.target instanceof Element && event.target.closest('a')) setMenu(false); });
-  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && header?.getAttribute('data-open') === 'true') { setMenu(false); menuToggle?.focus(); } });
+  menuToggle?.addEventListener('click', () => setMenu(!header?.classList.contains('global-menu-open')));
+  globalNav?.addEventListener('click', (event) => { if (event.target instanceof Element && event.target.closest('a')) setMenu(false); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && header?.classList.contains('global-menu-open')) { setMenu(false); menuToggle?.focus(); } });
+  document.addEventListener('click', (event) => { if (header?.classList.contains('global-menu-open') && event.target instanceof Node && !header.contains(event.target)) setMenu(false); });
 
   const grid = $('#connectionGrid');
   function cardMarkup(item) {
@@ -164,8 +166,6 @@
     catch { copyButton.textContent = 'Copy failed'; }
   });
 
-  $('[data-year]')?.replaceChildren(String(new Date().getFullYear()));
-  restorePreferences();
-  renderSaved();
-  updateResults();
+  $('#year').textContent = String(new Date().getFullYear());
+  restorePreferences(); renderSaved(); updateResults();
 })();
