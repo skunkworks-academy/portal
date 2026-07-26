@@ -21,20 +21,18 @@
   const normalise = (value) => String(value || '').trim().toLowerCase();
   const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 
-  const header = $('.top[data-fallback-header="true"]');
-  const menuToggle = $('.global-menu-toggle');
-  const globalNav = $('#primary-portal-navigation');
+  const header = $('[data-nav]');
+  const menuToggle = $('[data-nav-toggle]');
   function setMenu(open) {
     if (!header || !menuToggle) return;
-    header.classList.toggle('global-menu-open', open);
-    document.body.classList.toggle('menu-open', open);
+    header.setAttribute('data-open', String(open));
     menuToggle.setAttribute('aria-expanded', String(open));
-    menuToggle.setAttribute('aria-label', open ? 'Close global navigation menu' : 'Open global navigation menu');
+    menuToggle.setAttribute('aria-label', open ? 'Close navigation' : 'Toggle navigation');
   }
-  menuToggle?.addEventListener('click', () => setMenu(!header?.classList.contains('global-menu-open')));
-  globalNav?.addEventListener('click', (event) => { if (event.target instanceof Element && event.target.closest('a')) setMenu(false); });
-  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && header?.classList.contains('global-menu-open')) { setMenu(false); menuToggle?.focus(); } });
-  document.addEventListener('click', (event) => { if (header?.classList.contains('global-menu-open') && event.target instanceof Node && !header.contains(event.target)) setMenu(false); });
+  menuToggle?.addEventListener('click', () => setMenu(header?.getAttribute('data-open') !== 'true'));
+  $('#academy-nav')?.addEventListener('click', (event) => { if (event.target instanceof Element && event.target.closest('a')) setMenu(false); });
+  document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && header?.getAttribute('data-open') === 'true') { setMenu(false); menuToggle?.focus(); } });
+  window.addEventListener('resize', () => { if (window.innerWidth > 980) setMenu(false); });
 
   const grid = $('#connectionGrid');
   function cardMarkup(item) {
@@ -166,6 +164,8 @@
     catch { copyButton.textContent = 'Copy failed'; }
   });
 
-  $('#year').textContent = String(new Date().getFullYear());
-  restorePreferences(); renderSaved(); updateResults();
+  $('[data-year]')?.replaceChildren(String(new Date().getFullYear()));
+  restorePreferences();
+  renderSaved();
+  updateResults();
 })();
