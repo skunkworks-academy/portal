@@ -1,0 +1,24 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "southafricanorth"
+    },
+    "resourceGroupName": {
+      "value": "rg-skunkworks-academy-portal-prod"
+    },
+    "functionAppName": {
+      "value": "skunkworks-academy-portal-api-za"
+    },
+    "storageAccountName": {
+      "value": "stskunkportal12345"
+    },
+    "entraTenantId": {
+      "value": "338a8916-80d9-467c-a94a-7f61d04ef7d5"
+    },
+    "portalClientId": {
+      "value": "e22672ae-61a6-434e-b135-3360557819ec"
+    }
+  }
+}
