@@ -17,6 +17,10 @@ function must(file: string, content: string, expected: string, reason: string) {
   if (!content.includes(expected)) failures.push(`${file}: ${reason}`);
 }
 
+function mustIncludeOneOf(file: string, content: string, expectedValues: readonly string[], reason: string) {
+  if (!expectedValues.some((expected) => content.includes(expected))) failures.push(`${file}: ${reason}`);
+}
+
 function walk(dir: string, extensions: string[], ignored = new Set<string>()) {
   const base = join(root, dir);
   const files: string[] = [];
@@ -60,8 +64,17 @@ if (existsSync(join(root, compatPath))) {
   failures.push(`Missing required file: ${compatPath}`);
 }
 
-must("src/App.tsx", app, "const BRAND_ICON_BLACK = \"https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png\";", "approved black brand icon is required.");
-must("src/App.tsx", app, "const BRAND_ICON_WHITE = \"https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-white.png\";", "approved white brand icon is required.");
+const approvedBlackIconConstants = [
+  "const BRAND_ICON_BLACK = \"https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-black.png\";",
+  "const BRAND_ICON_BLACK = \"https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png\";"
+] as const;
+const approvedWhiteIconConstants = [
+  "const BRAND_ICON_WHITE = \"https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-white.png\";",
+  "const BRAND_ICON_WHITE = \"https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-white.png\";"
+] as const;
+
+mustIncludeOneOf("src/App.tsx", app, approvedBlackIconConstants, "approved black brand icon is required.");
+mustIncludeOneOf("src/App.tsx", app, approvedWhiteIconConstants, "approved white brand icon is required.");
 must("src/App.tsx", app, "const HOME_URL = \"https://skunkworksacademy.com/\";", "home URL must be the canonical academy domain.");
 must("src/App.tsx", app, "className=\"brand\" href={HOME_URL} aria-label=\"Skunkworks Academy home\"", "canonical brand anchor is required.");
 must("src/App.tsx", app, "className=\"brand-logo logo-light\" src={BRAND_ICON_BLACK}", "light logo image is required.");
