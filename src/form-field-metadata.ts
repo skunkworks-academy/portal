@@ -1,3 +1,5 @@
+export {};
+
 const fieldSelector = "input, select, textarea";
 let generatedFieldId = 0;
 
