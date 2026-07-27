@@ -25,7 +25,7 @@ param applicationIdUri string = 'api://${portalClientId}'
 param apiScope string = '${applicationIdUri}/access_as_user'
 
 @description('Allowed browser origins for CORS.')
-param allowedOrigins string = 'https://portal.skunkworksacademy.com,http://localhost:5173'
+param allowedOrigins string = 'https://portal.skunkworksacademy.com,https://skunkworks-academy.github.io,http://localhost:5173'
 
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
