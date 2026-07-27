@@ -1,7 +1,7 @@
-import { app, type HttpRequest, type InvocationContext } from "@azure/functions";
+import { app, type HttpRequest, type HttpResponseInit, type InvocationContext } from "@azure/functions";
 import { config } from "./config.js";
 import { requireAdmin, requireStudent } from "./auth.js";
-import { failure, HttpError, json, readJson } from "./http.js";
+import { corsHeaders, failure, HttpError, json, readJson } from "./http.js";
 import {
   listAdminEnrolments,
   listAdminSubscriptions,
@@ -53,11 +53,13 @@ app.http("courseAccess", {
     const principal = await requireStudent(request);
     const result = await resolveCourseAccess(request.query.get("courseId"), principal);
     return {
-      ...json(request, result),
+      status: 200,
       headers: {
-        ...json(request, result).headers,
+        ...corsHeaders(request),
+        "Content-Type": "application/json",
         "Cache-Control": "no-store, private"
-      }
+      },
+      jsonBody: result
     };
   })
 });
@@ -118,8 +120,8 @@ function requireAllowedOrigin(request: HttpRequest) {
 async function handle(
   request: HttpRequest,
   context: InvocationContext,
-  action: () => Promise<ReturnType<typeof json> | { status?: number; headers?: Record<string, string>; jsonBody?: unknown }>
-) {
+  action: () => Promise<HttpResponseInit>
+): Promise<HttpResponseInit> {
   try {
     return await action();
   } catch (error) {
