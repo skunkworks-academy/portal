@@ -23,7 +23,7 @@ env:
   PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
-  PORTAL_API_BASE_URL: ${{ inputs.api_base_url || vars.VITE_API_BASE_URL || 'https://api.skunkworksacademy.com/api' }}
+  PORTAL_API_BASE_URL: ${{ inputs.api_base_url || vars.VITE_API_BASE_URL || 'https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api' }}
 
 jobs:
   build:
@@ -47,7 +47,7 @@ jobs:
           done
           [ "$PORTAL_APPLICATION_ID_URI" = "api://$PORTAL_ENTRA_CLIENT_ID" ]
           case "$PORTAL_API_SCOPE" in "${PORTAL_APPLICATION_ID_URI}/"*) ;; *) exit 1 ;; esac
-          case "$PORTAL_API_BASE_URL" in https://*/api) ;; *) exit 1 ;; esac
+          case "$PORTAL_API_BASE_URL" in https://*/api) ;; *) exit 1 ;; esac ;;
 
       - run: npm run build
         env:
