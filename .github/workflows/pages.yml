@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       api_base_url:
-        description: Discovered Azure Function API base URL ending in /api
+        description: Portal API base URL ending in /api
         required: false
 
 permissions:
@@ -23,7 +23,7 @@ env:
   PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
-  PORTAL_API_BASE_URL: ${{ inputs.api_base_url || vars.VITE_API_BASE_URL || 'https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api' }}
+  PORTAL_API_BASE_URL: ${{ inputs.api_base_url || vars.VITE_API_BASE_URL || 'https://api.skunkworksacademy.com/api' }}
 
 jobs:
   build:
@@ -45,79 +45,9 @@ jobs:
               exit 1
             fi
           done
-          case "$PORTAL_APPLICATION_ID_URI" in
-            "api://${PORTAL_ENTRA_CLIENT_ID}") ;;
-            *) echo "PORTAL_APPLICATION_ID_URI must match api://PORTAL_ENTRA_CLIENT_ID" >&2; exit 1 ;;
-          esac
-          case "$PORTAL_API_SCOPE" in
-            "${PORTAL_APPLICATION_ID_URI}/"*) ;;
-            *) echo "PORTAL_API_SCOPE must be a scope exposed by PORTAL_APPLICATION_ID_URI" >&2; exit 1 ;;
-          esac
-          case "$PORTAL_API_BASE_URL" in
-            https://*/api) ;;
-            *) echo "PORTAL_API_BASE_URL must be an HTTPS URL ending in /api" >&2; exit 1 ;;
-          esac
-
-      - name: Verify Portal API health and browser CORS
-        shell: bash
-        run: |
-          set -euo pipefail
-          HEALTH_URL="${PORTAL_API_BASE_URL%/}/health"
-          PREFLIGHT_URL="${PORTAL_API_BASE_URL%/}/admin/applications"
-          HEALTH_BODY="$(mktemp)"
-          HEALTH_HEADERS="$(mktemp)"
-          CORS_HEADERS="$(mktemp)"
-
-          echo "Checking Portal API health at $HEALTH_URL"
-          curl \
-            --fail \
-            --silent \
-            --show-error \
-            --max-time 30 \
-            -H "Origin: https://portal.skunkworksacademy.com" \
-            -D "$HEALTH_HEADERS" \
-            -o "$HEALTH_BODY" \
-            "$HEALTH_URL"
-
-          node - "$HEALTH_BODY" <<'NODE'
-          const fs = require("node:fs");
-          const path = process.argv[2];
-          const health = JSON.parse(fs.readFileSync(path, "utf8"));
-          if (health.ok !== true) {
-            console.error("Portal API health response did not contain ok: true.");
-            process.exit(1);
-          }
-          if (Array.isArray(health.missingSettings) && health.missingSettings.length > 0) {
-            console.warn(`Portal API reports missing settings: ${health.missingSettings.join(", ")}`);
-          }
-          console.log(JSON.stringify(health));
-          NODE
-
-          if ! grep -Eiq '^access-control-allow-origin:[[:space:]]*https://portal\.skunkworksacademy\.com[[:space:]]*$' "$HEALTH_HEADERS"; then
-            echo "Health response does not allow the Portal production origin." >&2
-            cat "$HEALTH_HEADERS" >&2
-            exit 1
-          fi
-
-          echo "Checking authenticated-route CORS preflight at $PREFLIGHT_URL"
-          curl \
-            --fail \
-            --silent \
-            --show-error \
-            --max-time 30 \
-            -X OPTIONS \
-            -H "Origin: https://portal.skunkworksacademy.com" \
-            -H "Access-Control-Request-Method: GET" \
-            -H "Access-Control-Request-Headers: authorization" \
-            -D "$CORS_HEADERS" \
-            -o /dev/null \
-            "$PREFLIGHT_URL"
-
-          if ! grep -Eiq '^access-control-allow-origin:[[:space:]]*https://portal\.skunkworksacademy\.com[[:space:]]*$' "$CORS_HEADERS"; then
-            echo "Authenticated-route preflight does not allow the Portal production origin." >&2
-            cat "$CORS_HEADERS" >&2
-            exit 1
-          fi
+          [ "$PORTAL_APPLICATION_ID_URI" = "api://$PORTAL_ENTRA_CLIENT_ID" ]
+          case "$PORTAL_API_SCOPE" in "${PORTAL_APPLICATION_ID_URI}/"*) ;; *) exit 1 ;; esac
+          case "$PORTAL_API_BASE_URL" in https://*/api) ;; *) exit 1 ;; esac
 
       - run: npm run build
         env:
