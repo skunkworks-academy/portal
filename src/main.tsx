@@ -5,7 +5,6 @@ import { MsalProvider } from "@azure/msal-react";
 import { App } from "./App";
 import { msalConfig } from "./authConfig";
 import "./styles.css";
-import "./global-nav-toggle";
 import "./instructor-account-navigation";
 import "./staff-account-navigation";
 import "./workspace-card-navigation";
