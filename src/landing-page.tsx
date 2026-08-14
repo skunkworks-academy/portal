@@ -34,7 +34,10 @@ export function PortalLanding({ onSignIn }: PortalLandingProps) {
 
       <header className="landing-nav">
         <a href="https://skunkworksacademy.com/" className="landing-brand" aria-label="Skunkworks Academy home">
-          <span className="landing-brand-mark">S</span>
+          <span className="landing-brand-mark" aria-hidden="true">
+            <img className="academy-menu-icon academy-menu-icon--dark" src="https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-white.png" alt="" />
+            <img className="academy-menu-icon academy-menu-icon--light" src="https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-black.png" alt="" />
+          </span>
           <span>Skunkworks <small>Academy</small></span>
         </a>
         <nav aria-label="Portal links">
