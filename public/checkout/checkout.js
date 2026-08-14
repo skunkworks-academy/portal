@@ -1,10 +1,12 @@
-/* Skunkworks Academy checkout browser runtime. Version: 2026-07-22 */
+/* Skunkworks Academy checkout browser runtime. Version: 2026-07-24.2 */
 (function () {
   'use strict';
 
   const productionApiBaseUrl = 'https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api';
   const localApiBaseUrl = 'http://localhost:7071/api';
   const apiBaseUrl = (window.SWA_PAYMENT_API_BASE || (['localhost', '127.0.0.1'].includes(location.hostname) ? localApiBaseUrl : productionApiBaseUrl)).replace(/\/$/, '');
+  const osintEnrolmentRequestUrl = 'https://skunkworks.africa/products/osint-101-enrolment-request';
+  const checkoutSupportUrl = 'mailto:training@skunkworks.africa?subject=Checkout%20support';
 
   const elements = {
     plans: document.getElementById('plans'),
@@ -52,6 +54,39 @@
         </div>
       </article>
     `).join('');
+  }
+
+  function renderCheckoutFallback(course, source) {
+    const isOsint = String(course || '').toUpperCase() === 'OSINT-101' || source === 'osint';
+
+    if (isOsint) {
+      elements.plans.innerHTML = `
+        <article class="plan-card fallback-card">
+          <p class="eyebrow">Temporary enrolment route</p>
+          <h3>Submit your OSINT-101 enrolment request</h3>
+          <p>The Academy subscription payment service is temporarily unavailable. Use the no-cost Shopify checkout to record your learner details and enrolment request.</p>
+          <ul>
+            <li>No course fee is charged by this temporary request.</li>
+            <li>Use the same email address as your Academy Portal account.</li>
+            <li>Access is issued after Academy review and confirmation of the applicable entitlement or payment arrangement.</li>
+          </ul>
+          <div class="gateway-actions">
+            <a class="notice" href="${osintEnrolmentRequestUrl}">Submit OSINT-101 enrolment request</a>
+            <a class="notice" href="https://portal.skunkworksacademy.com/">Already enrolled? Sign in to the Portal</a>
+            <a class="notice" href="${checkoutSupportUrl}">Contact training support</a>
+          </div>
+        </article>
+      `;
+      status('Subscription checkout is temporarily unavailable. The OSINT-101 enrolment-request checkout is available below.');
+      return;
+    }
+
+    elements.plans.innerHTML = `
+      <div class="notice">
+        Checkout plans could not be loaded. <a href="${checkoutSupportUrl}">Contact training support</a>.
+      </div>
+    `;
+    status('The Academy payment service is temporarily unavailable.');
   }
 
   function validateCustomer() {
@@ -255,6 +290,8 @@
     const params = new URLSearchParams(location.search);
     const planHint = params.get('plan');
     const gatewayHint = params.get('gateway');
+    const courseHint = params.get('course');
+    const sourceHint = params.get('source');
 
     try {
       const [plans, paypalConfig] = await Promise.all([
@@ -290,8 +327,8 @@
         if (gatewayHint === 'paypal') status('Enter buyer details, then select the PayPal Subscribe button for the highlighted plan.');
       }
     } catch (error) {
-      elements.plans.innerHTML = '<div class="notice">Checkout plans could not be loaded. Confirm the portal API is deployed and payment routes are enabled.</div>';
-      status(error.message || 'Unable to load checkout.');
+      console.error('Checkout API unavailable', error);
+      renderCheckoutFallback(courseHint, sourceHint);
     }
   }
 

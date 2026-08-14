@@ -1,0 +1,68 @@
+name: Deploy Portal Infrastructure
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment environment
+        required: true
+        default: prod
+        type: choice
+        options:
+          - dev
+          - test
+          - prod
+  pull_request:
+    paths:
+      - 'infra/azure/**'
+      - '.github/workflows/deploy-portal-infrastructure.yml'
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: portal-infrastructure-${{ github.event.inputs.environment || 'validate' }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Bicep
+        run: az bicep build --file infra/azure/main.bicep
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure login using OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Validate subscription deployment
+        run: |
+          az deployment sub validate \
+            --name "portal-${{ inputs.environment }}-${{ github.run_number }}" \
+            --location southafricanorth \
+            --template-file infra/azure/main.bicep \
+            --parameters environmentName=${{ inputs.environment }}
+
+      - name: Deploy infrastructure
+        run: |
+          az deployment sub create \
+            --name "portal-${{ inputs.environment }}-${{ github.run_number }}" \
+            --location southafricanorth \
+            --template-file infra/azure/main.bicep \
+            --parameters environmentName=${{ inputs.environment }}

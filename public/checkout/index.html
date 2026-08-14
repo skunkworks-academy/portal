@@ -8,14 +8,14 @@
   <meta name="robots" content="index, follow" />
   <meta name="color-scheme" content="light dark" />
   <link rel="canonical" href="https://portal.skunkworksacademy.com/checkout/" />
-  <link rel="stylesheet" href="/checkout/checkout.css?v=2026.07.24.1" />
-  <link rel="stylesheet" href="/checkout/course-context.css?v=2026.07.24.1" />
+  <link rel="stylesheet" href="/checkout/checkout.css?v=2026.07.27.1" />
+  <link rel="stylesheet" href="/checkout/course-context.css?v=2026.07.27.1" />
   <script>
-    window.SWA_PAYMENT_API_BASE = 'https://api.skunkworksacademy.com/api';
+    window.SWA_PAYMENT_API_BASE = 'https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api';
 
     window.addEventListener('DOMContentLoaded', function () {
       const params = new URLSearchParams(window.location.search);
-      const course = params.get('course');
+      const course = params.get('courseId') || params.get('course');
       const source = params.get('source');
       const context = document.getElementById('courseContext');
       const courseName = document.getElementById('courseName');
@@ -31,7 +31,7 @@
       }
     });
   </script>
-  <script src="https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.07.06.2" defer></script>
+  <script src="https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.07.17.6" defer></script>
 </head>
 <body>
   <main class="checkout-shell">
@@ -56,9 +56,13 @@
       <div>
         <p class="eyebrow">Course enrolment</p>
         <h2 id="course-context-title">Continue with <span id="courseName">your selected course</span></h2>
-        <p>Use the same email address that you will use in the Academy Portal. Your learner entitlement is issued only after the payment provider confirms the transaction.</p>
+        <p>Use the same email address that you will use in the Academy Portal. A queryable enrolment record is created before payment starts. Course access is activated only after a verified entitlement or an authorised manual approval.</p>
+        <p id="enrolmentStatus" role="status" aria-live="polite">Enter the learner details below, then subscribe or submit a manual enrolment request.</p>
       </div>
-      <a class="notice" href="https://portal.skunkworksacademy.com/">Already subscribed? Sign in to the Portal</a>
+      <div class="gateway-actions">
+        <button id="submitEnrolmentRequest" type="button" hidden>Submit enrolment request</button>
+        <a class="notice" href="https://portal.skunkworksacademy.com/">Already subscribed? Sign in to the Portal</a>
+      </div>
     </section>
 
     <section class="customer-panel" aria-labelledby="customer-title">
@@ -96,6 +100,7 @@
       <a href="mailto:training@skunkworks.africa?subject=Checkout%20support">Checkout support</a>
     </div>
   </footer>
-  <script src="/checkout/checkout.js?v=2026.07.24.1" defer></script>
+  <script src="/checkout/enrolment.js?v=2026.07.27.1" defer></script>
+  <script src="/checkout/checkout.js?v=2026.07.27.1" defer></script>
 </body>
 </html>

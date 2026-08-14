@@ -1,7 +1,7 @@
 export type ApiCourseLesson = {
   id: string;
   title: string;
-  type: "lesson" | "lab";
+  type: "lesson" | "lab" | "assessment";
   minutes: number;
   moduleId: string;
   moduleTitle: string;
@@ -84,7 +84,7 @@ export const exchangeBulkMailApiCourse = {
         { id: "capstone-brief", title: "Capstone brief", type: "lab", minutes: 60, moduleId: "m6-capstone", moduleTitle: "Capstone: Bulk Mail Architecture Review", summary: "Submit an architecture review for three real-world scenarios" }
       ]
     }
-  ] satisfies ApiCourseModule[]
+  ] as ApiCourseModule[]
 };
 
 export const exchangeBulkMailFinalAssessment: ApiCourseQuestion[] = [
@@ -126,9 +126,9 @@ export const exchangeBulkMailFinalAssessment: ApiCourseQuestion[] = [
 ];
 
 export function exchangeBulkMailLessons(): ApiCourseLesson[] {
-  return exchangeBulkMailApiCourse.modules.flatMap((module) => module.lessons);
+  return exchangeBulkMailApiCourse.modules.flatMap((module: ApiCourseModule) => module.lessons);
 }
 
-export function findExchangeBulkMailLesson(lessonId: string) {
-  return exchangeBulkMailLessons().find((lesson) => lesson.id === lessonId);
+export function findExchangeBulkMailLesson(lessonId: string): ApiCourseLesson | undefined {
+  return exchangeBulkMailLessons().find((lesson: ApiCourseLesson) => lesson.id === lessonId);
 }

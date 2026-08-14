@@ -1,38 +1,69 @@
 <!doctype html>
 <html lang="en-ZA">
   <head>
-    <meta charset="utf-8" data-skunkworks-head="mandatory-v1" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- Skunkworks Academy global shell metadata: managed -->
     <meta name="skunkworks:org" content="skunkworks-academy" />
     <meta name="skunkworks:repo" content="portal" />
-    <title>Skunkworks Academy Portal | Learner and Operations Access</title>
-    <meta name="description" content="Skunkworks Academy Portal for students, instructors, staff operations, LMS access, secure checkout and learner administration." />
+    <meta name="skunkworks:repo-sitemap" content="https://skunkworksacademy.com/repositories/" />
+    <link rel="sitemap" type="text/html" title="Skunkworks Academy Repository Sitemap" href="https://skunkworksacademy.com/repositories/" data-skunkworks-org-sitemap="v1" />
+    <!-- The React bundle owns portal styling and the canonical global header. -->
+    <meta charset="utf-8" data-skunkworks-head="mandatory-v1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Skunkworks Academy Portal | Learning, Labs, Jobs & Staff Operations</title>
+    <meta name="description" content="Skunkworks Academy Portal for Microsoft-connected student access, instructor onboarding, course discovery, virtual labs, jobs, staff operations and learner administration." />
     <meta name="author" content="Skunkworks Academy" />
+    <meta name="publisher" content="Skunkworks Academy" />
+    <meta name="application-name" content="Skunkworks Academy Portal" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#050505" media="(prefers-color-scheme: dark)" />
     <link rel="canonical" href="https://portal.skunkworksacademy.com/" />
-    <link rel="icon" type="image/png" sizes="32x32" href="https://skunkworksacademy.com/images/favicon-black.png" media="(prefers-color-scheme: light)" />
-    <link rel="icon" type="image/png" sizes="32x32" href="https://skunkworksacademy.com/images/favicon-white.png" media="(prefers-color-scheme: dark)" />
-    <link rel="apple-touch-icon" href="https://skunkworksacademy.com/images/favicon-black.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/png" sizes="32x32" href="https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-white.png" media="(prefers-color-scheme: dark)" />
+    <link rel="shortcut icon" type="image/png" href="https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png" />
+    <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Skunkworks Academy" />
     <meta property="og:title" content="Skunkworks Academy Portal" />
-    <meta property="og:description" content="Learner, instructor, checkout and operations portal for Skunkworks Academy." />
+    <meta property="og:description" content="Microsoft-connected learner, instructor and operations portal for the Skunkworks Academy platform." />
     <meta property="og:url" content="https://portal.skunkworksacademy.com/" />
-    <meta property="og:image" content="https://skunkworksacademy.com/images/favicon-black.png" />
+    <meta property="og:image" content="https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-black.png" />
+    <meta property="og:locale" content="en_ZA" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Skunkworks Academy Portal" />
-    <meta name="twitter:description" content="Portal access for learners, instructors, academy operations and secure checkout." />
-    <meta name="twitter:image" content="https://skunkworksacademy.com/images/favicon-black.png" />
+    <meta name="twitter:description" content="Portal access for students, instructors, staff operations, jobs, labs and academy resources." />
+    <meta name="twitter:image" content="https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png" />
     <style>
-      :root{color-scheme:light dark;--bg:#f8fafc;--text:#050505;--muted:#334155;--line:#cbd5e1;--panel:#ffffff;--accent:#6d28d9;--accent2:#0e7490;--shadow:0 24px 80px rgba(15,23,42,.16)}@media(prefers-color-scheme:dark){:root{--bg:#050505;--text:#ffffff;--muted:#e5e7eb;--line:#3f3f46;--panel:#101010;--accent:#7c3aed;--accent2:#06b6d4;--shadow:0 24px 80px rgba(0,0,0,.55)}}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top left,rgba(124,58,237,.22),transparent 34rem),radial-gradient(circle at top right,rgba(6,182,212,.18),transparent 32rem),var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}.noscript{min-height:100vh;display:grid;place-items:center;padding:24px}.card{max-width:880px;border:1px solid var(--line);border-radius:24px;padding:clamp(24px,5vw,42px);background:var(--panel);box-shadow:var(--shadow)}h1{font-size:clamp(38px,7vw,74px);line-height:.95;letter-spacing:-.07em;margin:0 0 16px;color:var(--text)}p{color:var(--muted);line-height:1.65;font-size:18px}.links{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}.btn{min-height:46px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;padding:10px 16px;color:var(--text);background:color-mix(in srgb,var(--text) 5%,transparent);text-decoration:none;font-weight:800}.btn:focus-visible,.btn:hover{outline:3px solid color-mix(in srgb,var(--accent2) 35%,transparent);outline-offset:3px;border-color:var(--accent2)}.primary{border:0;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2))}@media(max-width:560px){.noscript{padding:16px}.links{display:grid}.btn{width:100%}}
+      :root{--bg:#050505;--text:#f5f5f5;--muted:#a3a3a3;--line:#2a2a2a;--accent:#7c3aed;--accent2:#06b6d4}*{box-sizing:border-box}body{margin:0;min-width:320px;min-height:100vh;background:radial-gradient(circle at top left,rgba(124,58,237,.22),transparent 34rem),radial-gradient(circle at top right,rgba(6,182,212,.18),transparent 32rem),var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}#root{min-height:100vh}.boot{min-height:100vh;width:min(1180px,calc(100% - 32px));margin:auto;display:grid;place-items:center;padding:28px 0}.boot-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.55fr);gap:24px;border:1px solid var(--line);border-radius:28px;padding:clamp(22px,5vw,44px);background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));box-shadow:0 24px 80px rgba(0,0,0,.35)}.boot h1{margin:0;font-size:clamp(40px,8vw,82px);line-height:.92;letter-spacing:-.07em}.boot p{max-width:740px;color:var(--muted);line-height:1.6}.boot-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}.boot-actions a{border:1px solid var(--line);border-radius:999px;padding:11px 15px;color:var(--text);text-decoration:none;font-weight:800}.boot-actions a:first-child{border:0;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}.boot-panel{display:grid;gap:10px}.boot-panel div{border:1px solid var(--line);border-radius:18px;padding:16px;background:rgba(255,255,255,.06)}.boot-panel strong,.boot-panel span{display:block}.boot-panel span{margin-top:4px;color:var(--muted);font-size:14px}@media(max-width:760px){.boot{width:min(100% - 24px,1180px);place-items:start}.boot-card{grid-template-columns:1fr;border-radius:22px}.boot h1{font-size:clamp(38px,14vw,58px)}.boot-actions{display:grid}.boot-actions a{text-align:center}}
     </style>
   </head>
-  <body>
-    <noscript><main class="noscript"><section class="card"><h1>Skunkworks Academy Portal</h1><p>This portal requires JavaScript. Use the Academy links below to continue navigating Skunkworks Academy.</p><div class="links"><a class="btn primary" href="https://skunkworksacademy.com/">Academy Home</a><a class="btn" href="https://skunkworksacademy.com/plans-and-purchases/">Plans & Purchases</a><a class="btn" href="https://portal.skunkworksacademy.com/checkout/">Secure Checkout</a><a class="btn" href="https://skunkworksacademy.com/catalogue/">Self-Paced Catalogue</a><a class="btn" href="https://labs.skunkworksacademy.com/">Labs</a><a class="btn" href="https://jobs.skunkworksacademy.com/">Jobs</a><a class="btn" href="https://ibm.skunkworksacademy.com/">IBM</a></div></section></main></noscript>
-    <div id="root"></div>
+  <body data-repo="portal" data-domain="portal.skunkworksacademy.com">
+    <div id="root">
+      <main class="boot" aria-label="Skunkworks Academy Portal loading screen">
+        <section class="boot-card">
+          <div>
+            <h1>Skunkworks Academy Portal</h1>
+            <p>Loading the role-based portal for students, instructors and staff operations.</p>
+            <div class="boot-actions">
+              <a href="https://skunkworksacademy.com/">Academy Home</a>
+              <a href="https://skunkworksacademy.com/self-paced/">Self-paced</a>
+              <a href="https://labs.skunkworksacademy.com/">Labs</a>
+              <a href="https://skunkworksacademy.com/subscriptions/#pricing">Plans</a>
+            </div>
+          </div>
+          <aside class="boot-panel" aria-label="Portal summary">
+            <div><strong>Students</strong><span>Courses, classes and resources.</span></div>
+            <div><strong>Instructors</strong><span>Jobs, applications and onboarding.</span></div>
+            <div><strong>Staff</strong><span>Operations, scheduling and profiles.</span></div>
+          </aside>
+        </section>
+      </main>
+    </div>
+    <noscript>
+      <main class="boot"><section class="boot-card"><div><h1>Skunkworks Academy Portal</h1><p>This portal requires JavaScript for Microsoft sign-in and workspace routing.</p><div class="boot-actions"><a href="https://skunkworksacademy.com/">Academy Home</a><a href="https://labs.skunkworksacademy.com/">Labs</a><a href="https://skunkworksacademy.com/subscriptions/#pricing">Plans</a></div></div></section></main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
