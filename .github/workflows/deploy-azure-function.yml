@@ -2,6 +2,17 @@ name: Deploy Azure Function
 
 on:
   workflow_dispatch:
+    inputs:
+      function_app_name:
+        description: Globally unique Azure Function App name
+        required: false
+      storage_account_name:
+        description: Globally unique lowercase storage account name
+        required: false
+      location:
+        description: Azure region
+        required: false
+        default: southafricanorth
   push:
     branches: [main]
     paths:
@@ -10,12 +21,13 @@ on:
       - package.json
       - package-lock.json
       - tsconfig.api.json
+      - infra/**
+      - scripts/bootstrap-azure-oidc.ps1
       - .github/workflows/deploy-azure-function.yml
 
 permissions:
   contents: read
   id-token: write
-  actions: write
 
 concurrency:
   group: portal-api-production
@@ -26,14 +38,14 @@ env:
   AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
   AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
   RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME || 'rg-skunkworks-academy-portal-prod' }}
-  FUNCTION_APP_NAME: ${{ vars.AZURE_FUNCTIONAPP_NAME || 'skunkworks-academy-portal-api-ca' }}
+  FUNCTION_APP_NAME: ${{ inputs.function_app_name || vars.AZURE_FUNCTIONAPP_NAME }}
+  STORAGE_ACCOUNT_NAME: ${{ inputs.storage_account_name || vars.AZURE_STORAGE_ACCOUNT_NAME }}
+  LOCATION: ${{ inputs.location || vars.AZURE_LOCATION || 'southafricanorth' }}
   PORTAL_ENTRA_TENANT_ID: ${{ vars.PORTAL_ENTRA_TENANT_ID || '338a8916-80d9-467c-a94a-7f61d04ef7d5' }}
   PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
   PORTAL_ALLOWED_ORIGINS: ${{ vars.PORTAL_ALLOWED_ORIGINS || 'https://portal.skunkworksacademy.com,http://localhost:5173' }}
-  PORTAL_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://api.skunkworksacademy.com/api' }}
-  PORTAL_API_CLIENT_SECRET: ${{ secrets.PORTAL_API_CLIENT_SECRET }}
 
 jobs:
   validate:
@@ -47,6 +59,10 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build:api
+      - name: Validate Bicep
+        uses: azure/cli@v2
+        with:
+          inlineScript: az bicep build --file infra/main.bicep
 
   deploy:
     needs: validate
@@ -61,21 +77,34 @@ jobs:
       - run: npm ci
       - run: npm run build:api
 
-      - name: Validate deployment configuration
+      - name: Verify deployment variables and identity contract
         shell: bash
         run: |
           set -euo pipefail
-          for name in AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_CLIENT_ID FUNCTION_APP_NAME PORTAL_ENTRA_TENANT_ID PORTAL_ENTRA_CLIENT_ID PORTAL_APPLICATION_ID_URI PORTAL_API_SCOPE PORTAL_ALLOWED_ORIGINS PORTAL_API_BASE_URL PORTAL_API_CLIENT_SECRET; do
+          for name in AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_CLIENT_ID FUNCTION_APP_NAME STORAGE_ACCOUNT_NAME PORTAL_ENTRA_TENANT_ID PORTAL_ENTRA_CLIENT_ID PORTAL_APPLICATION_ID_URI PORTAL_API_SCOPE PORTAL_ALLOWED_ORIGINS; do
             if [ -z "${!name:-}" ]; then
-              echo "Missing required GitHub Actions variable or secret: $name" >&2
+              echo "Missing required GitHub Actions variable: $name" >&2
               exit 1
             fi
           done
-          [ "$PORTAL_APPLICATION_ID_URI" = "api://$PORTAL_ENTRA_CLIENT_ID" ]
-          [ "$PORTAL_API_SCOPE" = "$PORTAL_APPLICATION_ID_URI/access_as_user" ]
-          case "$PORTAL_API_BASE_URL" in https://*/api) ;; *) echo "VITE_API_BASE_URL must be an HTTPS URL ending in /api." >&2; exit 1 ;; esac ;;
+          if [[ ! "$STORAGE_ACCOUNT_NAME" =~ ^[a-z0-9]{3,24}$ ]]; then
+            echo "AZURE_STORAGE_ACCOUNT_NAME must be 3-24 lowercase alphanumeric characters." >&2
+            exit 1
+          fi
+          if [[ "$PORTAL_APPLICATION_ID_URI" != "api://${PORTAL_ENTRA_CLIENT_ID}" ]]; then
+            echo "PORTAL_APPLICATION_ID_URI must match api://PORTAL_ENTRA_CLIENT_ID." >&2
+            exit 1
+          fi
+          if [[ "$PORTAL_API_SCOPE" != "${PORTAL_APPLICATION_ID_URI}/access_as_user" ]]; then
+            echo "PORTAL_API_SCOPE must match PORTAL_APPLICATION_ID_URI/access_as_user." >&2
+            exit 1
+          fi
+          if [[ "$PORTAL_ALLOWED_ORIGINS" != *"https://portal.skunkworksacademy.com"* ]]; then
+            echo "PORTAL_ALLOWED_ORIGINS must include https://portal.skunkworksacademy.com." >&2
+            exit 1
+          fi
 
-      - name: Sign in to Azure with OpenID Connect
+      - name: Azure login using workload identity
         uses: azure/login@v3
         with:
           client-id: ${{ env.AZURE_CLIENT_ID }}
@@ -83,22 +112,44 @@ jobs:
           subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
           auth-type: SERVICE_PRINCIPAL
 
-      - name: Confirm existing Flex Consumption target
+      - name: Confirm Azure context
         uses: azure/cli@v2
         with:
           inlineScript: |
             set -euo pipefail
-            az functionapp show               --resource-group "$RESOURCE_GROUP_NAME"               --name "$FUNCTION_APP_NAME"               --query '{name:name,state:properties.state,sku:properties.sku,host:properties.defaultHostName}'               --output json
+            actual_subscription="$(az account show --query id -o tsv)"
+            actual_tenant="$(az account show --query tenantId -o tsv)"
+            if [ "$actual_subscription" != "$AZURE_SUBSCRIPTION_ID" ]; then
+              echo "Azure login selected unexpected subscription: $actual_subscription" >&2
+              exit 1
+            fi
+            if [ "$actual_tenant" != "$AZURE_TENANT_ID" ]; then
+              echo "Azure login selected unexpected tenant: $actual_tenant" >&2
+              exit 1
+            fi
+            az account show --query '{subscription:id,tenant:tenantId,name:name}' -o json
 
-      - name: Configure portal API
+      - name: Provision Function App infrastructure
         uses: azure/cli@v2
         with:
           inlineScript: |
             set -euo pipefail
-            az functionapp cors add               --resource-group "$RESOURCE_GROUP_NAME"               --name "$FUNCTION_APP_NAME"               --allowed-origins https://portal.skunkworksacademy.com http://localhost:5173               --output none
-            az functionapp config appsettings set               --resource-group "$RESOURCE_GROUP_NAME"               --name "$FUNCTION_APP_NAME"               --settings                 ENTRA_TENANT_ID="$PORTAL_ENTRA_TENANT_ID"                 API_CLIENT_ID="$PORTAL_ENTRA_CLIENT_ID"                 API_CLIENT_SECRET="$PORTAL_API_CLIENT_SECRET"                 SPA_CLIENT_ID="$PORTAL_ENTRA_CLIENT_ID"                 APPLICATION_ID_URI="$PORTAL_APPLICATION_ID_URI"                 API_SCOPE="$PORTAL_API_SCOPE"                 GRAPH_TENANT_ID="$PORTAL_ENTRA_TENANT_ID"                 SHAREPOINT_HOSTNAME="skunkworksacademy.sharepoint.com"                 SHAREPOINT_SITE_PATH="/sites/InstructorPortal"                 ALLOWED_ORIGINS="$PORTAL_ALLOWED_ORIGINS"               --output none
+            az deployment sub create \
+              --name portal-api-${{ github.run_number }} \
+              --location "$LOCATION" \
+              --template-file infra/main.bicep \
+              --parameters \
+                location="$LOCATION" \
+                resourceGroupName="$RESOURCE_GROUP_NAME" \
+                functionAppName="$FUNCTION_APP_NAME" \
+                storageAccountName="$STORAGE_ACCOUNT_NAME" \
+                entraTenantId="$PORTAL_ENTRA_TENANT_ID" \
+                portalClientId="$PORTAL_ENTRA_CLIENT_ID" \
+                applicationIdUri="$PORTAL_APPLICATION_ID_URI" \
+                apiScope="$PORTAL_API_SCOPE" \
+                allowedOrigins="$PORTAL_ALLOWED_ORIGINS"
 
-      - name: Assemble Function package
+      - name: Assemble Function deployment package
         shell: bash
         run: |
           set -euo pipefail
@@ -110,31 +161,48 @@ jobs:
           npm ci --omit=dev
           zip -qr ../function-package.zip .
 
-      - name: Deploy to Flex Consumption
+      - name: Deploy Function package through Azure CLI
         uses: azure/cli@v2
         with:
           inlineScript: |
             set -euo pipefail
-            az functionapp deployment source config-zip               --resource-group "$RESOURCE_GROUP_NAME"               --name "$FUNCTION_APP_NAME"               --src function-package.zip               --build-remote false               --timeout 600               --output json
+            az functionapp deployment source config-zip \
+              --resource-group "$RESOURCE_GROUP_NAME" \
+              --name "$FUNCTION_APP_NAME" \
+              --src function-package.zip \
+              --build-remote false \
+              --timeout 600 \
+              --output json
 
-      - name: Verify API through custom domain
+      - name: Restart Function App
+        uses: azure/cli@v2
+        with:
+          inlineScript: az functionapp restart --resource-group "$RESOURCE_GROUP_NAME" --name "$FUNCTION_APP_NAME"
+
+      - name: Verify deployed application settings
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            az functionapp config appsettings list \
+              --resource-group "$RESOURCE_GROUP_NAME" \
+              --name "$FUNCTION_APP_NAME" \
+              --query "[?name=='ENTRA_TENANT_ID' || name=='API_CLIENT_ID' || name=='SPA_CLIENT_ID' || name=='APPLICATION_ID_URI' || name=='API_SCOPE' || name=='ALLOWED_ORIGINS'].{name:name,value:value}" \
+              -o table
+
+      - name: Verify API health
         shell: bash
         run: |
           set -euo pipefail
-          HEALTH_URL="${PORTAL_API_BASE_URL%/}/health"
-          echo "Checking $HEALTH_URL"
+          API_URL="https://${FUNCTION_APP_NAME}.azurewebsites.net/api/health"
+          echo "Checking $API_URL"
           for attempt in {1..18}; do
-            if response="$(curl --fail --silent --show-error --max-time 20 -H "Origin: https://portal.skunkworksacademy.com" "$HEALTH_URL")"; then
-              node -e 'const health = JSON.parse(process.argv[1]); if (health.ok !== true || (health.missingSettings || []).length) process.exit(1)' "$response"
+            if response=$(curl --fail --silent --show-error --max-time 20 "$API_URL"); then
+              echo "$response"
               exit 0
             fi
-            [ "$attempt" -eq 18 ] && exit 1
+            echo "Health check attempt $attempt failed; retrying in 10 seconds."
             sleep 10
           done
-
-      - name: Redeploy portal frontend with the API domain
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh workflow run pages.yml --repo "$GITHUB_REPOSITORY" --ref main -f api_base_url="$PORTAL_API_BASE_URL"
+          echo "Function health check failed after 18 attempts." >&2
+          exit 1

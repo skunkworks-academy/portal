@@ -22,12 +22,7 @@ param apiScope string = '${applicationIdUri}/access_as_user'
 @description('Comma-separated allowed browser origins.')
 param allowedOrigins string
 
-var requestedAllowedOrigins = [for origin in split(allowedOrigins, ','): trim(origin)]
-var parsedAllowedOrigins = union(requestedAllowedOrigins, [
-  'https://portal.skunkworksacademy.com'
-  'https://skunkworks-academy.github.io'
-])
-var effectiveAllowedOrigins = join(parsedAllowedOrigins, ',')
+var parsedAllowedOrigins = [for origin in split(allowedOrigins, ','): trim(origin)]
 var hostingPlanName = '${functionAppName}-plan'
 var appInsightsName = '${functionAppName}-insights'
 var workspaceName = '${functionAppName}-logs'
@@ -152,7 +147,7 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         }
         {
           name: 'ALLOWED_ORIGINS'
-          value: effectiveAllowedOrigins
+          value: allowedOrigins
         }
       ]
     }
