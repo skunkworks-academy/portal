@@ -359,7 +359,7 @@ function buildFields(input: {
   activatedAt: string;
   notes: string;
 }) {
-  return {
+  const fields: Record<string, string> = {
     Title: `${input.course.id} - ${input.learnerEmail}`.slice(0, 255),
     CourseId: input.course.id,
     CourseTitle: input.course.title,
@@ -376,10 +376,12 @@ function buildFields(input: {
     ProviderReference: input.providerReference,
     ReturnUrl: input.returnUrl,
     SubmittedAt: input.submittedAt,
-    ActivatedAt: input.activatedAt,
     UpdatedAt: now(),
     Notes: input.notes
   };
+
+  if (input.activatedAt) fields.ActivatedAt = input.activatedAt;
+  return fields;
 }
 
 function matchesPrincipal(record: EnrolmentRecord, objectId: string, email: string) {
