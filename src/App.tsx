@@ -33,22 +33,7 @@ import type {
   UserProfile
 } from "./types";
 
-const BRAND_ICON_BLACK = "https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-black.png";
-const BRAND_ICON_WHITE = "https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-white.png";
-const HOME_URL = "https://skunkworksacademy.com/";
 const PORTAL_URL = "https://portal.skunkworksacademy.com/";
-
-const globalNav = [
-  { label: "Home", href: HOME_URL },
-  { label: "Self-paced", href: "https://skunkworksacademy.com/self-paced/" },
-  { label: "Portal", href: PORTAL_URL },
-  { label: "Labs", href: "https://labs.skunkworksacademy.com/" },
-  { label: "Plans", href: "https://skunkworksacademy.com/subscriptions/#pricing" },
-  { label: "Purchase", href: "https://skunkworksacademy.com/subscriptions/#purchasing" },
-  { label: "Jobs", href: "https://jobs.skunkworksacademy.com/" },
-  { label: "Docs", href: "https://docs.skunkworksacademy.com/" },
-  { label: "IBM", href: "https://ibm.skunkworksacademy.com/" }
-] as const;
 
 const fallbackJobs: JobPosting[] = [
   {
@@ -410,6 +395,38 @@ export function App() {
   const registeredClassIds = new Set(registrations.map((registration) => registration.classId));
   const roleBadge = formatRole(profile, activeRole);
 
+  useEffect(() => {
+    const host = window as typeof window & {
+      SKUNKWORKS_ACADEMY_NAV_ACCOUNT?: {
+        source: "portal";
+        authenticated: boolean;
+        userName?: string;
+        signInLabel: string;
+        signOutLabel: string;
+        signIn: () => void;
+        signOut: () => void;
+      };
+    };
+
+    host.SKUNKWORKS_ACADEMY_NAV_ACCOUNT = {
+      source: "portal",
+      authenticated: Boolean(profile),
+      userName: profile?.name,
+      signInLabel: "Sign in",
+      signOutLabel: "Sign out",
+      signIn: () => { void signIn(activeRole); },
+      signOut: () => { void signOut(); }
+    };
+    window.dispatchEvent(new Event("skunkworksacademy:account-change"));
+
+    return () => {
+      if (host.SKUNKWORKS_ACADEMY_NAV_ACCOUNT?.source === "portal") {
+        delete host.SKUNKWORKS_ACADEMY_NAV_ACCOUNT;
+        window.dispatchEvent(new Event("skunkworksacademy:account-change"));
+      }
+    };
+  }, [activeRole, profile?.name]);
+
   if (!profile) {
     return <PortalLanding onSignIn={() => void signIn("Student")} />;
   }
@@ -431,7 +448,6 @@ export function App() {
 
   return (
     <div className="portal-page">
-      <GlobalHeader isAuthenticated={Boolean(profile)} userName={profile?.name} signIn={() => void signIn(activeRole)} signOut={() => void signOut()} />
       <main id="main" className="portal-main">
         <section className="portal-hero" id="overview">
           <div className="hero-copy">
@@ -526,39 +542,6 @@ export function App() {
         </section>
       </main>
     </div>
-  );
-}
-
-function Brand({ eyebrow }: { eyebrow: string }) {
-  return (
-    <a className="brand" href={HOME_URL} aria-label="Skunkworks Academy home">
-      <img className="brand-logo logo-light" src={BRAND_ICON_BLACK} alt="" />
-      <img className="brand-logo logo-dark" src={BRAND_ICON_WHITE} alt="" />
-      <span>Skunkworks Academy <span className="brand-section">{eyebrow}</span></span>
-    </a>
-  );
-}
-
-function GlobalHeader({ isAuthenticated, userName, signIn, signOut }: { isAuthenticated: boolean; userName?: string; signIn: () => void; signOut: () => void }) {
-  return (
-    <header className="top" data-fallback-header="true">
-      <div className="shell nav">
-        <Brand eyebrow="Portal" />
-        <nav className="links" aria-label="Primary portal navigation">
-          {globalNav.map((item) => (
-            <a href={item.href} key={item.label} aria-current={item.href === PORTAL_URL ? "page" : undefined}>{item.label}</a>
-          ))}
-          {isAuthenticated ? (
-            <>
-              <span className="nav-user">{userName}</span>
-              <button type="button" className="nav-action" onClick={signOut}>Sign out</button>
-            </>
-          ) : (
-            <button type="button" className="nav-action microsoft-signin" onClick={signIn}>Microsoft sign-in</button>
-          )}
-        </nav>
-      </div>
-    </header>
   );
 }
 
