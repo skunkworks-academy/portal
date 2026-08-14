@@ -122,7 +122,7 @@ Responses are `Cache-Control: no-store, private`. A missing account returns `401
 ### Query enrolments as Portal Staff or Admin
 
 ```http
-GET /api/admin/enrolments?courseId=GHP-DOM-101&status=Active&email=learner@example.com
+GET /api/staff/enrolments?courseId=GHP-DOM-101&status=Active&email=learner@example.com
 Authorization: Bearer <admin-token>
 ```
 
@@ -131,7 +131,7 @@ Each query parameter is optional.
 ### Approve, suspend or complete an enrolment
 
 ```http
-PATCH /api/admin/enrolments/42
+PATCH /api/staff/enrolments/42
 Authorization: Bearer <admin-token>
 Content-Type: application/json
 ```
@@ -146,7 +146,7 @@ Content-Type: application/json
 ### Query subscription and entitlement records
 
 ```http
-GET /api/admin/subscriptions?email=learner@example.com&status=Active
+GET /api/staff/subscriptions?email=learner@example.com&status=Active
 Authorization: Bearer <admin-token>
 ```
 
