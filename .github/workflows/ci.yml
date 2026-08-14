@@ -65,6 +65,18 @@ jobs:
           set -o pipefail
           (npm run build && npm run build:api) 2>&1 | tee build-output.log
 
+      - name: Assert non-reserved Azure Functions route namespace
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -E 'route: "admin/|app\.http\("admin' api; then
+            echo 'Azure Functions reserves the admin namespace; use /api/staff/* and staff-prefixed function names.' >&2
+            exit 1
+          fi
+          grep --fixed-strings --quiet 'route: "staff/applications"' api/functions.ts
+          grep --fixed-strings --quiet 'app.http("staffApplications"' api/functions.ts
+          grep --fixed-strings --quiet '"/staff/applications"' src/api.ts
+
       - name: Upload build diagnostics
         if: failure() && steps.build.outcome == 'failure'
         uses: actions/upload-artifact@v4
