@@ -23,7 +23,8 @@ env:
   PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
-  PORTAL_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://api.skunkworksacademy.com/api' }}
+  # The custom api subdomain is not the Portal Functions origin. Use an explicit override only after it is routed to this Function App.
+  PORTAL_API_BASE_URL: ${{ inputs.api_base_url || vars.PORTAL_API_BASE_URL || 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api' }}
 
 jobs:
   build:
@@ -66,6 +67,19 @@ jobs:
           VITE_API_SCOPE: ${{ env.PORTAL_API_SCOPE }}
           VITE_API_BASE_URL: ${{ env.PORTAL_API_BASE_URL }}
           VITE_SKUNKWORKS_TENANT_ID: ${{ env.PORTAL_ENTRA_TENANT_ID }}
+      - name: Verify compiled canonical API target
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${PORTAL_API_BASE_URL%/}"
+          if ! grep -R --fixed-strings --quiet "$expected" dist; then
+            echo "The production build does not contain the configured Portal API endpoint: $expected" >&2
+            exit 1
+          fi
+          if grep -R --fixed-strings --quiet 'https://api.skunkworksacademy.com/api' dist; then
+            echo 'The production build still contains the non-canonical api.skunkworksacademy.com endpoint.' >&2
+            exit 1
+          fi
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
