@@ -46,6 +46,10 @@ jobs:
           probe portal_checkout 'https://portal.skunkworksacademy.com/checkout/?course=OSINT-101&source=osint'
           probe custom_api 'https://api.skunkworksacademy.com/api/checkout/plans'
           probe azure_api 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/checkout/plans'
+          probe azure_admin_applications 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/admin/applications'
+          probe azure_admin_profiles 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/admin/profiles'
+          probe azure_admin_jobs 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/admin/jobs'
+          probe azure_me_profile 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/me/profile'
 
       - name: Require canonical Portal API health and admin route
         shell: bash
