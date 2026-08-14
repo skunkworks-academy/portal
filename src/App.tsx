@@ -15,6 +15,7 @@ import {
 } from "./authConfig";
 import { portalApi } from "./api";
 import { StudentExperience } from "./student-experience";
+import { PortalLanding } from "./landing-page";
 import { classSchedule, courseCatalog, hasStaffRole, landingRoles, roleDefinitions, roleFromClaims } from "./roles";
 import type {
   ApplicationRecord,
@@ -408,6 +409,10 @@ export function App() {
   const visibleJobs = liveJobs.length ? liveJobs : fallbackJobs;
   const registeredClassIds = new Set(registrations.map((registration) => registration.classId));
   const roleBadge = formatRole(profile, activeRole);
+
+  if (!profile) {
+    return <PortalLanding onSignIn={() => void signIn("Student")} />;
+  }
 
   if (activeRole === "Student") {
     return (
