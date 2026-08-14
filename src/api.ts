@@ -2,9 +2,9 @@ import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser"
 import { apiScope } from "./authConfig";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
-// Canonical production origin for the deployed Portal Azure Function. The api subdomain remains
-// non-canonical until it is explicitly routed to this Function App with the same Entra contract.
-const productionApiBaseUrl = "https://skunkworks-academy-portal-api-za.azurewebsites.net/api";
+// Public production origin. Azure Functions reserves the "admin" namespace, so privileged
+// operations use the non-reserved /api/staff/* route family.
+const productionApiBaseUrl = "https://api.skunkworksacademy.com/api";
 const localApiBaseUrl = "http://localhost:8080/api";
 
 function defaultApiBaseUrl() {
@@ -96,9 +96,9 @@ export const portalApi = {
   adminProfiles: (auth: { instance: IPublicClientApplication; account: AccountInfo }, role?: PortalRole) =>
     request<PortalProfile[]>(`/admin/profiles${role ? `?role=${encodeURIComponent(role)}` : ""}`, {}, auth),
   adminClassRegistrations: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
-    request<ClassRegistrationRecord[]>("/admin/class-registrations", {}, auth),
+    request<ClassRegistrationRecord[]>("/staff/class-registrations", {}, auth),
   createClass: (payload: ClassInput, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
-    request<ClassSession>("/admin/classes", { method: "POST", body: JSON.stringify(payload) }, auth),
+    request<ClassSession>("/staff/classes", { method: "POST", body: JSON.stringify(payload) }, auth),
   updateClass: (id: string, payload: Partial<ClassInput>, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<ClassSession>(`/admin/classes/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth),
   submitApplication: (
@@ -108,23 +108,23 @@ export const portalApi = {
   myApplications: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<ApplicationRecord[]>("/me/applications", {}, auth),
   adminApplications: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
-    request<ApplicationRecord[]>("/admin/applications", {}, auth),
+    request<ApplicationRecord[]>("/staff/applications", {}, auth),
   updateApplication: (
     id: string,
     payload: Partial<Pick<ApplicationRecord, "status" | "owner">>,
     auth: { instance: IPublicClientApplication; account: AccountInfo }
   ) => request<ApplicationRecord>(`/admin/applications/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth),
   adminJobs: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
-    request<JobPosting[]>("/admin/jobs", {}, auth),
+    request<JobPosting[]>("/staff/jobs", {}, auth),
   createJob: (payload: JobInput, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
-    request<JobPosting>("/admin/jobs", { method: "POST", body: JSON.stringify(payload) }, auth),
+    request<JobPosting>("/staff/jobs", { method: "POST", body: JSON.stringify(payload) }, auth),
   updateJob: (
     id: string,
     payload: Partial<JobInput>,
     auth: { instance: IPublicClientApplication; account: AccountInfo }
   ) => request<JobPosting>(`/admin/jobs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth),
   adminTasks: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
-    request<OnboardingTask[]>("/admin/tasks", {}, auth),
+    request<OnboardingTask[]>("/staff/tasks", {}, auth),
   updateTask: (
     id: string,
     payload: Partial<OnboardingTask>,
