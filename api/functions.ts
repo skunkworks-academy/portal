@@ -30,6 +30,8 @@ import {
 } from "./graph.js";
 import type { ApplicationRecord, ClassInput, JobInput, NewApplication, OnboardingTask, PortalProfileInput, PortalRole } from "../src/types.js";
 
+// Azure Functions reserves the "admin" route and function namespace. Staff operations
+// therefore use the non-reserved "staff" prefix while retaining Portal.Admin RBAC.
 app.http("cors", {
   methods: ["OPTIONS"],
   authLevel: "anonymous",
@@ -238,20 +240,20 @@ app.http("myApplications", {
   })
 });
 
-app.http("adminApplications", {
+app.http("staffApplications", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "admin/applications",
+  route: "staff/applications",
   handler: async (request, context) => handle(request, context, async () => {
     await requireAdmin(request);
     return json(request, await getApplications());
   })
 });
 
-app.http("adminProfiles", {
+app.http("staffProfiles", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "admin/profiles",
+  route: "staff/profiles",
   handler: async (request, context) => handle(request, context, async () => {
     await requireAdmin(request);
     const role = request.query.get("role") as PortalRole | null;
@@ -259,20 +261,20 @@ app.http("adminProfiles", {
   })
 });
 
-app.http("adminClassRegistrations", {
+app.http("staffClassRegistrations", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "admin/class-registrations",
+  route: "staff/class-registrations",
   handler: async (request, context) => handle(request, context, async () => {
     await requireAdmin(request);
     return json(request, await getClassRegistrations());
   })
 });
 
-app.http("adminClassCreate", {
+app.http("staffClassCreate", {
   methods: ["POST"],
   authLevel: "anonymous",
-  route: "admin/classes",
+  route: "staff/classes",
   handler: async (request, context) => handle(request, context, async () => {
     const principal = await requireAdmin(request);
     const payload = await readJson<ClassInput>(request);
@@ -280,10 +282,10 @@ app.http("adminClassCreate", {
   })
 });
 
-app.http("adminClassUpdate", {
+app.http("staffClassUpdate", {
   methods: ["PATCH"],
   authLevel: "anonymous",
-  route: "admin/classes/{id}",
+  route: "staff/classes/{id}",
   handler: async (request, context) => handle(request, context, async () => {
     const principal = await requireAdmin(request);
     const payload = await readJson<Partial<ClassInput>>(request);
@@ -291,10 +293,10 @@ app.http("adminClassUpdate", {
   })
 });
 
-app.http("adminApplicationUpdate", {
+app.http("staffApplicationUpdate", {
   methods: ["PATCH"],
   authLevel: "anonymous",
-  route: "admin/applications/{id}",
+  route: "staff/applications/{id}",
   handler: async (request, context) => handle(request, context, async () => {
     const principal = await requireAdmin(request);
     const payload = await readJson<Partial<Pick<ApplicationRecord, "status" | "owner">>>(request);
@@ -302,20 +304,20 @@ app.http("adminApplicationUpdate", {
   })
 });
 
-app.http("adminJobs", {
+app.http("staffJobs", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "admin/jobs",
+  route: "staff/jobs",
   handler: async (request, context) => handle(request, context, async () => {
     await requireAdmin(request);
     return json(request, await getAllJobs());
   })
 });
 
-app.http("adminJobCreate", {
+app.http("staffJobCreate", {
   methods: ["POST"],
   authLevel: "anonymous",
-  route: "admin/jobs",
+  route: "staff/jobs",
   handler: async (request, context) => handle(request, context, async () => {
     await requireAdmin(request);
     const payload = await readJson<JobInput>(request);
@@ -323,10 +325,10 @@ app.http("adminJobCreate", {
   })
 });
 
-app.http("adminJobUpdate", {
+app.http("staffJobUpdate", {
   methods: ["PATCH"],
   authLevel: "anonymous",
-  route: "admin/jobs/{id}",
+  route: "staff/jobs/{id}",
   handler: async (request, context) => handle(request, context, async () => {
     await requireAdmin(request);
     const payload = await readJson<Partial<JobInput>>(request);
@@ -334,20 +336,20 @@ app.http("adminJobUpdate", {
   })
 });
 
-app.http("adminTasks", {
+app.http("staffTasks", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "admin/tasks",
+  route: "staff/tasks",
   handler: async (request, context) => handle(request, context, async () => {
     await requireAdmin(request);
     return json(request, await getTasks());
   })
 });
 
-app.http("adminTaskUpdate", {
+app.http("staffTaskUpdate", {
   methods: ["PATCH"],
   authLevel: "anonymous",
-  route: "admin/tasks/{id}",
+  route: "staff/tasks/{id}",
   handler: async (request, context) => handle(request, context, async () => {
     const principal = await requireAdmin(request);
     const payload = await readJson<Partial<OnboardingTask>>(request);
