@@ -10,6 +10,8 @@ import {
   publicCheckoutPlans,
   publicPayPalConfig
 } from "./payments.js";
+import "./articulationCourse.js";
+import "./enrolmentFunctions.js";
 
 app.http("checkoutCors", {
   methods: ["OPTIONS"],

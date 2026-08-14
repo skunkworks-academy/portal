@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      api_base_url:
+        description: Portal API base URL ending in /api
+        required: false
 
 permissions:
   contents: read

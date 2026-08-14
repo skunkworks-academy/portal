@@ -1,22 +1,22 @@
 {
-  "appId": "8b1e77b3-3017-4c54-8ab3-0e4864511b55",
-  "id": "3646dd6d-5ed7-4ea6-96b7-3c8f45fb93c9",
-  "displayName": "Skunkworks Academy Portal API",
-  "publisherDomain": "portal.skunkworksacademy.com",
+  "appId": "e22672ae-61a6-434e-b135-3360557819ec",
+  "id": "5546429d-1373-49ab-b587-67deba7e84c0",
+  "displayName": "Skunkworks Academy Portal",
+  "publisherDomain": "skunkworks.digital",
   "signInAudience": "AzureADandPersonalMicrosoftAccount",
   "identifierUris": [
-    "api://8b1e77b3-3017-4c54-8ab3-0e4864511b55"
+    "api://e22672ae-61a6-434e-b135-3360557819ec"
   ],
   "api": {
     "requestedAccessTokenVersion": 2,
     "oauth2PermissionScopes": [
       {
-        "adminConsentDescription": "Allow the application to access Skunkworks Academy Portal API on behalf of the signed-in user.",
+        "adminConsentDescription": "Allow the application to access the Skunkworks Academy Portal API on behalf of the signed-in user.",
         "adminConsentDisplayName": "Access Skunkworks Academy Portal API",
-        "id": "3698d6c7-6a9e-4880-8de5-445c94cecf79",
+        "id": "14b8585f-7a1e-4da6-a13c-2fd1f828d130",
         "isEnabled": true,
         "type": "User",
-        "userConsentDescription": "Allow the application to access Skunkworks Academy Portal API on your behalf.",
+        "userConsentDescription": "Allow the application to access the Skunkworks Academy Portal API on your behalf.",
         "userConsentDisplayName": "Access Skunkworks Academy Portal API",
         "value": "access_as_user"
       }
@@ -26,8 +26,6 @@
   "spa": {
     "redirectUris": [
       "https://portal.skunkworksacademy.com/",
-      "https://verify.skunkworksacademy.com/",
-      "http://localhost:3000/",
       "http://localhost:5173/"
     ]
   },
@@ -36,58 +34,92 @@
     "logoutUrl": "https://portal.skunkworksacademy.com/",
     "redirectUris": [],
     "implicitGrantSettings": {
-      "enableAccessTokenIssuance": true,
-      "enableIdTokenIssuance": true
+      "enableAccessTokenIssuance": false,
+      "enableIdTokenIssuance": false
     }
   },
   "appRoles": [
     {
-      "allowedMemberTypes": ["Application"],
-      "description": "Allows a trusted automation application to call the Skunkworks Academy Portal API using client credentials.",
-      "displayName": "Portal Automation",
-      "id": "230fb942-783b-46ef-b787-0202c5792d2f",
-      "isEnabled": true,
-      "origin": "Application",
-      "value": "Portal.Automation"
-    },
-    {
-      "allowedMemberTypes": ["User", "Application"],
+      "allowedMemberTypes": [
+        "User"
+      ],
       "description": "Student access for class registration, course discovery, profile management, and learner resources.",
       "displayName": "Portal Student",
-      "id": "6b5f0c97-94c7-4c1c-9e7f-bc1020d0fd01",
+      "id": "8909d37f-328d-4b04-8eba-b817ea4a91be",
       "isEnabled": true,
       "origin": "Application",
       "value": "Portal.Student"
     },
     {
-      "allowedMemberTypes": ["User", "Application"],
-      "description": "Instructor access for job applications, instructor profile, document upload, and assigned classes.",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Instructor access for applications, profiles, documents, and assigned classes.",
       "displayName": "Portal Instructor",
-      "id": "fbf3c0b3-5a26-45d7-9c6a-b476f8c01588",
+      "id": "47cd6d7b-225b-4ccf-845e-31e13d84c7da",
       "isEnabled": true,
       "origin": "Application",
       "value": "Portal.Instructor"
     },
     {
-      "allowedMemberTypes": ["User", "Application"],
-      "description": "Staff operations access for job postings, applications, scheduling, profile monitoring, and resources.",
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Staff operations access for delivery, scheduling, monitoring, and learner support.",
       "displayName": "Portal Staff",
-      "id": "24123531-4968-4f9f-9355-47e312e1df59",
+      "id": "540e12ed-78f0-4944-b44b-b80001368f15",
       "isEnabled": true,
       "origin": "Application",
       "value": "Portal.Staff"
     },
     {
-      "allowedMemberTypes": ["User", "Application"],
+      "allowedMemberTypes": [
+        "User"
+      ],
       "description": "Full administrator access for Skunkworks Academy Portal operations.",
       "displayName": "Portal Admin",
-      "id": "4699f9d8-5327-49a2-9966-ec5d9720136b",
+      "id": "658dc1d7-0976-4f2a-abc4-744373886240",
       "isEnabled": true,
       "origin": "Application",
       "value": "Portal.Admin"
+    },
+    {
+      "allowedMemberTypes": [
+        "Application"
+      ],
+      "description": "Application access for trusted portal automation.",
+      "displayName": "Portal Automation",
+      "id": "cfef0e02-90ea-4281-b137-e7a91ec94e8f",
+      "isEnabled": true,
+      "origin": "Application",
+      "value": "Portal.Automation"
+    }
+  ],
+  "requiredResourceAccess": [
+    {
+      "resourceAppId": "e22672ae-61a6-434e-b135-3360557819ec",
+      "resourceAccess": [
+        {
+          "id": "14b8585f-7a1e-4da6-a13c-2fd1f828d130",
+          "type": "Scope"
+        }
+      ]
+    },
+    {
+      "resourceAppId": "00000003-0000-0000-c000-000000000000",
+      "resourceAccess": [
+        {
+          "id": "e1fe6dd8-ba31-4d61-89e7-88639da4683d",
+          "type": "Scope"
+        },
+        {
+          "id": "883ea226-0bf2-4a8f-9f9d-92c9162a727d",
+          "type": "Role"
+        }
+      ]
     }
   ],
   "groupMembershipClaims": null,
   "optionalClaims": null,
-  "notes": "Target manifest aligned to the exported Skunkworks Academy Portal API registration. Preserve existing GUIDs in production. Scope ID 3698d6c7-6a9e-4880-8de5-445c94cecf79 comes from the active Entra export. The retired SPA client ID 21f093b0-e91a-4f62-ad71-2dee1e0cbc20 must not be used for sign-in unless recreated in the tenant."
+  "notes": "Desired-state template for the active production registration. Run scripts/setup-entra-portal.ps1; it preserves live scope and app-role GUIDs when matching values already exist."
 }

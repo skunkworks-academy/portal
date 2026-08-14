@@ -126,6 +126,7 @@ export const landingRoles = [
 ];
 
 export const courseCatalog = [
+  { id: "ART-101", title: "Professional Articulation and Executive Communication", level: "Professional capability", duration: "36–40 hours", description: "Recorded practice, executive presence, meetings, interviews, business storytelling and moderated communication evidence." },
   { id: "ai-tools", title: "Applied AI Tools", level: "Short course", duration: "4 weeks", description: "Prompt workflows, responsible use, automation, and workplace AI productivity." },
   { id: "cybersecurity", title: "Security Analyst Academy", level: "Professional track", duration: "12 weeks", description: "Security fundamentals, labs, incident response, and analyst capstone work." },
   { id: "cloud", title: "Cloud Practitioner Track", level: "Foundation", duration: "8 weeks", description: "Cloud fundamentals, deployment practice, troubleshooting, and exam readiness." }

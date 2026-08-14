@@ -1,6 +1,7 @@
 node_modules/
 dist/
 api-dist/
+artifacts/
 *.tsbuildinfo
 vite.config.js
 vite.config.d.ts
