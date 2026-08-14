@@ -28,7 +28,6 @@ on:
 permissions:
   contents: read
   id-token: write
-  actions: write
 
 concurrency:
   group: portal-api-production
@@ -130,16 +129,13 @@ jobs:
             fi
             az account show --query '{subscription:id,tenant:tenantId,name:name}' -o json
 
-      - name: Provision Function App infrastructure and discover endpoint
-        id: provision
+      - name: Provision Function App infrastructure
         uses: azure/cli@v2
         with:
           inlineScript: |
             set -euo pipefail
-            DEPLOYMENT_NAME="portal-api-${{ github.run_number }}"
-
             az deployment sub create \
-              --name "$DEPLOYMENT_NAME" \
+              --name portal-api-${{ github.run_number }} \
               --location "$LOCATION" \
               --template-file infra/main.bicep \
               --parameters \
@@ -151,38 +147,25 @@ jobs:
                 portalClientId="$PORTAL_ENTRA_CLIENT_ID" \
                 applicationIdUri="$PORTAL_APPLICATION_ID_URI" \
                 apiScope="$PORTAL_API_SCOPE" \
-                allowedOrigins="$PORTAL_ALLOWED_ORIGINS" \
-              --output none
+                allowedOrigins="$PORTAL_ALLOWED_ORIGINS"
 
-            API_BASE_URL="$(az deployment sub show \
-              --name "$DEPLOYMENT_NAME" \
-              --query 'properties.outputs.apiBaseUrl.value' \
-              -o tsv)"
-
-            FUNCTION_DEFAULT_HOSTNAME="$(az functionapp show \
+      - name: Restore protected API credential
+        uses: azure/cli@v2
+        env:
+          API_CLIENT_SECRET: ${{ secrets.PORTAL_API_CLIENT_SECRET }}
+        with:
+          inlineScript: |
+            set -euo pipefail
+            if [ -z "${API_CLIENT_SECRET:-}" ]; then
+              echo "Missing required GitHub Actions secret: PORTAL_API_CLIENT_SECRET" >&2
+              exit 1
+            fi
+            az functionapp config appsettings set \
               --resource-group "$RESOURCE_GROUP_NAME" \
               --name "$FUNCTION_APP_NAME" \
-              --query defaultHostName \
-              -o tsv)"
+              --settings "API_CLIENT_SECRET=$API_CLIENT_SECRET" \
+              --output none
 
-            if [ -z "$API_BASE_URL" ] || [ -z "$FUNCTION_DEFAULT_HOSTNAME" ]; then
-              echo "Azure did not return the Function App default hostname or API base URL." >&2
-              exit 1
-            fi
-
-            EXPECTED_API_BASE_URL="https://${FUNCTION_DEFAULT_HOSTNAME}/api"
-            if [ "$API_BASE_URL" != "$EXPECTED_API_BASE_URL" ]; then
-              echo "Bicep output does not match the Function App default hostname." >&2
-              echo "Bicep:    $API_BASE_URL" >&2
-              echo "Expected: $EXPECTED_API_BASE_URL" >&2
-              exit 1
-            fi
-
-            echo "Discovered Function hostname: $FUNCTION_DEFAULT_HOSTNAME"
-            echo "Discovered API base URL: $API_BASE_URL"
-            echo "FUNCTION_DEFAULT_HOSTNAME=$FUNCTION_DEFAULT_HOSTNAME" >> "$GITHUB_ENV"
-            echo "PORTAL_API_BASE_URL=$API_BASE_URL" >> "$GITHUB_ENV"
-            echo "api_base_url=$API_BASE_URL" >> "$GITHUB_OUTPUT"
 
       - name: Assemble Function deployment package
         shell: bash
@@ -225,97 +208,19 @@ jobs:
               --query "[?name=='ENTRA_TENANT_ID' || name=='API_CLIENT_ID' || name=='SPA_CLIENT_ID' || name=='APPLICATION_ID_URI' || name=='API_SCOPE' || name=='ALLOWED_ORIGINS'].{name:name,value:value}" \
               -o table
 
-      - name: Verify API health and CORS on discovered hostname
+      - name: Verify API health
         shell: bash
         run: |
           set -euo pipefail
-          HEALTH_URL="${PORTAL_API_BASE_URL%/}/health"
-          PREFLIGHT_URL="${PORTAL_API_BASE_URL%/}/admin/applications"
-          HEALTH_BODY="$(mktemp)"
-          HEALTH_HEADERS="$(mktemp)"
-          CORS_HEADERS="$(mktemp)"
-
-          echo "Checking $HEALTH_URL"
+          API_URL="https://${FUNCTION_APP_NAME}.azurewebsites.net/api/health"
+          echo "Checking $API_URL"
           for attempt in {1..18}; do
-            if curl \
-              --fail \
-              --silent \
-              --show-error \
-              --max-time 20 \
-              -H "Origin: https://portal.skunkworksacademy.com" \
-              -D "$HEALTH_HEADERS" \
-              -o "$HEALTH_BODY" \
-              "$HEALTH_URL"; then
-              break
+            if response=$(curl --fail --silent --show-error --max-time 20 "$API_URL") && echo "$response" | jq -e '.ok == true and ((.missingSettings // []) | length == 0)' >/dev/null; then
+              echo "$response"
+              exit 0
             fi
-
-            if [ "$attempt" -eq 18 ]; then
-              echo "Function health check failed after 18 attempts." >&2
-              exit 1
-            fi
-
             echo "Health check attempt $attempt failed; retrying in 10 seconds."
             sleep 10
           done
-
-          node - "$HEALTH_BODY" <<'NODE'
-          const fs = require("node:fs");
-          const path = process.argv[2];
-          const health = JSON.parse(fs.readFileSync(path, "utf8"));
-          if (health.ok !== true) {
-            console.error("Portal API health response did not contain ok: true.");
-            process.exit(1);
-          }
-          if (Array.isArray(health.missingSettings) && health.missingSettings.length > 0) {
-            console.warn(`Portal API reports missing settings: ${health.missingSettings.join(", ")}`);
-          }
-          console.log(JSON.stringify(health));
-          NODE
-
-          if ! grep -Eiq '^access-control-allow-origin:[[:space:]]*https://portal\.skunkworksacademy\.com[[:space:]]*$' "$HEALTH_HEADERS"; then
-            echo "Health response does not allow the Portal production origin." >&2
-            cat "$HEALTH_HEADERS" >&2
-            exit 1
-          fi
-
-          curl \
-            --fail \
-            --silent \
-            --show-error \
-            --max-time 30 \
-            -X OPTIONS \
-            -H "Origin: https://portal.skunkworksacademy.com" \
-            -H "Access-Control-Request-Method: GET" \
-            -H "Access-Control-Request-Headers: authorization" \
-            -D "$CORS_HEADERS" \
-            -o /dev/null \
-            "$PREFLIGHT_URL"
-
-          if ! grep -Eiq '^access-control-allow-origin:[[:space:]]*https://portal\.skunkworksacademy\.com[[:space:]]*$' "$CORS_HEADERS"; then
-            echo "Authenticated-route preflight does not allow the Portal production origin." >&2
-            cat "$CORS_HEADERS" >&2
-            exit 1
-          fi
-
-      - name: Redeploy frontend with discovered API endpoint
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh workflow run pages.yml \
-            --repo "$GITHUB_REPOSITORY" \
-            --ref main \
-            -f api_base_url="$PORTAL_API_BASE_URL"
-
-      - name: Publish endpoint summary
-        shell: bash
-        run: |
-          {
-            echo "## Portal API deployment"
-            echo
-            echo "- Function App: \`$FUNCTION_APP_NAME\`"
-            echo "- Default hostname: \`$FUNCTION_DEFAULT_HOSTNAME\`"
-            echo "- API base URL: \`$PORTAL_API_BASE_URL\`"
-            echo "- Health URL: \`${PORTAL_API_BASE_URL%/}/health\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Function health check failed after 18 attempts." >&2
+          exit 1

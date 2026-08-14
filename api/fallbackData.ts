@@ -38,6 +38,14 @@ export const fallbackJobs: JobPosting[] = [
 
 export const fallbackCourses: CourseRecord[] = [
   {
+    id: "ART-101",
+    title: "Professional Articulation and Executive Communication",
+    level: "Professional capability",
+    duration: "36–40 hours",
+    description: "Recorded practice, executive presence, meetings, interviews, business storytelling and moderated communication evidence.",
+    status: "Live"
+  },
+  {
     id: "ai-tools",
     title: "Applied AI Tools",
     level: "Short course",

@@ -44,6 +44,29 @@ const lists = [
       dateTimeColumn("GrantedAt"),
       dateTimeColumn("ValidUntil")
     ]
+  },
+  {
+    displayName: "CourseEnrollments",
+    columns: [
+      textColumn("CourseId"),
+      textColumn("CourseTitle"),
+      textColumn("LearnerObjectId"),
+      textColumn("LearnerTenantId"),
+      textColumn("LearnerEmail"),
+      textColumn("LearnerName"),
+      choiceColumn("Status", ["Submitted", "PendingPayment", "Active", "Waitlisted", "Suspended", "Cancelled", "Completed", "Rejected"]),
+      choiceColumn("Source", ["checkout", "portal", "admin", "migration"]),
+      textColumn("PlanId"),
+      choiceColumn("Gateway", ["payfast", "paypal", "manual", "none"]),
+      textColumn("PaymentTransactionId"),
+      textColumn("EntitlementId"),
+      textColumn("ProviderReference"),
+      multilineColumn("ReturnUrl"),
+      dateTimeColumn("SubmittedAt"),
+      dateTimeColumn("ActivatedAt"),
+      dateTimeColumn("UpdatedAt"),
+      multilineColumn("Notes")
+    ]
   }
 ];
 

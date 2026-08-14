@@ -22,7 +22,11 @@ param apiScope string = '${applicationIdUri}/access_as_user'
 @description('Comma-separated allowed browser origins.')
 param allowedOrigins string
 
-var parsedAllowedOrigins = [for origin in split(allowedOrigins, ','): trim(origin)]
+var requestedAllowedOrigins = [for origin in split(allowedOrigins, ','): trim(origin)]
+var parsedAllowedOrigins = union(requestedAllowedOrigins, [
+  'https://portal.skunkworksacademy.com'
+  'https://skunkworks-academy.github.io'
+])
 var hostingPlanName = '${functionAppName}-plan'
 var appInsightsName = '${functionAppName}-insights'
 var workspaceName = '${functionAppName}-logs'
@@ -112,10 +116,6 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'WEBSITE_NODE_DEFAULT_VERSION'
           value: '~22'
-        }
-        {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
         }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
