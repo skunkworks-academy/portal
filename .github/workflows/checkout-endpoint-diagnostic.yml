@@ -45,7 +45,7 @@ jobs:
 
           probe portal_checkout 'https://portal.skunkworksacademy.com/checkout/?course=OSINT-101&source=osint'
           probe custom_api 'https://api.skunkworksacademy.com/api/checkout/plans'
-          probe azure_api 'https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api/checkout/plans'
+          probe azure_api 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/checkout/plans'
 
       - name: Require at least one valid plans endpoint
         shell: bash
@@ -60,7 +60,7 @@ jobs:
           fi
 
           if curl --fail --silent --show-error --location --connect-timeout 15 --max-time 45 \
-            'https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api/checkout/plans' | grep -q 'starter-monthly'; then
+            'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/checkout/plans' | grep -q 'starter-monthly'; then
             azure_ok=true
           fi
 
