@@ -46,6 +46,8 @@ env:
   PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
   PORTAL_ALLOWED_ORIGINS: ${{ vars.PORTAL_ALLOWED_ORIGINS || 'https://portal.skunkworksacademy.com,http://localhost:5173' }}
+  PORTAL_SHAREPOINT_HOSTNAME: ${{ vars.PORTAL_SHAREPOINT_HOSTNAME || '202025721807skunkworks.sharepoint.com' }}
+  PORTAL_SHAREPOINT_SITE_PATH: ${{ vars.PORTAL_SHAREPOINT_SITE_PATH || '/sites/InstructorPortal' }}
 
 jobs:
   validate:
@@ -81,7 +83,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for name in AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_CLIENT_ID FUNCTION_APP_NAME STORAGE_ACCOUNT_NAME PORTAL_ENTRA_TENANT_ID PORTAL_ENTRA_CLIENT_ID PORTAL_APPLICATION_ID_URI PORTAL_API_SCOPE PORTAL_ALLOWED_ORIGINS; do
+          for name in AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_CLIENT_ID FUNCTION_APP_NAME STORAGE_ACCOUNT_NAME PORTAL_ENTRA_TENANT_ID PORTAL_ENTRA_CLIENT_ID PORTAL_APPLICATION_ID_URI PORTAL_API_SCOPE PORTAL_ALLOWED_ORIGINS PORTAL_SHAREPOINT_HOSTNAME PORTAL_SHAREPOINT_SITE_PATH; do
             if [ -z "${!name:-}" ]; then
               echo "Missing required GitHub Actions variable: $name" >&2
               exit 1
@@ -148,6 +150,8 @@ jobs:
                 applicationIdUri="$PORTAL_APPLICATION_ID_URI" \
                 apiScope="$PORTAL_API_SCOPE" \
                 allowedOrigins="$PORTAL_ALLOWED_ORIGINS"
+                sharePointHostname="$PORTAL_SHAREPOINT_HOSTNAME" \
+                sharePointSitePath="$PORTAL_SHAREPOINT_SITE_PATH"
 
       - name: Restore protected API credential
         uses: azure/cli@v2
