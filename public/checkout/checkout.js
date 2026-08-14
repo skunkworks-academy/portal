@@ -1,8 +1,8 @@
-/* Skunkworks Academy checkout browser runtime. Version: 2026-07-24.2 */
+/* Skunkworks Academy checkout browser runtime. Version: 2026-08-14.1 */
 (function () {
   'use strict';
 
-  const productionApiBaseUrl = 'https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api';
+  const productionApiBaseUrl = 'https://api.skunkworksacademy.com/api';
   const localApiBaseUrl = 'http://localhost:7071/api';
   const apiBaseUrl = (window.SWA_PAYMENT_API_BASE || (['localhost', '127.0.0.1'].includes(location.hostname) ? localApiBaseUrl : productionApiBaseUrl)).replace(/\/$/, '');
   const osintEnrolmentRequestUrl = 'https://skunkworks.africa/products/osint-101-enrolment-request';
