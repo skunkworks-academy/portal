@@ -40,8 +40,8 @@ const css = read('src/global-nav-compat.css');
 const toggle = read('src/global-nav-toggle.ts');
 const pkg = read('package.json');
 
-must('src/App.tsx', app, 'const BRAND_ICON_BLACK = "https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png";', 'approved black brand icon is required.');
-must('src/App.tsx', app, 'const BRAND_ICON_WHITE = "https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-white.png";', 'approved white brand icon is required.');
+must('src/App.tsx', app, 'const BRAND_ICON_BLACK = "https://skunkworksacademy.com/images/favicon-black.png";', 'approved black brand icon is required.');
+must('src/App.tsx', app, 'const BRAND_ICON_WHITE = "https://skunkworksacademy.com/images/favicon-white.png";', 'approved white brand icon is required.');
 must('src/App.tsx', app, 'const HOME_URL = "https://skunkworksacademy.com/";', 'home URL must be the canonical academy domain.');
 must('src/App.tsx', app, 'className="brand" href={HOME_URL} aria-label="Skunkworks Academy home"', 'canonical brand anchor is required.');
 must('src/App.tsx', app, 'className="brand-logo logo-light" src={BRAND_ICON_BLACK}', 'light logo image is required.');
