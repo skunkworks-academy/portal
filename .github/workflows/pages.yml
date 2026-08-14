@@ -23,7 +23,7 @@ env:
   PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
-  PORTAL_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api' }}
+  PORTAL_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://api.skunkworksacademy.com/api' }}
 
 jobs:
   build:
