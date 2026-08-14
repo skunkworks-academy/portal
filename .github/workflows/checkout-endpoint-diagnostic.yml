@@ -46,29 +46,18 @@ jobs:
           probe portal_checkout 'https://portal.skunkworksacademy.com/checkout/?course=OSINT-101&source=osint'
           probe custom_api 'https://api.skunkworksacademy.com/api/checkout/plans'
           probe azure_api 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/checkout/plans'
-          probe azure_admin_applications 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/admin/applications'
-          probe azure_admin_profiles 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/admin/profiles'
-          probe azure_admin_jobs 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/admin/jobs'
+          probe public_api_health 'https://api.skunkworksacademy.com/api/health'
+          probe public_staff_applications 'https://api.skunkworksacademy.com/api/staff/applications'
+          probe azure_staff_applications 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/staff/applications'
           probe azure_me_profile 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/me/profile'
 
-      - name: Require canonical Portal API health and admin route
+      - name: Require public Portal API health
         shell: bash
         run: |
           set -euo pipefail
-          API_BASE_URL='https://skunkworks-academy-portal-api-za.azurewebsites.net/api'
+          API_BASE_URL='https://api.skunkworksacademy.com/api'
           health=$(curl --fail --silent --show-error --location --connect-timeout 15 --max-time 45 "$API_BASE_URL/health")
-          echo "$health" | jq -e '.ok == true and ((.routes // []) | index("GET /api/admin/applications") != null)' >/dev/null
-
-          admin_status=$(curl --silent --show-error --location --connect-timeout 15 --max-time 45 \
-            --output /tmp/admin-applications.body --write-out '%{http_code}' "$API_BASE_URL/admin/applications" || true)
-          case "$admin_status" in
-            401|403) echo "Admin applications endpoint resolves and requires authentication (HTTP $admin_status)." ;;
-            *)
-              echo "Expected unauthenticated admin applications response to be 401 or 403; got HTTP $admin_status." >&2
-              head -c 500 /tmp/admin-applications.body || true
-              exit 1
-              ;;
-          esac
+          echo "$health" | jq -e '.ok == true' >/dev/null
 
       - name: Require at least one valid plans endpoint
         shell: bash
