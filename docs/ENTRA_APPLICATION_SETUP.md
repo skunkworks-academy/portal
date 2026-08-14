@@ -130,7 +130,7 @@ Sign out completely and sign in again so Entra issues a new token. Verify the ID
 
 - Student can access learner routes but receives `403` from staff routes;
 - Instructor can access instructor routes;
-- Staff/Admin can access `/api/admin/*`;
+- Staff/Admin can access `/api/staff/*`;
 - an unassigned user cannot sign in when assignment is required.
 
 ## Important public-registration boundary
