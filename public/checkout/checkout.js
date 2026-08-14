@@ -1,4 +1,4 @@
-/* Skunkworks Academy checkout browser runtime. Version: 2026-08-14.1 */
+/* Skunkworks Academy checkout browser runtime. Version: 2026-08-14.2 */
 (function () {
   'use strict';
 

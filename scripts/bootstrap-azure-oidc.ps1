@@ -165,7 +165,8 @@ if (-not $SkipGitHubVariables) {
         PORTAL_APPLICATION_ID_URI = "api://$ApplicationId"
         PORTAL_API_SCOPE = "api://$ApplicationId/access_as_user"
         PORTAL_ALLOWED_ORIGINS = "https://portal.skunkworksacademy.com,http://localhost:5173"
-        VITE_API_BASE_URL = "https://$FunctionAppName.azurewebsites.net/api"
+        PORTAL_API_BASE_URL = "https://api.skunkworksacademy.com/api"
+        VITE_API_BASE_URL = "https://api.skunkworksacademy.com/api"
     }
 
     foreach ($entry in $variables.GetEnumerator()) {

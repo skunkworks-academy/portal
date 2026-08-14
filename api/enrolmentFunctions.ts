@@ -64,10 +64,10 @@ app.http("courseAccess", {
   })
 });
 
-app.http("adminCourseEnrolments", {
+app.http("staffCourseEnrolments", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "admin/enrolments",
+  route: "staff/enrolments",
   handler: async (request, context) => handle(request, context, async () => {
     await requireAdmin(request);
     const records = await listAdminEnrolments({
@@ -79,10 +79,10 @@ app.http("adminCourseEnrolments", {
   })
 });
 
-app.http("adminCourseEnrolmentUpdate", {
+app.http("staffCourseEnrolmentUpdate", {
   methods: ["PATCH"],
   authLevel: "anonymous",
-  route: "admin/enrolments/{id}",
+  route: "staff/enrolments/{id}",
   handler: async (request, context) => handle(request, context, async () => {
     const principal = await requireAdmin(request);
     const payload = await readJson<{
@@ -96,10 +96,10 @@ app.http("adminCourseEnrolmentUpdate", {
   })
 });
 
-app.http("adminSubscriptions", {
+app.http("staffSubscriptions", {
   methods: ["GET"],
   authLevel: "anonymous",
-  route: "admin/subscriptions",
+  route: "staff/subscriptions",
   handler: async (request, context) => handle(request, context, async () => {
     await requireAdmin(request);
     const records = await listAdminSubscriptions({

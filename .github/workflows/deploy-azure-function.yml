@@ -216,15 +216,38 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          API_URL="https://${FUNCTION_APP_NAME}.azurewebsites.net/api/health"
+          API_HOSTNAME="$(az functionapp show --resource-group "$RESOURCE_GROUP_NAME" --name "$FUNCTION_APP_NAME" --query defaultHostName -o tsv)"
+          if [ -z "$API_HOSTNAME" ]; then
+            echo "Azure did not return the Function App default hostname." >&2
+            exit 1
+          fi
+          API_BASE_URL="https://${API_HOSTNAME}/api"
+          API_URL="$API_BASE_URL/health"
           echo "Checking $API_URL"
           for attempt in {1..18}; do
-            if response=$(curl --fail --silent --show-error --max-time 20 "$API_URL") && echo "$response" | jq -e '.ok == true and ((.missingSettings // []) | length == 0)' >/dev/null; then
+            if response=$(curl --fail --silent --show-error --max-time 20 "$API_URL") &&               echo "$response" | jq -e '.ok == true and ((.missingSettings // []) | length == 0) and ((.routes // []) | index("GET /api/staff/applications") != null)' >/dev/null; then
               echo "$response"
-              exit 0
+              break
+            fi
+            if [ "$attempt" -eq 18 ]; then
+              echo "Function health check or required admin route validation failed after 18 attempts." >&2
+              exit 1
             fi
             echo "Health check attempt $attempt failed; retrying in 10 seconds."
             sleep 10
           done
-          echo "Function health check failed after 18 attempts." >&2
-          exit 1
+          admin_status=$(curl --silent --show-error --location --max-time 20 --output /tmp/admin-applications.body --write-out '%{http_code}' "$API_BASE_URL/staff/applications" || true)
+          case "$admin_status" in
+            401|403) echo "Staff applications endpoint resolved and correctly requires authentication (HTTP $admin_status)." ;;
+            *)
+              echo "Expected an unauthenticated 401 or 403 from $API_BASE_URL/staff/applications, received HTTP $admin_status." >&2
+              head -c 500 /tmp/admin-applications.body || true
+              exit 1
+              ;;
+          esac
+          {
+            echo "### Portal API validation"
+            echo ""
+            echo "- Canonical API base URL: $API_BASE_URL"
+            echo "- Required staff applications route: reachable (authentication enforced)"
+          } >> "$GITHUB_STEP_SUMMARY"

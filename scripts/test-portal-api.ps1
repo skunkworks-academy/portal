@@ -77,7 +77,7 @@ if ($LASTEXITCODE -ne 0 -or -not $FunctionApp) {
 $DefaultHostname = [string]$FunctionApp.defaultHostName
 $ApiBaseUrl = "https://$DefaultHostname/api"
 $HealthUrl = "$ApiBaseUrl/health"
-$AdminUrl = "$ApiBaseUrl/admin/applications"
+$StaffUrl = "$ApiBaseUrl/staff/applications"
 
 $HostnameValid = -not [string]::IsNullOrWhiteSpace($DefaultHostname)
 Write-Check -Name "Function state" -Passed ($FunctionApp.state -eq "Running") -Detail ([string]$FunctionApp.state)
@@ -137,7 +137,7 @@ catch {
 
 try {
     $PreflightResponse = Invoke-WebRequest `
-        -Uri $AdminUrl `
+        -Uri $StaffUrl `
         -Method Options `
         -Headers @{
             Origin = $ExpectedOrigin
@@ -149,15 +149,15 @@ try {
 
     $PreflightOrigin = [string]$PreflightResponse.Headers["Access-Control-Allow-Origin"]
     $PreflightPassed = $PreflightResponse.StatusCode -in @(200, 204) -and $PreflightOrigin -eq $ExpectedOrigin
-    Write-Check -Name "Admin route CORS preflight" -Passed $PreflightPassed -Detail "HTTP $($PreflightResponse.StatusCode); origin=$PreflightOrigin"
+    Write-Check -Name "Staff route CORS preflight" -Passed $PreflightPassed -Detail "HTTP $($PreflightResponse.StatusCode); origin=$PreflightOrigin"
 
     if (-not $PreflightPassed) {
-        $Failures.Add("The admin applications CORS preflight failed.")
+        $Failures.Add("The staff applications CORS preflight failed.")
     }
 }
 catch {
-    Write-Check -Name "Admin route CORS preflight" -Passed $false -Detail $_.Exception.Message
-    $Failures.Add("The admin applications CORS preflight could not be completed.")
+    Write-Check -Name "Staff route CORS preflight" -Passed $false -Detail $_.Exception.Message
+    $Failures.Add("The staff applications CORS preflight could not be completed.")
 }
 
 $Settings = @(

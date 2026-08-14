@@ -1,4 +1,4 @@
-/* Skunkworks Academy course enrolment bridge. Version: 2026-08-14.1 */
+/* Skunkworks Academy course enrolment bridge. Version: 2026-08-14.2 */
 (function () {
   'use strict';
 
