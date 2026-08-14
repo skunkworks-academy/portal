@@ -9,13 +9,13 @@
   "theme_color": "#050505",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png",
+      "src": "https://skunkworksacademy.com/images/favicon-black.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-white.png",
+      "src": "https://skunkworksacademy.com/images/favicon-white.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
