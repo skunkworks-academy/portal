@@ -64,7 +64,8 @@ async function listItems(listName: string, filter?: string) {
   const list = await listId(listName);
   const query = filter ? `&$filter=${encodeURIComponent(filter)}` : "";
   return graph<{ value: Array<{ id: string; fields: Record<string, unknown> }> }>(
-    `/sites/${site}/lists/${list}/items?expand=fields${query}`
+    `/sites/${site}/lists/${list}/items?expand=fields${query}`,
+    filter ? { headers: { Prefer: "HonorNonIndexedQueriesWarningMayFailRandomly" } } : {}
   );
 }
 
