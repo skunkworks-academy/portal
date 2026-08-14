@@ -505,7 +505,6 @@ export function App() {
 
         <section className="content-grid" aria-label="Role-specific operations">
           {activeRole === "Instructor" && <ApplicationsPanel applications={applications} />}
-          {activeRole === "Student" && <RegistrationsPanel registrations={registrations} />}
           {(activeRole === "Staff" || profile?.isAdmin) && (
             <StaffOperations
               profile={profile}
