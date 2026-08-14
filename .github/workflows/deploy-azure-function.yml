@@ -251,3 +251,53 @@ jobs:
             echo "- Canonical API base URL: $API_BASE_URL"
             echo "- Required staff applications route: reachable (authentication enforced)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Diagnose unavailable Function host
+        if: ${{ failure() }}
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            # Keep diagnostics non-fatal and never print deployment credentials or package URLs.
+            set +e
+            echo 'Function App state and runtime:'
+            az functionapp show \
+              --resource-group "$RESOURCE_GROUP_NAME" \
+              --name "$FUNCTION_APP_NAME" \
+              --query '{state:state,hostName:defaultHostName,kind:kind}' -o json
+            az functionapp config show \
+              --resource-group "$RESOURCE_GROUP_NAME" \
+              --name "$FUNCTION_APP_NAME" \
+              --query '{linuxFxVersion:linuxFxVersion,alwaysOn:alwaysOn}' -o json
+            echo 'Critical Function settings present:'
+            for setting in FUNCTIONS_WORKER_RUNTIME FUNCTIONS_EXTENSION_VERSION WEBSITE_NODE_DEFAULT_VERSION WEBSITE_RUN_FROM_PACKAGE; do
+              value="$(az functionapp config appsettings list \
+                --resource-group "$RESOURCE_GROUP_NAME" \
+                --name "$FUNCTION_APP_NAME" \
+                --query "[?name=='$setting'].value | [0]" -o tsv)"
+              if [ -n "$value" ]; then
+                echo "$setting=set"
+              else
+                echo "$setting=missing"
+              fi
+            done
+            echo 'Registered Functions:'
+            az functionapp function list \
+              --resource-group "$RESOURCE_GROUP_NAME" \
+              --name "$FUNCTION_APP_NAME" \
+              --query '[].{name:name,href:href}' -o table
+            echo 'Latest deployment status:'
+            az functionapp log deployment show \
+              --resource-group "$RESOURCE_GROUP_NAME" \
+              --name "$FUNCTION_APP_NAME" \
+              --query '{id:id,status:status,message:message,author:author}' -o json
+            app_id="$(az monitor app-insights component show \
+              --resource-group "$RESOURCE_GROUP_NAME" \
+              --app "$FUNCTION_APP_NAME-insights" \
+              --query appId -o tsv)"
+            if [ -n "$app_id" ]; then
+              echo 'Recent host exceptions:'
+              az monitor app-insights query \
+                --app "$app_id" \
+                --analytics-query 'exceptions | where timestamp > ago(30m) | project timestamp, type, outerMessage | take 20' \
+                -o table
+            fi
