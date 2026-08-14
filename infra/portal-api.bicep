@@ -114,10 +114,6 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           value: '~22'
         }
         {
-          name: 'WEBSITE_RUN_FROM_PACKAGE'
-          value: '1'
-        }
-        {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: appInsights.properties.ConnectionString
         }
