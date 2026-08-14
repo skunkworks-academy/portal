@@ -47,6 +47,25 @@ jobs:
           probe custom_api 'https://api.skunkworksacademy.com/api/checkout/plans'
           probe azure_api 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/checkout/plans'
 
+      - name: Require canonical Portal API health and admin route
+        shell: bash
+        run: |
+          set -euo pipefail
+          API_BASE_URL='https://skunkworks-academy-portal-api-za.azurewebsites.net/api'
+          health=$(curl --fail --silent --show-error --location --connect-timeout 15 --max-time 45 "$API_BASE_URL/health")
+          echo "$health" | jq -e '.ok == true and ((.routes // []) | index("GET /api/admin/applications") != null)' >/dev/null
+
+          admin_status=$(curl --silent --show-error --location --connect-timeout 15 --max-time 45 \
+            --output /tmp/admin-applications.body --write-out '%{http_code}' "$API_BASE_URL/admin/applications" || true)
+          case "$admin_status" in
+            401|403) echo "Admin applications endpoint resolves and requires authentication (HTTP $admin_status)." ;;
+            *)
+              echo "Expected unauthenticated admin applications response to be 401 or 403; got HTTP $admin_status." >&2
+              head -c 500 /tmp/admin-applications.body || true
+              exit 1
+              ;;
+          esac
+
       - name: Require at least one valid plans endpoint
         shell: bash
         run: |
