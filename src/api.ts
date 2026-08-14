@@ -2,7 +2,9 @@ import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser"
 import { apiScope } from "./authConfig";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
-const productionApiBaseUrl = "https://api.skunkworksacademy.com/api";
+// Canonical production origin for the deployed Portal Azure Function. The api subdomain remains
+// non-canonical until it is explicitly routed to this Function App with the same Entra contract.
+const productionApiBaseUrl = "https://skunkworks-academy-portal-api-za.azurewebsites.net/api";
 const localApiBaseUrl = "http://localhost:8080/api";
 
 function defaultApiBaseUrl() {
