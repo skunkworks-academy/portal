@@ -22,11 +22,18 @@ param apiScope string = '${applicationIdUri}/access_as_user'
 @description('Comma-separated allowed browser origins.')
 param allowedOrigins string
 
+@description('SharePoint tenant hostname used for learner-enrolment records.')
+param sharePointHostname string
+
+@description('Server-relative SharePoint site path used for learner-enrolment records.')
+param sharePointSitePath string = '/sites/InstructorPortal'
+
 var requestedAllowedOrigins = [for origin in split(allowedOrigins, ','): trim(origin)]
 var parsedAllowedOrigins = union(requestedAllowedOrigins, [
   'https://portal.skunkworksacademy.com'
   'https://skunkworks-academy.github.io'
 ])
+var effectiveAllowedOrigins = join(parsedAllowedOrigins, ',')
 var hostingPlanName = '${functionAppName}-plan'
 var appInsightsName = '${functionAppName}-insights'
 var workspaceName = '${functionAppName}-logs'
@@ -146,8 +153,16 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
           value: entraTenantId
         }
         {
+          name: 'SHAREPOINT_HOSTNAME'
+          value: sharePointHostname
+        }
+        {
+          name: 'SHAREPOINT_SITE_PATH'
+          value: sharePointSitePath
+        }
+        {
           name: 'ALLOWED_ORIGINS'
-          value: allowedOrigins
+          value: effectiveAllowedOrigins
         }
       ]
     }
