@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const productionApiBaseUrl = 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api';
+  const productionApiBaseUrl = 'https://api.skunkworksacademy.com/api';
   const localApiBaseUrl = 'http://localhost:7071/api';
   const apiBaseUrl = (window.SWA_PAYMENT_API_BASE || (['localhost', '127.0.0.1'].includes(location.hostname) ? localApiBaseUrl : productionApiBaseUrl)).replace(/\/$/, '');
   const originalFetch = window.fetch.bind(window);
