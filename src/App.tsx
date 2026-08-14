@@ -14,6 +14,7 @@ import {
   skunkworksTenantId
 } from "./authConfig";
 import { portalApi } from "./api";
+import { StudentExperience } from "./student-experience";
 import { classSchedule, courseCatalog, hasStaffRole, landingRoles, roleDefinitions, roleFromClaims } from "./roles";
 import type {
   ApplicationRecord,
@@ -407,6 +408,21 @@ export function App() {
   const visibleJobs = liveJobs.length ? liveJobs : fallbackJobs;
   const registeredClassIds = new Set(registrations.map((registration) => registration.classId));
   const roleBadge = formatRole(profile, activeRole);
+
+  if (activeRole === "Student") {
+    return (
+      <StudentExperience
+        profile={profile}
+        portalProfile={portalProfile}
+        courses={courses}
+        classes={classes}
+        registrations={registrations}
+        onSignIn={() => void signIn("Student")}
+        onSignOut={() => void signOut()}
+        onRegister={registerForClass}
+      />
+    );
+  }
 
   return (
     <div className="portal-page">
