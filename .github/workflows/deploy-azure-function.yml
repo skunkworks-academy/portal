@@ -13,6 +13,18 @@ on:
         description: Azure region
         required: false
         default: southafricanorth
+      load_requests:
+        description: Bounded total read-only production API validation requests (12-300)
+        required: false
+        default: "60"
+      load_concurrency:
+        description: Bounded concurrent production API validation workers (1-12)
+        required: false
+        default: "4"
+      load_rps:
+        description: Bounded production API request-start rate (0.25-10)
+        required: false
+        default: "2"
   push:
     branches: [main]
     paths:
@@ -301,3 +313,30 @@ jobs:
                 --analytics-query 'exceptions | where timestamp > ago(30m) | project timestamp, type, outerMessage | take 20' \
                 -o table
             fi
+
+  load-test:
+    name: Controlled production API load test
+    needs: deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run bounded public API load test
+        env:
+          PORTAL_LOAD_TARGET: https://api.skunkworksacademy.com/api
+          PORTAL_LOAD_REQUESTS: ${{ inputs.load_requests || '60' }}
+          PORTAL_LOAD_CONCURRENCY: ${{ inputs.load_concurrency || '4' }}
+          PORTAL_LOAD_RPS: ${{ inputs.load_rps || '2' }}
+          PORTAL_LOAD_MAX_P95_MS: "5000"
+          PORTAL_LOAD_MAX_FAILURE_RATE: "0.02"
+        run: node scripts/portal-api-load-test.mjs
+
+      - name: Upload API load-test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-api-load-test
+          path: artifacts/portal-api-load-test.json
+          if-no-files-found: warn
+          retention-days: 14
