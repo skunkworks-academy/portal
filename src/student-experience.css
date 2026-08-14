@@ -33,6 +33,10 @@
   text-decoration: none;
 }
 
+.academy-menu-icon { display: none; width: 100%; height: 100%; object-fit: contain; }
+.academy-menu-icon--light { display: var(--academy-logo-light); }
+.academy-menu-icon--dark { display: var(--academy-logo-dark); }
+
 .student-brand-mark,
 .student-skunkie-avatar {
   display: grid;
@@ -43,6 +47,7 @@
   color: white;
   font-weight: 950;
   background: linear-gradient(135deg, var(--student-accent), var(--student-cyan));
+  overflow: hidden;
   box-shadow: 0 10px 26px color-mix(in srgb, var(--student-accent) 30%, transparent);
 }
 
