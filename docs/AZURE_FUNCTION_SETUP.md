@@ -85,9 +85,9 @@ Create these under **Repository settings → Secrets and variables → Actions �
 | `PORTAL_APPLICATION_ID_URI` | `api://e22672ae-61a6-434e-b135-3360557819ec` |
 | `PORTAL_API_SCOPE` | `api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user` |
 | `PORTAL_ALLOWED_ORIGINS` | `https://portal.skunkworksacademy.com,http://localhost:5173` |
-| `PORTAL_API_BASE_URL` | `https://skunkworks-academy-portal-api-za.azurewebsites.net/api` |
+| `PORTAL_API_BASE_URL` | `https://api.skunkworksacademy.com/api` |
 
-The frontend Pages workflow consumes `PORTAL_API_BASE_URL` and the shared `PORTAL_ENTRA_*` variables. This prevents the frontend from requesting tokens for a different tenant or resource than the API accepts.
+The frontend Pages workflow consumes the public `PORTAL_API_BASE_URL` gateway and the shared `PORTAL_ENTRA_*` variables. This prevents the frontend from requesting tokens for a different tenant or resource than the API accepts.
 
 The workflow uses OpenID Connect. Do not store an Azure client secret or publish profile when OIDC is configured.
 
