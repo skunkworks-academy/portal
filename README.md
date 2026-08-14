@@ -79,7 +79,7 @@ VITE_API_CLIENT_ID=e22672ae-61a6-434e-b135-3360557819ec
 VITE_APPLICATION_ID_URI=api://e22672ae-61a6-434e-b135-3360557819ec
 VITE_MSAL_AUTHORITY=https://login.microsoftonline.com/338a8916-80d9-467c-a94a-7f61d04ef7d5
 VITE_API_SCOPE=api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user
-VITE_API_BASE_URL=https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api
+VITE_API_BASE_URL=https://skunkworks-academy-portal-api-za.azurewebsites.net/api
 VITE_SKUNKWORKS_TENANT_ID=338a8916-80d9-467c-a94a-7f61d04ef7d5
 ```
 
@@ -170,7 +170,7 @@ npm run build:api
 ## API Health Check
 
 ```text
-https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api/health
+https://skunkworks-academy-portal-api-za.azurewebsites.net/api/health
 ```
 
 Expected healthy shape:
