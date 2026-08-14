@@ -142,6 +142,19 @@ else {
     Write-Host "Contributor role assignment already exists." -ForegroundColor Green
 }
 
+$PortalApiBaseUrl = "https://$FunctionAppName.azurewebsites.net/api"
+try {
+    $FunctionApp = Invoke-AzJson -Arguments @("functionapp", "show", "--resource-group", $ResourceGroupName, "--name", $FunctionAppName)
+    $DefaultHostName = [string]$FunctionApp.defaultHostName
+    if (-not [string]::IsNullOrWhiteSpace($DefaultHostName)) {
+        $PortalApiBaseUrl = "https://$DefaultHostName/api"
+        Write-Host "Using Azure Function default hostname: $DefaultHostName" -ForegroundColor Green
+    }
+}
+catch {
+    Write-Host "Function App '$FunctionAppName' is not available yet; using the conventional Azure hostname for bootstrap." -ForegroundColor Yellow
+}
+
 if (-not $SkipGitHubVariables) {
     Require-Command -Name "gh"
     & gh auth status
@@ -165,7 +178,8 @@ if (-not $SkipGitHubVariables) {
         PORTAL_APPLICATION_ID_URI = "api://$ApplicationId"
         PORTAL_API_SCOPE = "api://$ApplicationId/access_as_user"
         PORTAL_ALLOWED_ORIGINS = "https://portal.skunkworksacademy.com,http://localhost:5173"
-        VITE_API_BASE_URL = "https://$FunctionAppName.azurewebsites.net/api"
+        PORTAL_API_BASE_URL = $PortalApiBaseUrl
+        VITE_API_BASE_URL = $PortalApiBaseUrl
     }
 
     foreach ($entry in $variables.GetEnumerator()) {
