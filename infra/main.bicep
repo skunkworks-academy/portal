@@ -27,6 +27,12 @@ param apiScope string = '${applicationIdUri}/access_as_user'
 @description('Allowed browser origins for CORS.')
 param allowedOrigins string = 'https://portal.skunkworksacademy.com,https://skunkworks-academy.github.io,http://localhost:5173'
 
+@description('SharePoint tenant hostname used for learner-enrolment records.')
+param sharePointHostname string = '202025721807skunkworks.sharepoint.com'
+
+@description('Server-relative SharePoint site path used for learner-enrolment records.')
+param sharePointSitePath string = '/sites/InstructorPortal'
+
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
   location: location
@@ -44,6 +50,8 @@ module portalApi './portal-api.bicep' = {
     applicationIdUri: applicationIdUri
     apiScope: apiScope
     allowedOrigins: allowedOrigins
+    sharePointHostname: sharePointHostname
+    sharePointSitePath: sharePointSitePath
   }
 }
 
