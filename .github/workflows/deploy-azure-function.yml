@@ -149,6 +149,24 @@ jobs:
                 apiScope="$PORTAL_API_SCOPE" \
                 allowedOrigins="$PORTAL_ALLOWED_ORIGINS"
 
+      - name: Restore protected API credential
+        uses: azure/cli@v2
+        env:
+          API_CLIENT_SECRET: ${{ secrets.PORTAL_API_CLIENT_SECRET }}
+        with:
+          inlineScript: |
+            set -euo pipefail
+            if [ -z "${API_CLIENT_SECRET:-}" ]; then
+              echo "Missing required GitHub Actions secret: PORTAL_API_CLIENT_SECRET" >&2
+              exit 1
+            fi
+            az functionapp config appsettings set \
+              --resource-group "$RESOURCE_GROUP_NAME" \
+              --name "$FUNCTION_APP_NAME" \
+              --settings "API_CLIENT_SECRET=$API_CLIENT_SECRET" \
+              --output none
+
+
       - name: Assemble Function deployment package
         shell: bash
         run: |
@@ -197,7 +215,7 @@ jobs:
           API_URL="https://${FUNCTION_APP_NAME}.azurewebsites.net/api/health"
           echo "Checking $API_URL"
           for attempt in {1..18}; do
-            if response=$(curl --fail --silent --show-error --max-time 20 "$API_URL"); then
+            if response=$(curl --fail --silent --show-error --max-time 20 "$API_URL") && echo "$response" | jq -e '.ok == true and ((.missingSettings // []) | length == 0)' >/dev/null; then
               echo "$response"
               exit 0
             fi
