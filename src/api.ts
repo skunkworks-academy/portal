@@ -2,7 +2,7 @@ import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser"
 import { apiScope } from "./authConfig";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
-const productionApiBaseUrl = "https://skunkworks-academy-portal-api-za.azurewebsites.net/api";
+const productionApiBaseUrl = "https://api.skunkworksacademy.com/api";
 const localApiBaseUrl = "http://localhost:8080/api";
 
 function defaultApiBaseUrl() {
@@ -64,7 +64,16 @@ async function request<T>(
     return undefined as T;
   }
 
-  return response.json() as Promise<T>;
+  const body = await response.text();
+  if (!body.trim()) {
+    return undefined as T;
+  }
+
+  try {
+    return JSON.parse(body) as T;
+  } catch {
+    throw new Error(`Portal API returned invalid JSON at ${requestUrl}`);
+  }
 }
 
 export const portalApi = {
