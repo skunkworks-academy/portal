@@ -82,7 +82,10 @@ export function StudentExperience({
       <a className="skip-link" href="#student-main">Skip to student content</a>
       <aside className="student-sidebar" aria-label="Student navigation">
         <a className="student-brand" href="https://skunkworksacademy.com/" aria-label="Skunkworks Academy home">
-          <span className="student-brand-mark">S</span>
+          <span className="student-brand-mark" aria-hidden="true">
+            <img className="academy-menu-icon academy-menu-icon--dark" src="https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-white.png" alt="" />
+            <img className="academy-menu-icon academy-menu-icon--light" src="https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-black.png" alt="" />
+          </span>
           <span><strong>Skunkworks</strong><small>Academy · Student</small></span>
         </a>
         <nav className="student-nav">
