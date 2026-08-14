@@ -49,12 +49,12 @@ const requiredContent = [
   },
   {
     file: 'index.html',
-    text: 'https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-black.png',
+    text: 'https://skunkworksacademy.com/images/favicon-black.png',
     description: 'black favicon reference exists'
   },
   {
     file: 'index.html',
-    text: 'https://raw.githubusercontent.com/skunkworks-academy/.github/refs/heads/main/images/favicon-white.png',
+    text: 'https://skunkworksacademy.com/images/favicon-white.png',
     description: 'white favicon reference exists'
   },
   {
