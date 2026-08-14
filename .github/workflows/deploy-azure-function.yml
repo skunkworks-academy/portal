@@ -45,22 +45,6 @@ concurrency:
   group: portal-api-production
   cancel-in-progress: false
 
-env:
-  AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
-  AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-  AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-  RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME || 'rg-skunkworks-academy-portal-prod' }}
-  FUNCTION_APP_NAME: ${{ inputs.function_app_name || vars.AZURE_FUNCTIONAPP_NAME }}
-  STORAGE_ACCOUNT_NAME: ${{ inputs.storage_account_name || vars.AZURE_STORAGE_ACCOUNT_NAME }}
-  LOCATION: ${{ inputs.location || vars.AZURE_LOCATION || 'southafricanorth' }}
-  PORTAL_ENTRA_TENANT_ID: ${{ vars.PORTAL_ENTRA_TENANT_ID || '338a8916-80d9-467c-a94a-7f61d04ef7d5' }}
-  PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
-  PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
-  PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
-  PORTAL_ALLOWED_ORIGINS: ${{ vars.PORTAL_ALLOWED_ORIGINS || 'https://portal.skunkworksacademy.com,http://localhost:5173' }}
-  PORTAL_SHAREPOINT_HOSTNAME: ${{ vars.PORTAL_SHAREPOINT_HOSTNAME || '202025721807skunkworks.sharepoint.com' }}
-  PORTAL_SHAREPOINT_SITE_PATH: ${{ vars.PORTAL_SHAREPOINT_SITE_PATH || '/sites/InstructorPortal' }}
-
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -82,6 +66,21 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     environment: production
+    env:
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME || 'rg-skunkworks-academy-portal-prod' }}
+      FUNCTION_APP_NAME: ${{ inputs.function_app_name || vars.AZURE_FUNCTIONAPP_NAME }}
+      STORAGE_ACCOUNT_NAME: ${{ inputs.storage_account_name || vars.AZURE_STORAGE_ACCOUNT_NAME }}
+      LOCATION: ${{ inputs.location || vars.AZURE_LOCATION || 'southafricanorth' }}
+      PORTAL_ENTRA_TENANT_ID: ${{ vars.PORTAL_ENTRA_TENANT_ID || '338a8916-80d9-467c-a94a-7f61d04ef7d5' }}
+      PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
+      PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
+      PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
+      PORTAL_ALLOWED_ORIGINS: ${{ vars.PORTAL_ALLOWED_ORIGINS || 'https://portal.skunkworksacademy.com,http://localhost:5173' }}
+      PORTAL_SHAREPOINT_HOSTNAME: ${{ vars.PORTAL_SHAREPOINT_HOSTNAME || '202025721807skunkworks.sharepoint.com' }}
+      PORTAL_SHAREPOINT_SITE_PATH: ${{ vars.PORTAL_SHAREPOINT_SITE_PATH || '/sites/InstructorPortal' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
