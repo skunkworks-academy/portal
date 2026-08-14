@@ -149,7 +149,7 @@ jobs:
                 portalClientId="$PORTAL_ENTRA_CLIENT_ID" \
                 applicationIdUri="$PORTAL_APPLICATION_ID_URI" \
                 apiScope="$PORTAL_API_SCOPE" \
-                allowedOrigins="$PORTAL_ALLOWED_ORIGINS"
+                allowedOrigins="$PORTAL_ALLOWED_ORIGINS" \
                 sharePointHostname="$PORTAL_SHAREPOINT_HOSTNAME" \
                 sharePointSitePath="$PORTAL_SHAREPOINT_SITE_PATH"
 
