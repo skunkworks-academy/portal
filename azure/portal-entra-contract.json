@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "tenantId": "338a8916-80d9-467c-a94a-7f61d04ef7d5",
+  "application": {
+    "displayName": "Skunkworks Academy Portal",
+    "appId": "e22672ae-61a6-434e-b135-3360557819ec",
+    "objectId": "5546429d-1373-49ab-b587-67deba7e84c0",
+    "signInAudience": "AzureADandPersonalMicrosoftAccount",
+    "applicationIdUri": "api://e22672ae-61a6-434e-b135-3360557819ec",
+    "delegatedScope": "api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user",
+    "accessTokenVersion": 2,
+    "spaRedirectUris": [
+      "https://portal.skunkworksacademy.com/",
+      "http://localhost:5173/"
+    ],
+    "implicitGrant": {
+      "accessTokens": false,
+      "idTokens": false
+    },
+    "appRoles": [
+      "Portal.Student",
+      "Portal.Instructor",
+      "Portal.Staff",
+      "Portal.Admin",
+      "Portal.Automation"
+    ],
+    "microsoftGraph": {
+      "delegated": [
+        "User.Read"
+      ],
+      "application": [
+        "Sites.Selected"
+      ]
+    }
+  },
+  "enterpriseApplication": {
+    "accountEnabled": true,
+    "userAssignmentRequired": true
+  },
+  "roleGroups": {
+    "Portal.Student": "Skunkworks Academy Portal - Learners",
+    "Portal.Instructor": "Skunkworks Academy Portal - Instructors",
+    "Portal.Staff": "Skunkworks Academy Portal - Operations",
+    "Portal.Admin": "Skunkworks Academy Portal - Administrators"
+  },
+  "github": {
+    "repository": "skunkworks-academy/portal",
+    "environment": "production",
+    "oidcSubject": "repo:skunkworks-academy/portal:environment:production",
+    "oidcAudience": "api://AzureADTokenExchange"
+  }
+}

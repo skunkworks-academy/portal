@@ -1,0 +1,73 @@
+name: Diagnose live checkout endpoints
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe checkout page and APIs
+        shell: bash
+        run: |
+          set -u
+
+          probe() {
+            local label="$1"
+            local url="$2"
+            local output="/tmp/${label}.body"
+            local headers="/tmp/${label}.headers"
+
+            echo "::group::${label}"
+            status=$(curl \
+              --silent \
+              --show-error \
+              --location \
+              --connect-timeout 15 \
+              --max-time 45 \
+              --dump-header "${headers}" \
+              --output "${output}" \
+              --write-out '%{http_code}' \
+              "${url}" || true)
+            echo "URL: ${url}"
+            echo "HTTP: ${status}"
+            grep -iE '^(content-type|access-control-allow-origin|server|location):' "${headers}" || true
+            head -c 500 "${output}" || true
+            echo
+            echo "::endgroup::"
+          }
+
+          probe portal_checkout 'https://portal.skunkworksacademy.com/checkout/?course=OSINT-101&source=osint'
+          probe custom_api 'https://api.skunkworksacademy.com/api/checkout/plans'
+          probe azure_api 'https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api/checkout/plans'
+
+      - name: Require at least one valid plans endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          custom_ok=false
+          azure_ok=false
+
+          if curl --fail --silent --show-error --location --connect-timeout 15 --max-time 45 \
+            'https://api.skunkworksacademy.com/api/checkout/plans' | grep -q 'starter-monthly'; then
+            custom_ok=true
+          fi
+
+          if curl --fail --silent --show-error --location --connect-timeout 15 --max-time 45 \
+            'https://skunkworks-instructor-portal-api-a5gxhyc2fvc7gmch.southafricanorth-01.azurewebsites.net/api/checkout/plans' | grep -q 'starter-monthly'; then
+            azure_ok=true
+          fi
+
+          echo "custom_api_valid=${custom_ok}"
+          echo "azure_api_valid=${azure_ok}"
+
+          if [[ "${custom_ok}" != "true" && "${azure_ok}" != "true" ]]; then
+            echo 'No checkout plans endpoint returned valid plan data.' >&2
+            exit 1
+          fi

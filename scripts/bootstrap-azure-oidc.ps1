@@ -142,19 +142,6 @@ else {
     Write-Host "Contributor role assignment already exists." -ForegroundColor Green
 }
 
-$functionDefaultHostname = $null
-try {
-    $functionApp = Invoke-AzJson -Arguments @(
-        "functionapp", "show",
-        "--resource-group", $ResourceGroupName,
-        "--name", $FunctionAppName
-    )
-    $functionDefaultHostname = [string]$functionApp.defaultHostName
-}
-catch {
-    Write-Host "Function App '$FunctionAppName' does not exist yet. The deployment workflow will discover its Azure-assigned default hostname." -ForegroundColor Yellow
-}
-
 if (-not $SkipGitHubVariables) {
     Require-Command -Name "gh"
     & gh auth status
@@ -178,10 +165,7 @@ if (-not $SkipGitHubVariables) {
         PORTAL_APPLICATION_ID_URI = "api://$ApplicationId"
         PORTAL_API_SCOPE = "api://$ApplicationId/access_as_user"
         PORTAL_ALLOWED_ORIGINS = "https://portal.skunkworksacademy.com,http://localhost:5173"
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($functionDefaultHostname)) {
-        $variables.VITE_API_BASE_URL = "https://$functionDefaultHostname/api"
+        VITE_API_BASE_URL = "https://$FunctionAppName.azurewebsites.net/api"
     }
 
     foreach ($entry in $variables.GetEnumerator()) {
@@ -190,21 +174,13 @@ if (-not $SkipGitHubVariables) {
         if ($LASTEXITCODE -ne 0) { throw "Failed to set GitHub variable $($entry.Key)." }
     }
 
-    if ([string]::IsNullOrWhiteSpace($functionDefaultHostname)) {
-        Write-Host "Removing any stale VITE_API_BASE_URL variable. The Azure deployment workflow will pass the discovered endpoint directly to the Pages workflow." -ForegroundColor Yellow
-        & gh variable delete VITE_API_BASE_URL --repo $repository 2>$null
-    }
-
     Write-Host "Configured GitHub Actions variables:" -ForegroundColor Green
     & gh variable list --repo $repository
 }
 
-Write-Host ""
+Write-Host "" 
 Write-Host "Azure OIDC bootstrap completed." -ForegroundColor Green
 Write-Host "Issuer:  $issuer"
 Write-Host "Subject: $subject"
 Write-Host "Audience: $audience"
-if (-not [string]::IsNullOrWhiteSpace($functionDefaultHostname)) {
-    Write-Host "API URL:  https://$functionDefaultHostname/api"
-}
 Write-Host "Next: run the 'Deploy Azure Function' workflow in $GitHubOrganization/$GitHubRepository."
