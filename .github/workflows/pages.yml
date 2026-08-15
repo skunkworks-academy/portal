@@ -23,7 +23,6 @@ env:
   PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
-  # Public Portal API gateway. The internal Azure Function hostname is used only by deployment verification.
   PORTAL_API_BASE_URL: ${{ inputs.api_base_url || vars.PORTAL_API_BASE_URL || 'https://api.skunkworksacademy.com/api' }}
 
 jobs:
@@ -76,7 +75,6 @@ jobs:
             echo "The production build does not contain the configured Portal API endpoint: $expected" >&2
             exit 1
           fi
-          # Vite emits the API base and relative path as separate strings, so inspect the route segment.
           if grep -R --fixed-strings --quiet '/admin/' dist; then
             echo 'The production build still contains Azure Functions reserved admin route segments.' >&2
             exit 1
@@ -85,6 +83,33 @@ jobs:
             echo 'The production build does not contain the required staff privileged route family.' >&2
             exit 1
           fi
+      - name: Enforce Academy global shell on every generated HTML page
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          current = 'https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.08.15.2'
+          loader = f'<script defer src="{current}" data-skunkworks-global-shell="2026.08.15.2"></script>'
+          pattern = r"https://skunkworksacademy\.com/assets/academy-navigation\.js(?:\?v=[^\"'\s<>]+)?"
+          pages = list(Path('dist').rglob('*.html'))
+          for path in pages:
+              html = path.read_text(encoding='utf-8', errors='ignore')
+              if 'academy-navigation.js' in html:
+                  html = re.sub(pattern, current, html)
+              elif '</head>' in html:
+                  html = html.replace('</head>', f'{loader}</head>', 1)
+              elif '</body>' in html:
+                  html = html.replace('</body>', f'{loader}</body>', 1)
+              else:
+                  raise SystemExit(f'Cannot inject Academy shell into {path}')
+              path.write_text(html, encoding='utf-8')
+          if not pages:
+              raise SystemExit('Portal build produced no HTML pages.')
+          missing = [str(p) for p in pages if current not in p.read_text(encoding='utf-8', errors='ignore')]
+          if missing:
+              raise SystemExit('Global shell missing from: ' + ', '.join(missing))
+          print(f'Verified Academy global shell on {len(pages)} Portal page(s).')
+          PY
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
