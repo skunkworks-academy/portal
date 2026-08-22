@@ -1,0 +1,14 @@
+name: Registry Governance
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  registry-governance:
+    uses: skunkworks-academy/academy-validation/.github/workflows/reusable-registry-governance.yml@main
