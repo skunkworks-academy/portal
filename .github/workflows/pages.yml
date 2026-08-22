@@ -28,9 +28,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -57,6 +58,8 @@ jobs:
             https://*/api) ;;
             *) echo "PORTAL_API_BASE_URL must be an HTTPS URL ending in /api" >&2; exit 1 ;;
           esac
+      - name: Validate generated registration pages
+        run: npm run validate:registration-pages
       - run: npm run build
         env:
           VITE_MSAL_CLIENT_ID: ${{ env.PORTAL_ENTRA_CLIENT_ID }}
@@ -132,6 +135,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

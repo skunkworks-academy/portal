@@ -19,10 +19,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -39,6 +39,9 @@ jobs:
           set -euo pipefail
           node --check scripts/portal-api-load-test.mjs
           node scripts/portal-api-load-test.mjs --validate-only
+
+      - name: Validate generated registration pages
+        run: npm run validate:registration-pages
 
       - name: Validate PowerShell script syntax
         shell: pwsh
