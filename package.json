@@ -19,7 +19,8 @@
     "teams:validate:production": "tsx scripts/validate-teams-manifest.ts --production",
     "preview": "vite preview",
     "api:start": "func start --typescript",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:load": "node scripts/portal-api-load-test.mjs"
   },
   "dependencies": {
     "@azure/functions": "^4.5.0",

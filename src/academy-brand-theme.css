@@ -1,0 +1,113 @@
+/*
+  Skunkworks Academy Portal canonical brand-colour override.
+  Loaded after styles.css so the Portal keeps its layout/component architecture
+  while using the current Academy visual tokens.
+*/
+
+:root {
+  --academy-bg: #f7f9fc;
+  --academy-bg-soft: #eef2f7;
+  --academy-surface: #ffffff;
+  --academy-surface-subtle: rgba(255, 255, 255, .86);
+  --academy-surface-elevated: #ffffff;
+  --academy-text: #15171a;
+  --academy-muted: #5a6472;
+  --academy-muted-strong: #343a43;
+  --academy-line: #d8dee8;
+  --academy-line-soft: #e8ecf2;
+  --academy-accent: #1e6bd0;
+  --academy-accent-2: #1756a9;
+  --academy-focus: #f24208;
+  --academy-nav-bg: rgba(247, 249, 252, .94);
+  --academy-nav-text: #15171a;
+  --academy-nav-muted: #5a6472;
+  --academy-nav-line: #d8dee8;
+  --academy-menu-surface: #ffffff;
+  --academy-pill-bg: rgba(3, 3, 58, .035);
+  --academy-pill-hover: rgba(30, 107, 208, .10);
+
+  /* Backward-compatible Portal aliases. */
+  --ink: var(--academy-text);
+  --muted: var(--academy-muted);
+  --line: var(--academy-line);
+  --panel: var(--academy-surface);
+  --page: var(--academy-bg);
+  --soft: var(--academy-bg-soft);
+  --teal: var(--academy-accent);
+  --teal-strong: #1756a9;
+  --cyan: #1e6bd0;
+  --blue: #1e6bd0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --academy-bg: #05050b;
+    --academy-bg-soft: #03033a;
+    --academy-surface: #11111c;
+    --academy-surface-subtle: rgba(255, 255, 255, .06);
+    --academy-surface-elevated: #171728;
+    --academy-text: #f4f6fa;
+    --academy-muted: #c8d1df;
+    --academy-muted-strong: #e5e9f0;
+    --academy-line: rgba(216, 222, 232, .22);
+    --academy-line-soft: rgba(216, 222, 232, .14);
+    --academy-accent: #1e6bd0;
+    --academy-accent-2: #8fbaff;
+    --academy-focus: #f24208;
+    --academy-nav-bg: rgba(5, 5, 11, .94);
+    --academy-nav-text: #f4f6fa;
+    --academy-nav-muted: #c8d1df;
+    --academy-nav-line: rgba(216, 222, 232, .22);
+    --academy-menu-surface: #11111c;
+    --academy-pill-bg: rgba(255, 255, 255, .055);
+    --academy-pill-hover: rgba(30, 107, 208, .18);
+
+    --teal: #1e6bd0;
+    --teal-strong: #1756a9;
+    --cyan: #8fbaff;
+    --blue: #8fbaff;
+  }
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(30, 107, 208, .16), transparent 34rem),
+    radial-gradient(circle at top right, rgba(242, 66, 8, .045), transparent 32rem),
+    var(--academy-bg);
+}
+
+/* Primary actions use Skunk Blue; Signal Orange remains a focus/emphasis colour. */
+button,
+.button.primary,
+.btn.primary,
+.primary-button,
+.cta-primary {
+  border-color: var(--academy-accent);
+  background: var(--academy-accent);
+  color: #ffffff;
+}
+
+button:hover,
+.button.primary:hover,
+.btn.primary:hover,
+.primary-button:hover,
+.cta-primary:hover {
+  border-color: #1756a9;
+  background: #1756a9;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--academy-focus);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: rgba(30, 107, 208, .25);
+  color: inherit;
+}

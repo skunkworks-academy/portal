@@ -94,13 +94,13 @@ export const portalApi = {
   updateProfile: (payload: PortalProfileInput, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<PortalProfile>("/me/profile", { method: "PATCH", body: JSON.stringify(payload) }, auth),
   adminProfiles: (auth: { instance: IPublicClientApplication; account: AccountInfo }, role?: PortalRole) =>
-    request<PortalProfile[]>(`/admin/profiles${role ? `?role=${encodeURIComponent(role)}` : ""}`, {}, auth),
+    request<PortalProfile[]>(`/staff/profiles${role ? `?role=${encodeURIComponent(role)}` : ""}`, {}, auth),
   adminClassRegistrations: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<ClassRegistrationRecord[]>("/staff/class-registrations", {}, auth),
   createClass: (payload: ClassInput, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<ClassSession>("/staff/classes", { method: "POST", body: JSON.stringify(payload) }, auth),
   updateClass: (id: string, payload: Partial<ClassInput>, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
-    request<ClassSession>(`/admin/classes/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth),
+    request<ClassSession>(`/staff/classes/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth),
   submitApplication: (
     payload: NewApplication,
     auth: { instance: IPublicClientApplication; account: AccountInfo }
@@ -113,7 +113,7 @@ export const portalApi = {
     id: string,
     payload: Partial<Pick<ApplicationRecord, "status" | "owner">>,
     auth: { instance: IPublicClientApplication; account: AccountInfo }
-  ) => request<ApplicationRecord>(`/admin/applications/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth),
+  ) => request<ApplicationRecord>(`/staff/applications/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth),
   adminJobs: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<JobPosting[]>("/staff/jobs", {}, auth),
   createJob: (payload: JobInput, auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
@@ -122,12 +122,12 @@ export const portalApi = {
     id: string,
     payload: Partial<JobInput>,
     auth: { instance: IPublicClientApplication; account: AccountInfo }
-  ) => request<JobPosting>(`/admin/jobs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth),
+  ) => request<JobPosting>(`/staff/jobs/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth),
   adminTasks: (auth: { instance: IPublicClientApplication; account: AccountInfo }) =>
     request<OnboardingTask[]>("/staff/tasks", {}, auth),
   updateTask: (
     id: string,
     payload: Partial<OnboardingTask>,
     auth: { instance: IPublicClientApplication; account: AccountInfo }
-  ) => request<OnboardingTask>(`/admin/tasks/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth)
+  ) => request<OnboardingTask>(`/staff/tasks/${id}`, { method: "PATCH", body: JSON.stringify(payload) }, auth)
 };
