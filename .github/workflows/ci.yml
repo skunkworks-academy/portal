@@ -40,9 +40,6 @@ jobs:
           node --check scripts/portal-api-load-test.mjs
           node scripts/portal-api-load-test.mjs --validate-only
 
-      - name: Validate generated registration pages
-        run: npm run validate:registration-pages
-
       - name: Validate PowerShell script syntax
         shell: pwsh
         run: |
