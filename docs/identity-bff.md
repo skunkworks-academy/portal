@@ -28,8 +28,11 @@ Do not enable this BFF only on `api.skunkworksacademy.com`: a host-only session 
 - Authorization Code Flow with PKCE `S256` only.
 - 256-bit random OIDC `state` and nonce.
 - Server-side PKCE verifier; only the challenge is sent to the browser/IdP.
+- The authorization request explicitly sends the server transaction's `nonce`, `code_challenge` and `code_challenge_method=S256` values.
 - Five-minute authorization transaction TTL by default; hard maximum ten minutes.
 - Authorization transactions are keyed by a SHA-256 hash of `state`.
+- A short-lived host-only `__Host-swa_auth_tx` `Secure`/`HttpOnly`/`SameSite=Lax` pre-auth cookie is HMAC-bound to the one-time `state`; callback validation requires that browser binding before the server transaction can be consumed or the code redeemed.
+- The pre-auth browser binding is cleared after callback success or rejection and cannot be reused with another `state`.
 - Azure Table ETag conditional deletion atomically consumes transaction state before code exchange.
 - Exact transaction binding to property, public origin and redirect URI.
 - Canonical workforce tenant only for the first BFF rollout.
@@ -59,6 +62,21 @@ The default prefix is `SwaIdentity`.
 
 Storage expiry is enforced on read/consume even though Azure Tables does not provide automatic TTL cleanup. A later operations PR should add scheduled deletion of expired session/transaction rows; stale rows must never become valid merely because cleanup is delayed.
 
+## Browser transaction binding
+
+`state` alone is not treated as proof that the callback is returning to the browser that initiated sign-in.
+
+On `/auth/login` the BFF:
+
+1. creates and stores the normal server-side OIDC transaction;
+2. extracts the transaction's one-time high-entropy `state` from the authorization request;
+3. derives a browser-binding value with HMAC-SHA256 using a domain-separated use of the server encryption key;
+4. sends that binding only in `__Host-swa_auth_tx`, with `Secure`, `HttpOnly`, `Path=/`, `SameSite=Lax`, no `Domain`, and a lifetime no longer than the authorization transaction TTL.
+
+On `/auth/callback` the BFF verifies the host-only browser binding against the returned `state` **before** calling the service that atomically consumes the Azure Table transaction and redeems the authorization code. A missing or mismatched binding fails closed and does not redeem the code. The pre-auth cookie is then cleared whether the callback succeeds or is rejected.
+
+This prevents a transaction initiated on another browser/backend origin from being converted into a portal session merely because an attacker can relay its authorization URL.
+
 ## Required environment configuration
 
 ```text
@@ -80,7 +98,7 @@ IDENTITY_BFF_SESSION_TTL_MINUTES=480
 
 `IDENTITY_BFF_CLIENT_SECRET` and `IDENTITY_BFF_ENCRYPTION_KEY` are secrets. Store them in the governed Azure/GitHub environment secret boundary; never commit real values to the repository or expose them through `VITE_*` variables.
 
-`IDENTITY_BFF_ENCRYPTION_KEY` must be the Base64 encoding of exactly 32 random bytes. Rotation requires a key-version/migration design before production traffic because existing encrypted token bundles would otherwise become unreadable.
+`IDENTITY_BFF_ENCRYPTION_KEY` must be the Base64 encoding of exactly 32 random bytes. Rotation requires a key-version/migration design before production traffic because existing encrypted token bundles would otherwise become unreadable. The same secret is domain-separated for the short-lived browser-binding HMAC; a future dedicated binding key may replace this when key rotation is introduced.
 
 ## Entra application requirement
 
@@ -105,19 +123,22 @@ Before setting `IDENTITY_BFF_ENABLED=true`, prove all of the following:
 3. The reverse proxy preserves the original host and HTTPS protocol in trusted forwarding headers.
 4. The callback URI exactly matches the Entra web redirect registration.
 5. No CDN/proxy caches `/auth/*` or `/session` responses.
-6. `Set-Cookie` is not stripped or rewritten to a parent-domain cookie.
+6. Response cookies are not stripped or rewritten to a parent-domain cookie.
+7. The pre-auth `__Host-swa_auth_tx` cookie set through the portal origin is returned on the Entra top-level callback and cleared after callback processing.
 
 ## Staging verification
 
 Required before any portal cutover:
 
 - BFF disabled returns no usable identity route.
-- Sign-in authorization request contains `code_challenge_method=S256`.
+- Sign-in authorization request contains `code_challenge_method=S256`, the generated challenge and the transaction nonce.
+- Callback without the initiating browser's `__Host-swa_auth_tx` binding fails before transaction consumption/code exchange.
+- A binding generated for another `state` fails closed.
 - Replayed, expired or unknown `state` fails before a second code exchange.
 - Wrong tenant is rejected.
 - Missing `oid` is rejected in the initial single-tenant policy.
 - External `returnTo` is rejected/falls back locally.
-- Successful callback issues `__Host-swa_session` without a `Domain` attribute.
+- Successful callback clears `__Host-swa_auth_tx` and issues `__Host-swa_session` without a `Domain` attribute.
 - Browser storage receives no access token or refresh token from the BFF.
 - `/session` returns only the minimal session view with `Cache-Control: no-store, private`.
 - Wrong/missing CSRF token rejects logout.
