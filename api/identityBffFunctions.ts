@@ -1,5 +1,6 @@
 import {
   app,
+  type Cookie,
   type HttpRequest,
   type HttpResponseInit,
   type InvocationContext
@@ -8,13 +9,16 @@ import { HttpError } from "./http.js";
 import {
   assertIdentityBffReady,
   AzureTableIdentityStore,
-  clearSessionCookie,
   EntraOidcClient,
   IdentityBffService,
   loadIdentityBffConfig,
-  readSessionCookie,
-  serializeSessionCookie
+  readSessionCookie
 } from "./identityBff.js";
+import {
+  browserBindingForState,
+  readBrowserBindingCookie,
+  verifyBrowserBinding
+} from "./identityBffBrowserBinding.js";
 
 const identityConfig = loadIdentityBffConfig();
 let identityService: IdentityBffService | undefined;
@@ -64,37 +68,66 @@ function noStoreHeaders(extra: Record<string, string> = {}) {
   };
 }
 
-function jsonNoStore(body: unknown, status = 200, extraHeaders: Record<string, string> = {}): HttpResponseInit {
+function sessionCookie(value: string, maxAge: number): Cookie {
+  return {
+    name: "__Host-swa_session",
+    value,
+    path: "/",
+    maxAge,
+    secure: true,
+    httpOnly: true,
+    sameSite: "Lax"
+  };
+}
+
+function browserBindingCookie(value: string, maxAge: number): Cookie {
+  return {
+    name: "__Host-swa_auth_tx",
+    value,
+    path: "/",
+    maxAge,
+    secure: true,
+    httpOnly: true,
+    sameSite: "Lax"
+  };
+}
+
+function jsonNoStore(body: unknown, status = 200, cookies?: Cookie[]): HttpResponseInit {
   return {
     status,
+    cookies,
     headers: noStoreHeaders({
       "Content-Type": "application/json; charset=utf-8",
-      "Vary": "Cookie",
-      ...extraHeaders
+      "Vary": "Cookie"
     }),
     jsonBody: body
   };
 }
 
-function safeFailure(error: unknown): HttpResponseInit {
+function safeFailure(error: unknown, cookies?: Cookie[]): HttpResponseInit {
   const status = error instanceof HttpError ? error.status : 500;
   const message = error instanceof HttpError && error.status < 500
     ? error.message
     : status === 503 ? "Identity session service is unavailable." : "Identity session request failed.";
   return {
     status,
+    cookies,
     headers: noStoreHeaders({ "Content-Type": "text/plain; charset=utf-8" }),
     body: message
   };
+}
+
+function logRejected(context: InvocationContext, error: unknown) {
+  const status = error instanceof HttpError ? error.status : 500;
+  if (status >= 500) context.error("Identity BFF request failed.", error instanceof Error ? error.message : "unknown_error");
+  else context.warn("Identity BFF request rejected.", { status, reason: error instanceof Error ? error.message : "request_rejected" });
 }
 
 async function handle(context: InvocationContext, action: () => Promise<HttpResponseInit>) {
   try {
     return await action();
   } catch (error) {
-    const status = error instanceof HttpError ? error.status : 500;
-    if (status >= 500) context.error("Identity BFF request failed.", error instanceof Error ? error.message : "unknown_error");
-    else context.warn("Identity BFF request rejected.", { status, reason: error instanceof Error ? error.message : "request_rejected" });
+    logRejected(context, error);
     return safeFailure(error);
   }
 }
@@ -106,9 +139,13 @@ app.http("identityBffLogin", {
   handler: async (request, context) => handle(context, async () => {
     assertPublicBoundary(request);
     const result = await service().startLogin(request.query.get("returnTo"));
+    const state = new URL(result.location).searchParams.get("state");
+    if (!state) throw new HttpError(500, "Identity provider authorization request did not contain state.");
+    const binding = browserBindingForState(state, identityConfig.encryptionKey);
     context.log("Identity BFF login initiated.", { correlationId: result.correlationId, propertyId: identityConfig.propertyId });
     return {
       status: 302,
+      cookies: [browserBindingCookie(binding, identityConfig.transactionTtlMinutes * 60)],
       headers: noStoreHeaders({ Location: result.location })
     };
   })
@@ -118,27 +155,37 @@ app.http("identityBffCallback", {
   methods: ["GET"],
   authLevel: "anonymous",
   route: "auth/callback",
-  handler: async (request, context) => handle(context, async () => {
-    assertPublicBoundary(request);
-    const result = await service().completeCallback({
-      state: request.query.get("state"),
-      code: request.query.get("code"),
-      error: request.query.get("error")
-    });
-    const maxAgeSeconds = identityConfig.sessionTtlMinutes * 60;
-    context.log("Identity BFF session created.", {
-      correlationId: result.session.correlationId,
-      propertyId: identityConfig.propertyId,
-      subjectId: result.session.subjectId
-    });
-    return {
-      status: 302,
-      headers: noStoreHeaders({
-        Location: result.returnTo,
-        "Set-Cookie": serializeSessionCookie(result.sessionId, maxAgeSeconds)
-      })
-    };
-  })
+  handler: async (request, context) => {
+    const clearBinding = browserBindingCookie("", 0);
+    try {
+      assertPublicBoundary(request);
+      const state = request.query.get("state")?.trim() ?? "";
+      const binding = readBrowserBindingCookie(request.headers.get("cookie"));
+      if (!state || !verifyBrowserBinding(state, binding, identityConfig.encryptionKey)) {
+        throw new HttpError(400, "Authorization callback is not bound to the initiating browser transaction.");
+      }
+
+      const result = await service().completeCallback({
+        state,
+        code: request.query.get("code"),
+        error: request.query.get("error")
+      });
+      const maxAgeSeconds = identityConfig.sessionTtlMinutes * 60;
+      context.log("Identity BFF session created.", {
+        correlationId: result.session.correlationId,
+        propertyId: identityConfig.propertyId,
+        subjectId: result.session.subjectId
+      });
+      return {
+        status: 302,
+        cookies: [clearBinding, sessionCookie(result.sessionId, maxAgeSeconds)],
+        headers: noStoreHeaders({ Location: result.returnTo })
+      } satisfies HttpResponseInit;
+    } catch (error) {
+      logRejected(context, error);
+      return safeFailure(error, [clearBinding]);
+    }
+  }
 });
 
 app.http("identityBffSession", {
@@ -153,7 +200,7 @@ app.http("identityBffSession", {
       return jsonNoStore(
         { authenticated: false },
         200,
-        sessionId ? { "Set-Cookie": clearSessionCookie() } : {}
+        sessionId ? [sessionCookie("", 0)] : undefined
       );
     }
     context.log("Identity BFF session resolved.", { propertyId: identityConfig.propertyId, subjectId: session.subject });
@@ -173,7 +220,8 @@ app.http("identityBffLogout", {
     context.log("Identity BFF local logout completed.", { propertyId: identityConfig.propertyId });
     return {
       status: 204,
-      headers: noStoreHeaders({ "Set-Cookie": clearSessionCookie() })
+      cookies: [sessionCookie("", 0)],
+      headers: noStoreHeaders()
     };
   })
 });
