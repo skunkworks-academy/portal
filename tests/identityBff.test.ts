@@ -16,6 +16,11 @@ import {
   type SessionRecord,
   type VerifiedOidcIdentity
 } from "../api/identityBff";
+import {
+  browserBindingForState,
+  serializeBrowserBindingCookie,
+  verifyBrowserBinding
+} from "../api/identityBffBrowserBinding";
 
 const encryptionKey = Buffer.alloc(32, 7).toString("base64");
 
@@ -126,7 +131,7 @@ describe("Identity BFF security invariants", () => {
     expect(pkce.codeChallenge).toBe(sha256(pkce.codeVerifier));
   });
 
-  it("emits code_challenge_method=S256 in the Entra authorization request", () => {
+  it("emits code_challenge_method=S256 and the transaction nonce in the Entra authorization request", () => {
     const oidc = new EntraOidcClient(config());
     const transaction: AuthTransaction = {
       propertyId: "portal",
@@ -145,6 +150,20 @@ describe("Identity BFF security invariants", () => {
     expect(url.searchParams.get("code_challenge_method")).toBe("S256");
     expect(url.searchParams.get("code_challenge")).toBe(transaction.codeChallenge);
     expect(url.searchParams.get("state")).toBe("opaque-state");
+    expect(url.searchParams.get("nonce")).toBe(transaction.nonce);
+  });
+
+  it("binds OIDC state to a short-lived host-only HttpOnly browser transaction cookie", () => {
+    const binding = browserBindingForState("state-a", encryptionKey);
+    expect(verifyBrowserBinding("state-a", binding, encryptionKey)).toBe(true);
+    expect(verifyBrowserBinding("state-b", binding, encryptionKey)).toBe(false);
+    const cookie = serializeBrowserBindingCookie(binding, 300);
+    expect(cookie).toContain("__Host-swa_auth_tx=");
+    expect(cookie).toContain("Max-Age=300");
+    expect(cookie).toContain("Secure");
+    expect(cookie).toContain("HttpOnly");
+    expect(cookie).toContain("SameSite=Lax");
+    expect(cookie).not.toMatch(/Domain=/i);
   });
 
   it("rejects external return targets and retains same-origin paths", () => {
@@ -154,7 +173,7 @@ describe("Identity BFF security invariants", () => {
     expect(normalizeReturnTo("https://portal.skunkworksacademy.com/profile", origin)).toBe("/profile");
   });
 
-  it("serializes a host-only secure HttpOnly SameSite cookie without Domain", () => {
+  it("serializes a host-only secure HttpOnly SameSite session cookie without Domain", () => {
     const cookie = serializeSessionCookie("opaque-session", 3600);
     expect(cookie).toContain("__Host-swa_session=opaque-session");
     expect(cookie).toContain("Path=/");
