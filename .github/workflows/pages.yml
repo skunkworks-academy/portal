@@ -79,15 +79,12 @@ jobs:
             echo "The production build does not contain the configured Portal API endpoint: $expected" >&2
             exit 1
           fi
-          # Vite emits the API base URL and request path as separate strings. Validate the
-          # relative route family that is actually present in the bundle rather than looking
-          # for a concatenated /api/... string that does not exist until runtime.
-          if grep -R --fixed-strings --quiet '/admin/' dist; then
-            echo 'The production build still contains Azure Functions reserved /admin/ request paths.' >&2
+          if grep -R --fixed-strings --quiet '/api/admin/' dist; then
+            echo 'The production build still contains Azure Functions reserved /api/admin/ routes.' >&2
             exit 1
           fi
-          if ! grep -R --fixed-strings --quiet '/staff/' dist; then
-            echo 'The production build does not contain the required /staff/ privileged request path family.' >&2
+          if ! grep -R --fixed-strings --quiet '/api/staff/' dist; then
+            echo 'The production build does not contain the required /api/staff/ privileged route family.' >&2
             exit 1
           fi
       - uses: actions/upload-pages-artifact@v3
