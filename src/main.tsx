@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { App } from "./App";
+import { SkunkieCompanion } from "./SkunkieCompanion";
 import { msalConfig } from "./authConfig";
 import "./styles.css";
 import "./academy-brand-theme.css";
@@ -43,6 +44,7 @@ async function bootstrapPortal() {
     <React.StrictMode>
       <MsalProvider instance={msalInstance}>
         <App />
+        <SkunkieCompanion />
       </MsalProvider>
     </React.StrictMode>
   );
