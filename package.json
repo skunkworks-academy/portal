@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "main": "api-dist/api/functions.js",
+  "main": "api-dist/api/entrypoint.js",
   "scripts": {
     "dev": "vite",
     "validate:global-nav": "tsx scripts/validate-global-navigation.ts",

@@ -6,6 +6,7 @@ import { requireCourseLesson, scoreFinalAssessment, validateProgressPayload, typ
 import { fallbackJobs } from "./fallbackData.js";
 import { empty, failure, json, readJson } from "./http.js";
 import "./paymentFunctions.js";
+import "./skunkieFunctions.js";
 import {
   createApplication,
   createClass,
@@ -61,9 +62,14 @@ app.http("health", {
       payfastEnvironment: process.env.PAYFAST_ENV || "sandbox",
       paypalEnvironment: process.env.PAYPAL_ENV || "sandbox"
     },
+    skunkieSettings: {
+      configured: Boolean(process.env.AZURE_OPENAI_ENDPOINT && process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_DEPLOYMENT),
+      deployment: process.env.AZURE_OPENAI_DEPLOYMENT || null
+    },
     allowedOrigins: config.allowedOrigins,
     routes: [
       "GET /api/health",
+      "POST /api/skunkie/chat",
       "GET /api/jobs",
       "GET /api/courses",
       "GET /api/classes",
@@ -109,11 +115,11 @@ app.http("getJobs", {
   methods: ["GET"],
   authLevel: "anonymous",
   route: "jobs",
-  handler: async (request, context) => {
+  handler: async (request) => {
     try {
       return json(request, await getLiveJobs());
     } catch (error) {
-      context.warn("Falling back to preset jobs because SharePoint jobs could not be loaded.", error);
+      console.warn("Falling back to preset jobs because SharePoint jobs could not be loaded.", error);
       return json(request, fallbackJobs);
     }
   }

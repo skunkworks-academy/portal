@@ -23,14 +23,16 @@ env:
   PORTAL_ENTRA_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_APPLICATION_ID_URI: ${{ vars.PORTAL_APPLICATION_ID_URI || 'api://e22672ae-61a6-434e-b135-3360557819ec' }}
   PORTAL_API_SCOPE: ${{ vars.PORTAL_API_SCOPE || 'api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user' }}
+  # Public Portal API gateway. The internal Azure Function hostname is used only by deployment verification.
   PORTAL_API_BASE_URL: ${{ inputs.api_base_url || vars.PORTAL_API_BASE_URL || 'https://api.skunkworksacademy.com/api' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -57,6 +59,8 @@ jobs:
             https://*/api) ;;
             *) echo "PORTAL_API_BASE_URL must be an HTTPS URL ending in /api" >&2; exit 1 ;;
           esac
+      - name: Validate generated registration pages
+        run: npm run validate:registration-pages
       - run: npm run build
         env:
           VITE_MSAL_CLIENT_ID: ${{ env.PORTAL_ENTRA_CLIENT_ID }}
@@ -75,56 +79,16 @@ jobs:
             echo "The production build does not contain the configured Portal API endpoint: $expected" >&2
             exit 1
           fi
+          # Vite emits the API base URL and relative request paths as separate strings.
+          # Do not regress this check back to /api/staff/: that concatenation exists only at runtime.
           if grep -R --fixed-strings --quiet '/admin/' dist; then
-            echo 'The production build still contains Azure Functions reserved admin route segments.' >&2
+            echo 'The production build still contains Azure Functions reserved /admin/ request paths.' >&2
             exit 1
           fi
           if ! grep -R --fixed-strings --quiet '/staff/' dist; then
-            echo 'The production build does not contain the required staff privileged route family.' >&2
+            echo 'The production build does not contain the required /staff/ privileged request path family.' >&2
             exit 1
           fi
-      - name: Enforce Academy global shell on every generated HTML page
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          import re
-
-          current = 'https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.08.15.1'
-          marker = 'data-skunkworks-global-nav="v10"'
-          loader = f'<script defer src="{current}" {marker}></script>'
-          old_tags = re.compile(r'<script\b[^>]*(?:academy-navigation\.js|data-skunkworks-global-nav|data-skunkworks-global-shell)[^>]*>\s*</script>', re.I)
-          pages = list(Path('dist').rglob('*.html'))
-
-          for path in pages:
-              html = path.read_text(encoding='utf-8', errors='ignore')
-              html = old_tags.sub('', html)
-              if re.search(r'</head\s*>', html, re.I):
-                  html = re.sub(r'</head\s*>', f'{loader}</head>', html, count=1, flags=re.I)
-              elif re.search(r'</body\s*>', html, re.I):
-                  html = re.sub(r'</body\s*>', f'{loader}</body>', html, count=1, flags=re.I)
-              else:
-                  raise SystemExit(f'Cannot inject Academy shell into {path}')
-              path.write_text(html, encoding='utf-8')
-
-          if not pages:
-              raise SystemExit('Portal build produced no HTML pages.')
-
-          missing = []
-          duplicate = []
-          for path in pages:
-              html = path.read_text(encoding='utf-8', errors='ignore')
-              if current not in html or marker not in html:
-                  missing.append(str(path))
-              if html.count('academy-navigation.js') > 1:
-                  duplicate.append(str(path))
-
-          if missing:
-              raise SystemExit('Global shell missing from: ' + ', '.join(missing))
-          if duplicate:
-              raise SystemExit('Duplicate global shell loaders in: ' + ', '.join(duplicate))
-
-          print(f'Verified Academy canonical v10 shell on {len(pages)} Portal page(s).')
-          PY
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
@@ -132,6 +96,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
