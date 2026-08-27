@@ -29,9 +29,10 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -58,6 +59,8 @@ jobs:
             https://*/api) ;;
             *) echo "PORTAL_API_BASE_URL must be an HTTPS URL ending in /api" >&2; exit 1 ;;
           esac
+      - name: Validate generated registration pages
+        run: npm run validate:registration-pages
       - run: npm run build
         env:
           VITE_MSAL_CLIENT_ID: ${{ env.PORTAL_ENTRA_CLIENT_ID }}
@@ -76,13 +79,14 @@ jobs:
             echo "The production build does not contain the configured Portal API endpoint: $expected" >&2
             exit 1
           fi
-          # Vite emits the API base and relative path as separate strings, so inspect the route segment.
+          # Vite emits the API base URL and relative request paths as separate strings.
+          # Do not regress this check back to /api/staff/: that concatenation exists only at runtime.
           if grep -R --fixed-strings --quiet '/admin/' dist; then
-            echo 'The production build still contains Azure Functions reserved admin route segments.' >&2
+            echo 'The production build still contains Azure Functions reserved /admin/ request paths.' >&2
             exit 1
           fi
           if ! grep -R --fixed-strings --quiet '/staff/' dist; then
-            echo 'The production build does not contain the required staff privileged route family.' >&2
+            echo 'The production build does not contain the required /staff/ privileged request path family.' >&2
             exit 1
           fi
       - uses: actions/upload-pages-artifact@v3
@@ -92,6 +96,7 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
