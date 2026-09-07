@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "publicOrigin": "https://portal.skunkworksacademy.com",
+  "backendOriginClass": "azure-functions",
+  "routes": [
+    {
+      "publicPath": "/auth/login",
+      "backendPath": "/api/auth/login",
+      "methods": [
+        "GET"
+      ],
+      "cache": "bypass"
+    },
+    {
+      "publicPath": "/auth/callback",
+      "backendPath": "/api/auth/callback",
+      "methods": [
+        "GET"
+      ],
+      "cache": "bypass"
+    },
+    {
+      "publicPath": "/session",
+      "backendPath": "/api/session",
+      "methods": [
+        "GET"
+      ],
+      "cache": "bypass"
+    },
+    {
+      "publicPath": "/auth/logout",
+      "backendPath": "/api/auth/logout",
+      "methods": [
+        "POST"
+      ],
+      "cache": "bypass"
+    }
+  ],
+  "forwarding": {
+    "preserveOriginalHost": true,
+    "requireHttps": true,
+    "trustedHeaders": [
+      "x-forwarded-host",
+      "x-forwarded-proto"
+    ]
+  },
+  "cookies": {
+    "session": "__Host-swa_session",
+    "transaction": "__Host-swa_auth_tx",
+    "allowDomainAttribute": false
+  },
+  "directApiBrowserAuthority": false,
+  "rollout": {
+    "defaultEnabled": false,
+    "enableOnlyAfterStagingProbePasses": true
+  }
+}
