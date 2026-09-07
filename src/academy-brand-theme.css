@@ -5,6 +5,7 @@
 */
 
 :root {
+  --swa-portal-theme-contract-version: "2026.09.07.1";
   --academy-bg: #f7f9fc;
   --academy-bg-soft: #eef2f7;
   --academy-surface: #ffffff;
