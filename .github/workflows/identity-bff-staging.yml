@@ -1,0 +1,74 @@
+name: Identity BFF staging gate
+
+on:
+  pull_request:
+    paths:
+      - 'api/identityBff*.ts'
+      - 'tests/identityBff.test.ts'
+      - 'tests/entraContract.test.ts'
+      - 'scripts/verify-identity-bff-staging.mjs'
+      - 'scripts/validate-platform-contract.mjs'
+      - 'infra/identity-bff-edge-contract.json'
+      - 'academy-platform-contract.json'
+      - 'src/authConfig.ts'
+      - 'src/academy-brand-theme.css'
+      - '.github/workflows/identity-bff-staging.yml'
+  workflow_dispatch:
+    inputs:
+      staging_url:
+        description: Same-origin Portal staging URL
+        required: true
+        default: https://portal.skunkworksacademy.com
+      direct_api_url:
+        description: Optional direct Azure Functions/API origin to prove it is not browser authority
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Validate Portal platform contract
+        run: node scripts/validate-platform-contract.mjs
+      - name: Re-run Identity BFF and Entra security invariants
+        run: npx vitest run tests/identityBff.test.ts tests/entraContract.test.ts
+      - name: Verify the routing contract remains same-origin and host-only
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const contract = JSON.parse(fs.readFileSync('infra/identity-bff-edge-contract.json', 'utf8'));
+          if (contract.publicOrigin !== 'https://portal.skunkworksacademy.com') throw new Error('Unexpected Identity BFF public origin');
+          if (contract.directApiBrowserAuthority !== false) throw new Error('Direct API browser authority must remain disabled');
+          if (contract.cookies.allowDomainAttribute !== false) throw new Error('Identity BFF cookies must remain host-only');
+          const publicPaths = contract.routes.map(route => route.publicPath);
+          for (const required of ['/auth/login', '/auth/callback', '/session', '/auth/logout']) {
+            if (!publicPaths.includes(required)) throw new Error('Missing public route: ' + required);
+          }
+          if (contract.routes.some(route => route.cache !== 'bypass')) throw new Error('Identity routes must bypass edge caching');
+          NODE
+
+  live-staging:
+    if: github.event_name == 'workflow_dispatch'
+    needs: contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Probe same-origin Identity BFF staging topology
+        env:
+          IDENTITY_BFF_STAGING_URL: ${{ inputs.staging_url }}
+          IDENTITY_BFF_DIRECT_API_URL: ${{ inputs.direct_api_url }}
+        run: node scripts/verify-identity-bff-staging.mjs
