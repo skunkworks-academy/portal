@@ -89,6 +89,10 @@ jobs:
             echo 'The production build does not contain the required /staff/ privileged request path family.' >&2
             exit 1
           fi
+      - name: Install and verify Academy search favicons
+        uses: skunkworks-academy/www/.github/actions/search-favicons@070f621875577a66ae43cdffa7e9d20c65efdc71
+        with:
+          artifact-path: "dist"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
