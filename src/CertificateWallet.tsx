@@ -39,7 +39,7 @@ export function CertificateWallet({courseId,auth,isStaff,onSignOut}:{courseId:st
   if(!auth||!enrolmentId)return;
   setPending(true);setMessage("");
   try{
-    const result=await portalApi.issueBeginnerCertificate(enrolmentId,{knowledgeCorrect,capstoneScore,criticalSafetyPassed,evidenceReviewed,reviewerNotes},auth);
+    const result=await portalApi.issueBeginnerCertificate(enrolmentId,{knowledgeCorrect,capstoneScore,criticalSafetyPassed,evidenceReviewed,reviewerNotes:reviewNotes},auth);
     setMessage("Approved and issued: "+result.certificateId+". The learner can now sign in to download.");
     setReviewNotes("");setEvidenceReviewed(false);setCriticalSafetyPassed(false);
     setEnrolments(await portalApi.staffBeginnerEnrolments(courseId,auth));

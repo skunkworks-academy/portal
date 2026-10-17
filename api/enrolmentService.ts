@@ -591,9 +591,9 @@ function parseAward(notes:string):BeginnerAward|null {
  try{
   const value=JSON.parse(Buffer.from(match[1],"base64url").toString("utf8")) as Partial<BeginnerAward>;
   if(value.version!==1||!value.certificateId||!value.courseId||!value.issuedAt||!value.learnerName||
-     !value.approvedBy||value.criticalSafetyPassed!==true||!Number.isInteger(value.knowledgeCorrect)||
-     !Number.isInteger(value.capstoneScore)||value.knowledgeCorrect<10||value.knowledgeCorrect>12||
-     value.capstoneScore<70||value.capstoneScore>100)return null;
+     !value.approvedBy||value.criticalSafetyPassed!==true||typeof value.knowledgeCorrect!=="number"||typeof value.capstoneScore!=="number"||
+     !Number.isInteger(value.knowledgeCorrect)||!Number.isInteger(value.capstoneScore)||
+     value.knowledgeCorrect<10||value.knowledgeCorrect>12||value.capstoneScore<70||value.capstoneScore>100)return null;
   requireBeginnerCode(value.courseId);
   return value as BeginnerAward;
  }catch{return null;}
