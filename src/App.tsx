@@ -15,6 +15,7 @@ import {
 } from "./authConfig";
 import { portalApi } from "./api";
 import { StudentExperience } from "./student-experience";
+import { CertificateWallet } from "./CertificateWallet";
 import { PortalLanding } from "./landing-page";
 import { classSchedule, courseCatalog, hasStaffRole, landingRoles, roleDefinitions, roleFromClaims } from "./roles";
 import type {
@@ -430,6 +431,9 @@ export function App() {
   if (!profile) {
     return <PortalLanding onSignIn={() => void signIn("Student")} />;
   }
+
+  const requestedAward = new URLSearchParams(window.location.search).get("certificate");
+  if(requestedAward)return <CertificateWallet courseId={requestedAward} auth={auth} isStaff={Boolean(profile.isAdmin)} onSignOut={()=>void signOut()}/>;
 
   if (activeRole === "Student") {
     return (

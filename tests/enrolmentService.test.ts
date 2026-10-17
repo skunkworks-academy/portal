@@ -2,11 +2,16 @@ import { describe, expect, it } from "vitest";
 import { isPublishedCourseId, normalizeEmail, publishedCourseCatalog } from "../api/enrolmentService.js";
 
 describe("course enrolment contract", () => {
-  it("publishes the three Docusaurus administration courses", () => {
+  it("publishes the three administration and five beginner courses", () => {
     expect(publishedCourseCatalog.map((course) => course.id)).toEqual([
       "SHP-UPA-101",
       "GHP-DOM-101",
-      "M365-LIC-101"
+      "M365-LIC-101",
+      "SKW-BEG-AI-101",
+      "SKW-BEG-CYB-101",
+      "SKW-BEG-IT-101",
+      "SKW-BEG-M365-101",
+      "SKW-BEG-CLD-101"
     ]);
   });
 
