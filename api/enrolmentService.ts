@@ -606,7 +606,7 @@ export async function issueBeginnerAward(enrolmentId:string,input:{
  const record=items.map(toEnrolment).find(x=>x.id===clean(enrolmentId));
  if(!record)throw new HttpError(404,"Enrolment not found.");
  const courseId=requireBeginnerCode(record.courseId);
- if(!["Active","Completed"].includes(record.status))throw new HttpError(409,"An active enrolment is required before award approval.");
+ if(!["Submitted","Active","Completed"].includes(record.status))throw new HttpError(409,"A submitted or active Academy enrolment is required before award approval.");
  if(!record.learnerName.trim())throw new HttpError(409,"Learner legal name must be confirmed on the enrolment.");
  if(!Number.isInteger(input.knowledgeCorrect)||input.knowledgeCorrect!<10||input.knowledgeCorrect!>12)
   throw new HttpError(400,"Knowledge assessment requires 10–12 correct answers out of twelve.");
