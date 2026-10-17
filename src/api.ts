@@ -83,6 +83,7 @@ export type AcademyBeginnerAward={version:1;certificateId:string;courseId:string
 export type AcademyEnrolment={id:string;courseId:string;courseTitle:string;learnerName:string;learnerEmail:string;status:string};
 
 export const portalApi = {
+  requestBeginnerAssessment:(courseId:string,learnerName:string,auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyEnrolment>('/enrolments',{method:'POST',body:JSON.stringify({courseId,learnerName,source:'portal',gateway:'manual'})},auth),
   myBeginnerCertificate:(courseId:string,auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyBeginnerAward>('/me/beginner-certificates/'+encodeURIComponent(courseId),{},auth),
   staffBeginnerEnrolments:(courseId:string,auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyEnrolment[]>('/staff/enrolments?courseId='+encodeURIComponent(courseId),{},auth),
   issueBeginnerCertificate:(id:string,payload:{knowledgeCorrect:number;capstoneScore:number;criticalSafetyPassed:boolean;evidenceReviewed:boolean;reviewerNotes:string},auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyBeginnerAward>('/staff/beginner-certificates/'+encodeURIComponent(id)+'/issue',{method:'POST',body:JSON.stringify(payload)},auth),
