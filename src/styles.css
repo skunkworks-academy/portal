@@ -763,3 +763,16 @@ label {
   }
   .global-menu-toggle span { transition: none !important; }
 }
+
+/* Credential-wallet views: responsive and explicit print surface. */
+.certificateWallet{max-width:1100px;margin:3rem auto;padding:clamp(1rem,3vw,2.5rem);color:inherit}
+.certificateWalletHeader{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.certificateWalletActions{display:flex;gap:1rem;flex-wrap:wrap;margin:1.25rem 0}
+.certificateWalletActions a,.certificateWalletActions button,.certificateWalletHeader button,.certificateWalletStaff button{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:.7rem 1rem;border:2px solid #1e6bd0;border-radius:.6rem;background:#1e6bd0;color:#fff;font:inherit;font-weight:700;text-decoration:none;cursor:pointer}
+.certificateWalletStaff,.certificateWalletAward{border:1px solid #93a3b8;padding:1.5rem;margin-top:2rem;border-radius:.8rem}
+.certificateWalletStaff label{display:flex;flex-direction:column;gap:.4rem;margin:1rem 0;font-weight:700}
+.certificateWalletStaff label:has(input[type=checkbox]){flex-direction:row;align-items:center}
+.certificateWalletStaff input,.certificateWalletStaff select,.certificateWalletStaff textarea{font:inherit;padding:.7rem;max-width:650px;border:1px solid #64748b;border-radius:.4rem;background:inherit;color:inherit}
+.certificateWalletStaff button:disabled{opacity:.55;cursor:not-allowed}
+.certificateWalletPreview img{display:block;max-width:100%;height:auto;border:1px solid #d1d5db}
+@media print{body>*:not(#root){display:none!important}.certificateWalletHeader,.certificateWallet>p,.certificateWalletActions,.certificateWalletStaff{display:none!important}.certificateWalletAward{border:0;margin:0;padding:0}.certificateWalletAward>h2,.certificateWalletAward>p{display:none}.certificateWalletPreview img{width:100%;border:0}@page{size:landscape;margin:8mm}}

@@ -10,6 +10,10 @@ import {
   submitAnonymousEnrolment,
   submitAuthenticatedEnrolment,
   updateAdminEnrolment,
+  issueBeginnerAward,
+  myBeginnerAward,
+  verifyBeginnerAward,
+  beginnerAwardSvg,
   type EnrolmentRequestInput
 } from "./enrolmentService.js";
 
@@ -108,6 +112,31 @@ app.http("staffSubscriptions", {
     });
     return json(request, records);
   })
+});
+
+
+app.http("issueBeginnerCertificate",{
+ methods:["POST"],authLevel:"anonymous",route:"staff/beginner-certificates/{enrolmentId}/issue",
+ handler:async(request,context)=>handle(request,context,async()=>{
+  const principal=await requireAdmin(request);
+  const payload=await readJson<{knowledgeCorrect?:number;capstoneScore?:number;criticalSafetyPassed?:boolean;evidenceReviewed?:boolean;reviewerNotes?:string}>(request);
+  return json(request,await issueBeginnerAward(request.params.enrolmentId,payload,principal),201);
+ })
+});
+app.http("myBeginnerCertificate",{
+ methods:["GET"],authLevel:"anonymous",route:"me/beginner-certificates/{courseId}",
+ handler:async(request,context)=>handle(request,context,async()=>{
+  const principal=await requireStudent(request);
+  const award=await myBeginnerAward(request.params.courseId,principal);
+  return json(request,{...award,issuer:"Raydo Matthee",certificateSvg:beginnerAwardSvg(award,"certificate"),badgeSvg:beginnerAwardSvg(award,"badge")});
+ })
+});
+app.http("verifyBeginnerCertificate",{
+ methods:["GET"],authLevel:"anonymous",route:"certificates/verify/{certificateId}",
+ handler:async(request,context)=>handle(request,context,async()=>{
+  const result=await verifyBeginnerAward(request.params.certificateId);
+  return json(request,result,result.valid?200:404);
+ })
 });
 
 function requireAllowedOrigin(request: HttpRequest) {

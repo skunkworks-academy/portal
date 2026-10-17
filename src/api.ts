@@ -78,7 +78,14 @@ async function request<T>(
   }
 }
 
+
+export type AcademyBeginnerAward={version:1;certificateId:string;courseId:string;learnerName:string;issuedAt:string;knowledgeCorrect:number;capstoneScore:number;criticalSafetyPassed:true;approvedBy:string;issuer:string;certificateSvg:string;badgeSvg:string};
+export type AcademyEnrolment={id:string;courseId:string;courseTitle:string;learnerName:string;learnerEmail:string;status:string};
+
 export const portalApi = {
+  myBeginnerCertificate:(courseId:string,auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyBeginnerAward>('/me/beginner-certificates/'+encodeURIComponent(courseId),{},auth),
+  staffBeginnerEnrolments:(courseId:string,auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyEnrolment[]>('/staff/enrolments?courseId='+encodeURIComponent(courseId),{},auth),
+  issueBeginnerCertificate:(id:string,payload:{knowledgeCorrect:number;capstoneScore:number;criticalSafetyPassed:boolean;evidenceReviewed:boolean;reviewerNotes:string},auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyBeginnerAward>('/staff/beginner-certificates/'+encodeURIComponent(id)+'/issue',{method:'POST',body:JSON.stringify(payload)},auth),
   health: () => request<PortalHealth>("/health"),
   jobs: () => request<JobPosting[]>("/jobs"),
   courses: () => request<CourseRecord[]>("/courses"),

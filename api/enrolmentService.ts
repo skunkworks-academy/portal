@@ -1,4 +1,5 @@
 import { ClientSecretCredential } from "@azure/identity";
+import { randomUUID } from "node:crypto";
 import type { Principal } from "./auth.js";
 import { config, requireSettings } from "./config.js";
 import { HttpError } from "./http.js";
@@ -6,7 +7,12 @@ import { HttpError } from "./http.js";
 export const publishedCourseCatalog = [
   { id: "SHP-UPA-101", title: "Shopify User Permissions" },
   { id: "GHP-DOM-101", title: "GitHub Pages Setup" },
-  { id: "M365-LIC-101", title: "Microsoft 365 Licenses" }
+  { id: "M365-LIC-101", title: "Microsoft 365 Licenses" },
+  { id: "SKW-BEG-AI-101", title: "Generative AI & ChatGPT for Beginners" },
+  { id: "SKW-BEG-CYB-101", title: "Cybersecurity Essentials & Online Safety" },
+  { id: "SKW-BEG-IT-101", title: "IT Support & Computer Troubleshooting Fundamentals" },
+  { id: "SKW-BEG-M365-101", title: "Microsoft 365 & Excel Productivity Essentials" },
+  { id: "SKW-BEG-CLD-101", title: "Cloud Computing Fundamentals" }
 ] as const;
 
 export type PublishedCourseId = typeof publishedCourseCatalog[number]["id"];
@@ -558,4 +564,100 @@ async function patchItem(name: string, id: string, fields: Record<string, unknow
     body: JSON.stringify(fields)
   });
   return graph<GraphListItem>(`/sites/${site}/lists/${list}/items/${encodedId}?expand=fields`);
+}
+
+
+// Official Academy completion is explicitly issued by authorised staff after
+// documented assessment. Browser-local checklists and quiz scores are NEVER
+// accepted as proof of this credential.
+export const beginnerCourseCodes = [
+ "SKW-BEG-AI-101","SKW-BEG-CYB-101","SKW-BEG-IT-101","SKW-BEG-M365-101","SKW-BEG-CLD-101"
+] as const;
+export type BeginnerCourseCode=typeof beginnerCourseCodes[number];
+export type BeginnerAward={
+ version:1;certificateId:string;courseId:BeginnerCourseCode;
+ learnerName:string;issuedAt:string;knowledgeCorrect:number;
+ capstoneScore:number;criticalSafetyPassed:true;approvedBy:string;
+};
+const AWARD_MARKER="ACADEMY_BEGINNER_AWARD_V1:";
+export function requireBeginnerCode(value:unknown):BeginnerCourseCode {
+ const code=clean(value).toUpperCase();
+ if(!beginnerCourseCodes.includes(code as BeginnerCourseCode))throw new HttpError(404,"Unknown beginner course.");
+ return code as BeginnerCourseCode;
+}
+function parseAward(notes:string):BeginnerAward|null {
+ const match=notes.match(/(?:^|\n)ACADEMY_BEGINNER_AWARD_V1:([A-Za-z0-9_-]+)/);
+ if(!match)return null;
+ try{
+  const value=JSON.parse(Buffer.from(match[1],"base64url").toString("utf8")) as Partial<BeginnerAward>;
+  if(value.version!==1||!value.certificateId||!value.courseId||!value.issuedAt||!value.learnerName||
+     !value.approvedBy||value.criticalSafetyPassed!==true||!Number.isInteger(value.knowledgeCorrect)||
+     !Number.isInteger(value.capstoneScore)||value.knowledgeCorrect<10||value.knowledgeCorrect>12||
+     value.capstoneScore<70||value.capstoneScore>100)return null;
+  requireBeginnerCode(value.courseId);
+  return value as BeginnerAward;
+ }catch{return null;}
+}
+export async function issueBeginnerAward(enrolmentId:string,input:{
+ knowledgeCorrect?:number;capstoneScore?:number;criticalSafetyPassed?:boolean;
+ evidenceReviewed?:boolean; reviewerNotes?:string;
+},principal:Principal) {
+ const items=await allItems("CourseEnrollments");
+ const record=items.map(toEnrolment).find(x=>x.id===clean(enrolmentId));
+ if(!record)throw new HttpError(404,"Enrolment not found.");
+ const courseId=requireBeginnerCode(record.courseId);
+ if(!["Active","Completed"].includes(record.status))throw new HttpError(409,"An active enrolment is required before award approval.");
+ if(!record.learnerName.trim())throw new HttpError(409,"Learner legal name must be confirmed on the enrolment.");
+ if(!Number.isInteger(input.knowledgeCorrect)||input.knowledgeCorrect!<10||input.knowledgeCorrect!>12)
+  throw new HttpError(400,"Knowledge assessment requires 10–12 correct answers out of twelve.");
+ if(!Number.isInteger(input.capstoneScore)||input.capstoneScore!<70||input.capstoneScore!>100)
+  throw new HttpError(400,"Capstone score must be 70–100.");
+ if(input.criticalSafetyPassed!==true||input.evidenceReviewed!==true)
+  throw new HttpError(400,"An authorised reviewer must confirm evidence and all critical safety controls.");
+ if(clean(input.reviewerNotes).length<12)
+  throw new HttpError(400,"Document specific reviewed evidence and assessment basis (minimum 12 characters).");
+ const existing=parseAward(record.notes);
+ if(existing&&existing.courseId===courseId)
+  throw new HttpError(409,"An award already exists. Reissue requires a formal revocation and audit workflow.");
+ const award:BeginnerAward={version:1,certificateId:"SKW-"+randomUUID().toUpperCase(),
+   courseId,learnerName:record.learnerName,issuedAt:now(),
+   knowledgeCorrect:input.knowledgeCorrect!,capstoneScore:input.capstoneScore!,
+   criticalSafetyPassed:true,approvedBy:principal.email};
+ const entry=AWARD_MARKER+Buffer.from(JSON.stringify(award),"utf8").toString("base64url");
+ const notes=[clean(record.notes).slice(0,100),entry,
+   "Reviewer: "+clean(input.reviewerNotes).slice(0,300)].filter(Boolean).join("\n");
+ if(notes.length>2000)throw new HttpError(400,"Evidence metadata is too long.");
+ await patchItem("CourseEnrollments",record.id,{Status:"Completed",Notes:notes,UpdatedAt:now()});
+ await audit("AcademyBeginnerCertificateIssued",principal.email,record.id,award.certificateId);
+ return award;
+}
+export async function myBeginnerAward(courseIdValue:unknown,principal:Principal) {
+ const code=requireBeginnerCode(courseIdValue);
+ const email=normalizeEmail(principal.email);
+ const records=(await allItems("CourseEnrollments")).map(toEnrolment);
+ const record=records.find(x=>x.courseId===code&&matchesPrincipal(x,principal.subject,email));
+ if(!record||record.status!=="Completed")throw new HttpError(404,"No verified completion award has been issued for this learner and course.");
+ const award=parseAward(record.notes);
+ if(!award||award.courseId!==code||award.learnerName!==record.learnerName)throw new HttpError(404,"No valid verified award is recorded.");
+ return award;
+}
+export async function verifyBeginnerAward(id:string) {
+ if(!/^SKW-[0-9A-F-]{36}$/.test(id))throw new HttpError(404,"Certificate not found.");
+ const records=(await allItems("CourseEnrollments")).map(toEnrolment);
+ const matching=records.find(x=>x.status==="Completed"&&x.notes.includes(AWARD_MARKER)&&
+   parseAward(x.notes)?.certificateId===id);
+ if(!matching)return {valid:false};
+ const award=parseAward(matching.notes);
+ return award?{valid:true,courseId:award.courseId,
+   courseTitle:publishedCourseCatalog.find(x=>x.id===award.courseId)?.title,
+   issuedAt:award.issuedAt,issuer:"Skunkworks Academy"}:{valid:false};
+}
+export function beginnerAwardSvg(award:BeginnerAward,kind:"certificate"|"badge") {
+ const safe=(s:string)=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&apos;");
+ const title=publishedCourseCatalog.find(x=>x.id===award.courseId)?.title||award.courseId;
+ const name=safe(award.learnerName.slice(0,130)),course=safe(title),serial=safe(award.certificateId);
+ const date=safe(new Date(award.issuedAt).toLocaleDateString("en-ZA",{timeZone:"UTC",year:"numeric",month:"long",day:"numeric"}));
+ const verify="https://api.skunkworksacademy.com/api/certificates/verify/"+encodeURIComponent(award.certificateId);
+ if(kind==="badge")return '<svg xmlns="http://www.w3.org/2000/svg" width="600" height="600" viewBox="0 0 600 600" role="img" aria-label="Skunkworks Academy verified course completion badge"><rect width="600" height="600" rx="45" fill="#03033a"/><circle cx="300" cy="242" r="164" fill="#1e6bd0" stroke="#ffffff" stroke-width="12"/><path d="M226 236 278 290 379 177" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/><text x="300" y="350" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="33" fill="#fff">VERIFIED</text><text x="300" y="451" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="30" fill="#fff">SKUNKWORKS ACADEMY</text><text x="300" y="497" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" fill="#fff">'+safe(award.courseId)+'</text><text x="300" y="547" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#fff">'+serial+'</text></svg>';
+ return '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850" role="img" aria-label="Skunkworks Academy course completion certificate"><rect width="1200" height="850" fill="#f7f9fc"/><rect x="32" y="32" width="1136" height="786" rx="12" fill="#fff" stroke="#03033a" stroke-width="4"/><rect x="47" y="47" width="1106" height="756" rx="7" fill="none" stroke="#1e6bd0" stroke-width="2"/><g transform="translate(104,92)"><rect x="0" y="0" width="89" height="89" rx="19" fill="#03033a"/><path d="M20 57 42 20h8l20 37H57l-8-13h-15l-7 13z" fill="#fff"/><text x="110" y="40" font-family="Arial,sans-serif" font-size="36" font-weight="bold" fill="#03033a">SKUNKWORKS</text><text x="113" y="70" font-family="Arial,sans-serif" font-size="26" letter-spacing="7" fill="#1e6bd0">ACADEMY</text></g><text x="600" y="275" text-anchor="middle" font-size="20" font-family="Arial,sans-serif" letter-spacing="4" fill="#1e6bd0">CERTIFICATE OF</text><text x="600" y="331" text-anchor="middle" font-size="47" font-weight="bold" font-family="Georgia,serif" fill="#03033a">COURSE COMPLETION</text><text x="600" y="381" text-anchor="middle" font-size="21" font-family="Arial,sans-serif" fill="#334155">Awarded to</text><text x="600" y="449" text-anchor="middle" font-size="46" font-family="Georgia,serif" fill="#03033a">'+name+'</text><text x="600" y="501" text-anchor="middle" font-size="20" font-family="Arial,sans-serif" fill="#334155">for successfully completing the Skunkworks Academy course</text><text x="600" y="545" text-anchor="middle" font-size="26" font-weight="bold" font-family="Arial,sans-serif" fill="#1e6bd0" textLength="930" lengthAdjust="spacingAndGlyphs">'+course+'</text><path d="M103 602h994" stroke="#e2e8f0" stroke-width="2"/><text x="185" y="657" font-size="19" font-family="Arial,sans-serif" fill="#03033a">Issued: '+date+'</text><text x="185" y="697" font-size="17" font-family="Arial,sans-serif" fill="#334155">Certificate ID: '+serial+'</text><text x="880" y="664" text-anchor="middle" font-size="43" font-family="cursive,Georgia,serif" font-style="italic" fill="#03033a">Raydo Matthee</text><path d="M735 686H1025" stroke="#03033a" stroke-width="2"/><text x="880" y="718" text-anchor="middle" font-size="18" font-family="Arial,sans-serif" fill="#334155">Authorised Academy signatory</text><text x="600" y="772" text-anchor="middle" font-size="14" font-family="Arial,sans-serif" fill="#475569">Verify certificate: '+safe(verify)+'</text></svg>';
 }
