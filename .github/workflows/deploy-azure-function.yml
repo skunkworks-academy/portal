@@ -263,3 +263,31 @@ jobs:
             echo "- Canonical API base URL: $API_BASE_URL"
             echo "- Required staff applications route: reachable (authentication enforced)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify AI publication and default-deny access contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          API_HOSTNAME="$(az functionapp show --resource-group "$RESOURCE_GROUP_NAME" --name "$FUNCTION_APP_NAME" --query defaultHostName -o tsv)"
+          API_BASE_URL="https://${API_HOSTNAME}/api"
+          response="$(curl --fail --silent --show-error --retry 4 --retry-delay 5 --max-time 30 "$API_BASE_URL/course-publication")"
+          echo "$response" | jq -e '
+            .schema == "skunkworks-academy/course-publication/v1"
+            and .policy == "default-deny"
+            and (.courses | length == 27)
+            and ([.courses[] | select(.source == "generated-foundation" and .publicationStatus == "review" and .enrolmentStatus == "enquiry-only" and .checkoutUrl == null)] | length == 19)
+            and ([.courses[] | select(.publicationStatus == "published" and .enrolmentStatus == "portal-allowlisted")] | length == 8)
+            and ([.courses[] | select(.courseId == "SWA-AI-001" and .checkoutUrl != null)] | length == 0)
+          ' >/dev/null
+          http_status="$(curl --silent --show-error --max-time 20 -o /tmp/access-denied.txt -w '%{http_code}' "$API_BASE_URL/course-access?courseId=SWA-AI-001" || true)"
+          case "$http_status" in
+            401|403|404) echo "Unauthenticated course access denied: HTTP $http_status" ;;
+            *) echo "Expected access denial, received HTTP $http_status" >&2; exit 1 ;;
+          esac
+          {
+            echo "### AI course publication"
+            echo "- Public API status contract returned 27 records."
+            echo "- 19 generated AI courses remain review-only with no checkout URL."
+            echo "- Eight legacy portal courses retain published state."
+            echo "- Unauthenticated course-access request denied (HTTP $http_status)."
+          } >> "$GITHUB_STEP_SUMMARY"
