@@ -70,6 +70,9 @@ jobs:
       - name: Run tests
         run: npm test
 
+      - name: Verify published AI course contract against canonical catalogue
+        run: npm run validate:ai-publication -- --remote
+
       - name: Generate Teams icons
         run: npm run teams:icons
 
