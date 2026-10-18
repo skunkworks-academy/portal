@@ -56,6 +56,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - run: npm run validate:ai-publication -- --remote
       - run: npm run build:api
       - name: Validate Bicep
         uses: azure/cli@v2

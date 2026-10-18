@@ -1,5 +1,6 @@
 import { app, type HttpRequest, type HttpResponseInit, type InvocationContext } from "@azure/functions";
 import { config } from "./config.js";
+import {coursePublicationSnapshot} from "./coursePublication.js";
 import { requireAdmin, requireStudent } from "./auth.js";
 import { corsHeaders, failure, HttpError, json, readJson } from "./http.js";
 import {
@@ -16,6 +17,17 @@ import {
   beginnerAwardSvg,
   type EnrolmentRequestInput
 } from "./enrolmentService.js";
+
+/** Read-only public publication status; never exposes protected course bodies. */
+app.http("coursePublicationStatus", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "course-publication",
+  handler: async (request) => ({
+    ...json(request, coursePublicationSnapshot()),
+    headers: {...corsHeaders(request), "Content-Type": "application/json", "Cache-Control": "no-store"}
+  })
+});
 
 app.http("submitAnonymousCourseEnrolment", {
   methods: ["POST"],
