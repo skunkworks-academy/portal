@@ -4,16 +4,9 @@ import type { Principal } from "./auth.js";
 import { config, requireSettings } from "./config.js";
 import { HttpError } from "./http.js";
 
-export const publishedCourseCatalog = [
-  { id: "SHP-UPA-101", title: "Shopify User Permissions" },
-  { id: "GHP-DOM-101", title: "GitHub Pages Setup" },
-  { id: "M365-LIC-101", title: "Microsoft 365 Licenses" },
-  { id: "SKW-BEG-AI-101", title: "Generative AI & ChatGPT for Beginners" },
-  { id: "SKW-BEG-CYB-101", title: "Cybersecurity Essentials & Online Safety" },
-  { id: "SKW-BEG-IT-101", title: "IT Support & Computer Troubleshooting Fundamentals" },
-  { id: "SKW-BEG-M365-101", title: "Microsoft 365 & Excel Productivity Essentials" },
-  { id: "SKW-BEG-CLD-101", title: "Cloud Computing Fundamentals" }
-] as const;
+import {publishedCourseCatalog, isCoursePublished} from "./coursePublication.js";
+import {entitlementGrantsCourse, isEntitlementActive, type GrantEntitlement} from "./courseEntitlements.js";
+export {publishedCourseCatalog} from "./coursePublication.js";
 
 export type PublishedCourseId = typeof publishedCourseCatalog[number]["id"];
 export type EnrolmentStatus =
@@ -63,7 +56,7 @@ export interface EnrolmentRecord {
 type GraphListItem = { id: string; fields: Record<string, unknown> };
 type GraphListResponse = { value: GraphListItem[]; "@odata.nextLink"?: string };
 type QueryRecord = { id: string } & Record<string, unknown>;
-type EntitlementRecord = {
+type EntitlementRecord = GrantEntitlement & {
   id: string;
   customerEmail: string;
   status: string;
@@ -195,7 +188,7 @@ export async function resolveCourseAccess(courseIdValue: unknown, principal: Pri
   if (["Active", "Completed"].includes(record.status)) {
     if (record.entitlementId || record.paymentTransactionId) {
       const entitlement = await findLinkedEntitlement(record, learnerEmail);
-      if (!entitlement || !isEntitlementActive(entitlement)) {
+      if (!entitlement || !entitlementGrantsCourse(entitlement, record)) {
         record = toEnrolment(await patchItem("CourseEnrollments", record.id, {
           Status: "Suspended",
           UpdatedAt: now(),
@@ -211,7 +204,7 @@ export async function resolveCourseAccess(courseIdValue: unknown, principal: Pri
   }
 
   if (["Submitted", "PendingPayment"].includes(record.status)) {
-    const entitlement = await findActiveEntitlement(learnerEmail);
+    const entitlement = await findActiveEntitlement(record);
     if (entitlement) {
       record = toEnrolment(await patchItem("CourseEnrollments", record.id, {
         Status: "Active",
@@ -254,6 +247,11 @@ export async function updateAdminEnrolment(
   principal: Principal
 ) {
   const status = requireStatus(input.status);
+  if (status === "Active" || status === "Completed") {
+    const item = (await allItems("CourseEnrollments")).find(item => item.id === clean(id));
+    if (!item) throw new HttpError(404, "Enrolment not found.");
+    requireCourse(toEnrolment(item).courseId);
+  }
   const fields: Record<string, unknown> = {
     Status: status,
     UpdatedAt: now()
@@ -400,30 +398,26 @@ async function findLearnerCourseEnrolment(courseId: string, objectId: string, em
   return records.find((record) => record.courseId === courseId && matchesPrincipal(record, objectId, email)) ?? null;
 }
 
-function isEntitlementActive(record: EntitlementRecord) {
-  const expiry = Date.parse(record.validUntil);
-  return record.status === "Active" && (!record.validUntil || Number.isNaN(expiry) || expiry > Date.now());
-}
-
 async function findLinkedEntitlement(enrolment: EnrolmentRecord, email: string) {
   const records = (await allItems("Entitlements")).map(toEntitlement);
   if (enrolment.entitlementId) {
     const byId = records.find((record) => record.id === enrolment.entitlementId);
-    if (byId) return byId;
+    if (byId && entitlementGrantsCourse(byId, enrolment)) return byId;
   }
   if (enrolment.paymentTransactionId) {
     const byPayment = records.find((record) =>
       record.paymentTransactionId === enrolment.paymentTransactionId && normalizeEmail(record.customerEmail) === email
     );
-    if (byPayment) return byPayment;
+    if (byPayment && entitlementGrantsCourse(byPayment, enrolment)) return byPayment;
   }
   return null;
 }
 
-async function findActiveEntitlement(email: string) {
+async function findActiveEntitlement(enrolment: EnrolmentRecord) {
+  if (!enrolment.planId) return null;
   return (await allItems("Entitlements"))
     .map(toEntitlement)
-    .find((record) => normalizeEmail(record.customerEmail) === email && isEntitlementActive(record)) ?? null;
+    .find((record) => entitlementGrantsCourse(record, enrolment)) ?? null;
 }
 
 function allowedResponse(record: EnrolmentRecord, principal: Principal) {
@@ -469,7 +463,10 @@ function toEntitlement(item: GraphListItem): EntitlementRecord {
     status: clean(item.fields["Status"]),
     validUntil: clean(item.fields["ValidUntil"]),
     paymentTransactionId: clean(item.fields["PaymentTransactionId"]),
-    providerReference: clean(item.fields["ProviderReference"])
+    providerReference: clean(item.fields["ProviderReference"]),
+    planId: clean(item.fields["PlanId"]),
+    entitlement: clean(item.fields["Entitlement"]),
+    courseId: clean(item.fields["CourseId"]).toUpperCase()
   };
 }
 
