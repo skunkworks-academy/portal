@@ -66,7 +66,7 @@ jobs:
           VITE_MSAL_CLIENT_ID: ${{ env.PORTAL_ENTRA_CLIENT_ID }}
           VITE_API_CLIENT_ID: ${{ env.PORTAL_ENTRA_CLIENT_ID }}
           VITE_APPLICATION_ID_URI: ${{ env.PORTAL_APPLICATION_ID_URI }}
-          VITE_MSAL_AUTHORITY: https://login.microsoftonline.com/${{ env.PORTAL_ENTRA_TENANT_ID }}
+          VITE_MSAL_AUTHORITY: https://login.microsoftonline.com/common
           VITE_API_SCOPE: ${{ env.PORTAL_API_SCOPE }}
           VITE_API_BASE_URL: ${{ env.PORTAL_API_BASE_URL }}
           VITE_SKUNKWORKS_TENANT_ID: ${{ env.PORTAL_ENTRA_TENANT_ID }}
