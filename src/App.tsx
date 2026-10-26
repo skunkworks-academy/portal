@@ -91,9 +91,11 @@ function rolesFromClaims(claims: Record<string, unknown>) {
 function getProfile(account?: AccountInfo | null): UserProfile | null {
   if (!account) return null;
   const claims = claimsFromAccount(account);
-  const roles = rolesFromClaims(claims);
-  const tenantId = typeof claims.tid === "string" ? claims.tid : account.tenantId;
-  const isAdmin = tenantId === skunkworksTenantId && hasStaffRole(roles);
+  const tenantId = (typeof claims.tid === "string" ? claims.tid : account.tenantId).toLowerCase();
+  // External accounts always start as learners, even if another tenant emits
+  // an identically named Portal.Staff, Portal.Admin or Portal.Instructor claim.
+  const roles = tenantId === skunkworksTenantId.toLowerCase() ? rolesFromClaims(claims) : [];
+  const isAdmin = tenantId === skunkworksTenantId.toLowerCase() && hasStaffRole(roles);
 
   return {
     name: account.name ?? account.username,
@@ -207,7 +209,15 @@ export function App() {
   useEffect(() => {
     if (!auth || !profile) return;
     void run(async () => {
-      const saved = await portalApi.myProfile(auth);
+      const existingProfile = await portalApi.myProfile(auth);
+      // The first verified Microsoft sign-in is also learner registration.
+      // Persist only genuine identity details; do not seed sample courses or
+      // grant privileged roles. The API derives the role from verified claims.
+      const saved = existingProfile ?? await portalApi.updateProfile({
+        ...defaultProfileInput,
+        displayName: profile.name,
+        portalRole: "Student"
+      }, auth);
       setPortalProfile(
         saved
           ? {

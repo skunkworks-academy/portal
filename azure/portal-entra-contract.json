@@ -35,7 +35,7 @@
   },
   "enterpriseApplication": {
     "accountEnabled": true,
-    "userAssignmentRequired": true
+    "userAssignmentRequired": false
   },
   "roleGroups": {
     "Portal.Student": "Skunkworks Academy Portal - Learners",
