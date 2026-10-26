@@ -32,11 +32,6 @@ const resources = [
   { title: "Exam revision checklist", type: "Download", detail: "Use this checklist to structure your revision time.", href: "https://skunkworksacademy.com/self-paced/" }
 ];
 
-const messages = [
-  { id: "class", title: "New class added: Cloud foundations", meta: "Today · Action available", body: "A Cloud foundations study group is now available this Thursday at 18:00. Reserve your space from the Classes page." },
-  { id: "plan", title: "Your learning plan is ready", meta: "Yesterday", body: "Your recommended pathway is ready. Start with Azure Fundamentals and set a weekly study goal." },
-  { id: "welcome", title: "Welcome to Skunkworks Academy", meta: "2 days ago", body: "Your learner workspace is ready. Explore courses, classes, resources and your AI Learning Companion." }
-];
 
 export function StudentExperience({
   profile,
@@ -50,12 +45,6 @@ export function StudentExperience({
 }: StudentExperienceProps) {
   const [view, setView] = useState<StudentView>("dashboard");
   const [query, setQuery] = useState("");
-  const [selectedMessage, setSelectedMessage] = useState(messages[0]);
-  const [prompt, setPrompt] = useState("");
-  const [chat, setChat] = useState<Array<{ author: "Skunkie" | "You"; text: string }>>([
-    { author: "Skunkie", text: "Hi! I’m Skunkie, your learning companion. I can explain a concept, help you plan study time, or quiz you on a course." }
-  ]);
-
   const displayName = portalProfile.displayName || profile?.name || "Learner";
   const registeredClassIds = useMemo(() => new Set(registrations.map((registration) => registration.classId)), [registrations]);
   const filteredCourses = useMemo(
@@ -63,19 +52,8 @@ export function StudentExperience({
     [courses, query]
   );
   const firstCourse = courses[0];
-  const nextClass = classes.find((classItem) => registeredClassIds.has(classItem.id)) ?? classes[0];
-  const learningProgress = courses.length ? Math.min(82, 18 + registrations.length * 12 + courses.length * 8) : 0;
+  const nextClass = classes.find((classItem) => registeredClassIds.has(classItem.id));
 
-  function sendPrompt(value = prompt) {
-    const text = value.trim();
-    if (!text) return;
-    setChat((current) => [
-      ...current,
-      { author: "You", text },
-      { author: "Skunkie", text: "Great question. I’ll use your current course context to give you a clear next step. Try breaking the topic into one concept, one practical example, and one quick self-check." }
-    ]);
-    setPrompt("");
-  }
 
   return (
     <div className="student-shell">
@@ -138,25 +116,24 @@ export function StudentExperience({
                   <h2>Small, consistent sessions build real confidence.</h2>
                   <p>Continue where you left off, reserve a class, or ask Skunkie to make today’s study plan.</p>
                   <div className="student-action-row">
-                    <button type="button" onClick={() => setView("learning")}>Continue learning</button>
+                    <button type="button" onClick={() => setView("learning")}>Browse courses</button>
                     <button type="button" className="student-secondary-action" onClick={() => setView("companion")}>Ask Skunkie</button>
                   </div>
                 </div>
-                <div className="student-progress-orbit" aria-label={`${learningProgress}% weekly progress`}>
-                  <strong>{learningProgress}%</strong><span>weekly goal</span>
+                <div className="student-progress-summary" aria-label={`${registrations.length} class registrations`}>
+                  <strong>{registrations.length}</strong><span>class registrations</span>
                 </div>
               </div>
               <div className="student-stat-grid">
                 <Stat value={courses.length} label="Available courses" />
                 <Stat value={registrations.length} label="Class registrations" />
-                <Stat value="5 days" label="Learning streak" />
+
               </div>
               <div className="student-two-column">
                 <article className="student-panel">
-                  <div className="student-panel-heading"><div><p className="student-kicker">Next up</p><h2>{firstCourse?.title ?? "Choose a course"}</h2></div><button type="button" className="student-text-button" onClick={() => setView("learning")}>View learning</button></div>
+                  <div className="student-panel-heading"><div><p className="student-kicker">Course discovery</p><h2>{firstCourse?.title ?? "Choose a course"}</h2></div><button type="button" className="student-text-button" onClick={() => setView("learning")}>View learning</button></div>
                   <p>{firstCourse?.description ?? "Explore the Academy catalogue to begin your learning pathway."}</p>
-                  <div className="student-linear-progress"><span style={{ width: `${learningProgress}%` }} /></div>
-                  <span className="student-muted">{learningProgress}% of your current study target</span>
+                  <span className="student-muted">Learning progress appears after verified course activity is available.</span>
                 </article>
                 <article className="student-panel student-next-class">
                   <div className="student-panel-heading"><div><p className="student-kicker">Classes</p><h2>{nextClass?.title ?? "No class scheduled"}</h2></div><button type="button" className="student-text-button" onClick={() => setView("classes")}>View classes</button></div>
@@ -171,7 +148,8 @@ export function StudentExperience({
             <section className="student-view" aria-label="My learning">
               <div className="student-section-heading"><div><p className="student-kicker">Learning library</p><h2>Choose your next learning step</h2><p>Courses are tailored to practical skills, labs, and certification preparation.</p></div><span className="student-count">{filteredCourses.length} courses</span></div>
               <div className="student-course-grid">
-                {filteredCourses.map((course, index) => <CourseCard key={course.id} course={course} progress={index === 0 ? learningProgress : 0} onContinue={() => setView("companion")} />)}
+                {filteredCourses.map((course) => <CourseCard key={course.id} course={course} onContinue={() => setView("companion")} />)}
+                {filteredCourses.length === 0 && <div className="student-empty-state"><div><h2>No courses available</h2><p>No matching Academy courses have been published yet.</p></div></div>}
               </div>
             </section>
           )}
@@ -184,14 +162,15 @@ export function StudentExperience({
                   const registered = registeredClassIds.has(classItem.id);
                   return <article className="student-session-card" key={classItem.id}><div className="student-session-date"><strong>{classItem.schedule}</strong><span>{classItem.modality}</span></div><div><span className="student-status">{classItem.status}</span><h2>{classItem.title}</h2><p>{classItem.courseTitle} · {classItem.instructor}</p><small>{classItem.enrolled}/{classItem.seats} places reserved</small></div><button type="button" disabled={registered} onClick={() => void onRegister(classItem.id)}>{registered ? "Registered" : "Register"}</button></article>;
                 })}
+                {classes.length === 0 && <div className="student-empty-state"><div><h2>No scheduled classes</h2><p>New sessions will appear here when published.</p></div></div>}
               </div>
             </section>
           )}
 
           {view === "achievements" && <Achievements courseCount={courses.length} registrationCount={registrations.length} onViewLearning={() => setView("learning")} />}
           {view === "resources" && <Resources />}
-          {view === "messages" && <Messages selected={selectedMessage.id} onSelect={setSelectedMessage} />}
-          {view === "companion" && <Companion chat={chat} prompt={prompt} onPrompt={setPrompt} onSend={sendPrompt} />}
+          {view === "messages" && <Messages />}
+          {view === "companion" && <Companion />}
           {view === "profile" && <ProfileSettings displayName={displayName} portalProfile={portalProfile} courseCount={courses.length} registrations={registrations.length} />}
         </main>
       </section>
@@ -203,10 +182,10 @@ function Stat({ value, label }: { value: number | string; label: string }) {
   return <article className="student-stat"><strong>{value}</strong><span>{label}</span></article>;
 }
 
-function CourseCard({ course, progress, onContinue }: { course: CourseRecord; progress: number; onContinue: () => void }) {
+function CourseCard({ course, onContinue }: { course: CourseRecord; onContinue: () => void }) {
   return <article className="student-course-card">
     <div className="student-course-art" aria-hidden="true"><span>{course.level}</span></div>
-    <div className="student-course-copy"><span className="student-status">{course.status}</span><h2>{course.title}</h2><p>{course.description}</p><small>{course.duration}</small>{progress > 0 && <div className="student-linear-progress"><span style={{ width: `${progress}%` }} /></div>}<button type="button" className="student-text-button" onClick={onContinue}>{progress > 0 ? "Continue course" : "Explore course"} →</button></div>
+    <div className="student-course-copy"><span className="student-status">{course.status}</span><h2>{course.title}</h2><p>{course.description}</p><small>{course.duration}</small><button type="button" className="student-text-button" onClick={onContinue}>Explore course →</button></div>
   </article>;
 }
 
@@ -220,18 +199,25 @@ function Resources() {
   return <section className="student-view" aria-label="Resources"><div className="student-section-heading"><div><p className="student-kicker">Study support</p><h2>Resources worth saving</h2><p>Labs, notes, and learning links that support your active courses.</p></div></div><div className="student-resource-list">{resources.map((resource) => <a key={resource.title} href={resource.href} className="student-resource-card"><span>{resource.type}</span><div><h2>{resource.title}</h2><p>{resource.detail}</p></div><strong aria-hidden="true">→</strong></a>)}</div></section>;
 }
 
-function Messages({ selected, onSelect }: { selected: string; onSelect: (message: typeof messages[number]) => void }) {
-  const active = messages.find((message) => message.id === selected) ?? messages[0];
-  return <section className="student-view student-message-layout" aria-label="Messages"><div className="student-message-list">{messages.map((message) => <button type="button" key={message.id} className={selected === message.id ? "student-message-row active" : "student-message-row"} onClick={() => onSelect(message)}><strong>{message.title}</strong><span>{message.meta}</span></button>)}</div><article className="student-message-detail"><p className="student-kicker">{active.meta}</p><h2>{active.title}</h2><p>{active.body}</p><button type="button" className="student-secondary-action">Mark as read</button></article></section>;
+function Messages() {
+  return <section className="student-view" aria-label="Messages">
+    <div className="student-section-heading"><div><p className="student-kicker">Academy messages</p><h2>Your messages</h2></div></div>
+    <div className="student-empty-state"><div><h2>No messages yet</h2><p>Your Academy notifications will appear once messaging is connected. No example messages are shown.</p></div></div>
+  </section>;
 }
 
-function Companion({ chat, prompt, onPrompt, onSend }: { chat: Array<{ author: "Skunkie" | "You"; text: string }>; prompt: string; onPrompt: (value: string) => void; onSend: (value?: string) => void }) {
-  const suggestions = ["Quiz me on this course", "Explain Azure RBAC simply", "Build a 30-minute study plan"];
-  return <section className="student-view student-companion-view" aria-label="AI Learning Companion"><div className="student-companion-header"><div className="student-skunkie-avatar" aria-hidden="true">S</div><div><p className="student-kicker">AI Learning Companion</p><h2>Skunkie is ready to learn with you</h2><span>Private learning guidance · Uses your selected course context</span></div></div><div className="student-chat-log" aria-live="polite">{chat.map((message, index) => <article key={`${message.author}-${index}`} className={message.author === "You" ? "student-chat-message mine" : "student-chat-message"}><strong>{message.author}</strong><p>{message.text}</p></article>)}</div><div className="student-prompt-suggestions">{suggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => onSend(suggestion)}>{suggestion}</button>)}</div><div className="student-composer"><label><span className="visually-hidden">Ask Skunkie</span><textarea value={prompt} onChange={(event) => onPrompt(event.target.value)} placeholder="Ask Skunkie about this course, a lab, or your study plan…" onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onSend(); } }} /></label><button type="button" onClick={() => onSend()} disabled={!prompt.trim()}>Send</button></div></section>;
+function Companion() {
+  return <section className="student-view student-companion-view" aria-label="AI Learning Companion">
+    <div className="student-companion-header"><div className="student-skunkie-avatar" aria-hidden="true">S</div><div><p className="student-kicker">AI Learning Companion</p><h2>Ask Skunkie</h2><span>Use the floating Skunkie chat button to connect to the authenticated Academy assistant.</span></div></div>
+    <p>Skunkie opens from the chat button in the corner of the screen. Chat responses are delivered by the live Academy service, not generated placeholders.</p>
+  </section>;
 }
 
 function ProfileSettings({ displayName, portalProfile, courseCount, registrations }: { displayName: string; portalProfile: PortalProfileInput; courseCount: number; registrations: number }) {
-  return <section className="student-view" aria-label="Profile and settings"><div className="student-section-heading"><div><p className="student-kicker">Your account</p><h2>Profile and settings</h2><p>Keep your learner details and study preferences up to date.</p></div></div><div className="student-profile-grid"><article className="student-profile-card"><span className="student-avatar large" aria-hidden="true">{displayName.slice(0, 1).toUpperCase()}</span><h2>{displayName}</h2><p>{portalProfile.location || "Add your location"} · Student</p><dl><div><dt>Courses</dt><dd>{courseCount}</dd></div><div><dt>Classes</dt><dd>{registrations}</dd></div></dl></article><article className="student-settings-card"><Setting label="Learning reminders" value="On" /><Setting label="Weekly learning goal" value="6 hours" /><Setting label="Privacy and data controls" value="Manage" /><Setting label="Accessibility preferences" value="Manage" /></article></div></section>;
+  return <section className="student-view" aria-label="Profile and settings">
+    <div className="student-section-heading"><div><p className="student-kicker">Your account</p><h2>Profile and settings</h2><p>Your saved Academy profile and active registrations.</p></div></div>
+    <div className="student-profile-grid"><article className="student-profile-card"><span className="student-avatar large" aria-hidden="true">{displayName.slice(0, 1).toUpperCase()}</span><h2>{displayName}</h2><p>{portalProfile.location || "Location not provided"} · Student</p><dl><div><dt>Published courses</dt><dd>{courseCount}</dd></div><div><dt>Registrations</dt><dd>{registrations}</dd></div></dl></article>
+      <article className="student-settings-card"><h2>Account privacy</h2><p>Microsoft manages sign-in and authentication. Personal learning preferences will appear here when supported by the Academy account service.</p><a href="https://www.skunkworksacademy.com/privacystatement" target="_blank" rel="noopener noreferrer">Read privacy statement</a></article>
+    </div>
+  </section>;
 }
-
-function Setting({ label, value }: { label: string; value: string }) { return <div className="student-setting"><span>{label}</span><button type="button">{value}</button></div>; }
