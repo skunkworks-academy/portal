@@ -179,6 +179,7 @@ export function App() {
   }
 
   useEffect(() => {
+    if (!profile) return;
     let cancelled = false;
 
     async function loadPublicData() {
@@ -200,7 +201,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [account?.homeAccountId]);
 
   useEffect(() => {
     if (!auth || !profile) return;
@@ -385,7 +386,7 @@ export function App() {
   }, [activeRole, profile?.name]);
 
   if (!profile) {
-    return <PortalLanding onSignIn={() => void signIn("Student")} />;
+    return <PortalLanding onSignIn={() => signIn("Student")} />;
   }
 
   const requestedAward = new URLSearchParams(window.location.search).get("certificate");
