@@ -1,63 +1,71 @@
+import { useState } from "react";
 import "./landing-page.css";
 
 type PortalLandingProps = {
-  onSignIn: () => void;
+  onSignIn: () => Promise<void> | void;
 };
 
-const capabilities = [
-  { title: "Training delivery", detail: "Course catalogues, cohorts and instructor-led sessions", icon: "▦" },
-  { title: "People & recruitment", detail: "Instructor opportunities, applications and profiles", icon: "◉" },
-  { title: "Microsoft 365", detail: "SharePoint resources, Teams and collaboration", icon: "▧" },
-  { title: "Operations", detail: "Controlled administration and role-based reporting", icon: "▤" }
-];
-
 export function PortalLanding({ onSignIn }: PortalLandingProps) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  async function beginSignIn() {
+    if (submitting) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      await onSignIn();
+    } catch (caught) {
+      console.error("Microsoft sign-in could not start", caught);
+      setError("Unable to start Microsoft sign-in. Check your connection and try again.");
+      setSubmitting(false);
+    }
+  }
+
   return (
     <main className="academy-login" id="main">
-      <aside className="academy-login-sidebar" aria-label="Portal preview">
-        <a href="https://www.skunkworksacademy.com/" className="academy-login-brand" aria-label="Skunkworks Academy home">
-          <img src="https://www.skunkworksacademy.com/images/favicon-white.png" width="42" height="42" alt="" />
-          <span><strong>SKUNKWORKS</strong><small>ACADEMY / PORTAL</small></span>
+      <a className="academy-login-skip" href="#academy-login-title">Skip to sign in</a>
+      <header className="academy-login-header">
+        <a className="academy-login-brand" href="https://www.skunkworksacademy.com/" aria-label="Skunkworks Academy homepage">
+          <span className="academy-login-brand-mark">
+            <img src="https://www.skunkworksacademy.com/images/favicon-white.png" width="34" height="34" alt="" />
+          </span>
+          <span><strong>SKUNKWORKS</strong><small>ACADEMY</small></span>
         </a>
-        <div className="academy-login-tenant"><span /> Microsoft-secured workspace</div>
-        <div className="academy-login-side-menu">
-          <p>YOUR WORKSPACE</p>
-          <span className="academy-login-side-active"><span aria-hidden="true">▦</span> Dashboard</span>
-          <span><span aria-hidden="true">▤</span> Courses & catalogues</span>
-          <span><span aria-hidden="true">▧</span> Cohorts & scheduling</span>
-          <p>PEOPLE & OPERATIONS</p>
-          <span><span aria-hidden="true">◉</span> Instructor applications</span>
-          <span><span aria-hidden="true">▣</span> Microsoft 365</span>
-          <span><span aria-hidden="true">⚙</span> Account & access</span>
+        <div className="academy-login-header-caption"><span className="academy-login-status-dot" aria-hidden="true" /> SECURE PORTAL</div>
+      </header>
+
+      <section className="academy-login-body" aria-labelledby="academy-login-title">
+        <div className="academy-login-message">
+          <p className="academy-login-eyebrow"><span /> THE SKUNKWORKS ACADEMY PORTAL</p>
+          <h1 id="academy-login-title">Your Academy.<br /><em>One secure sign-in.</em></h1>
+          <p className="academy-login-intro">Access your Skunkworks Academy account using Microsoft. Your learning and operational workspace becomes available after authentication.</p>
+          <div className="academy-login-security"><span aria-hidden="true">◇</span><p>Microsoft Entra ID authentication<br /><small>Protected by your organisation’s access policies.</small></p></div>
         </div>
-        <div className="academy-login-side-footer"><span className="academy-login-lock" aria-hidden="true">◇</span><div><strong>Secure by design</strong><small>Microsoft Entra ID · Role-based access</small></div></div>
-      </aside>
-      <div className="academy-login-content">
-        <header className="academy-login-topbar">
-          <div><span className="academy-login-eyebrow">ACADEMY</span><strong>Operations portal</strong></div>
-          <a href="https://www.skunkworksacademy.com/">Academy website <span aria-hidden="true">↗</span></a>
-        </header>
-        <section className="academy-login-center" aria-labelledby="academy-login-title">
-          <div className="academy-login-intro">
-            <span className="academy-login-pill"><span aria-hidden="true" /> ONE IDENTITY. ONE ACADEMY.</span>
-            <h1 id="academy-login-title">The Academy.<br /><em>All in one place.</em></h1>
-            <p>Training delivery, talent, operations and Microsoft 365 in a unified workspace. Sign in with your authorised Microsoft account to see the tools and records available to your role.</p>
-            <div className="academy-login-signin-card">
-              <div className="academy-login-signin-heading"><span className="academy-login-microsoft" aria-hidden="true"><i /><i /><i /><i /></span><div><strong>Continue with Microsoft</strong><small>Secure organisational sign-in</small></div></div>
-              <button type="button" className="academy-login-sso" onClick={onSignIn}>Sign in with Microsoft <span aria-hidden="true">→</span></button>
-              <p>Protected by Microsoft Entra ID. Multi-factor authentication and access policies are managed by your organisation.</p>
-            </div>
+
+        <div className="academy-login-panel">
+          <div className="academy-login-panel-mark" aria-hidden="true">
+            <img src="https://www.skunkworksacademy.com/images/favicon-black.png" width="44" height="44" alt="" />
           </div>
-          <div className="academy-login-modules" aria-label="Portal capabilities">
-            <div className="academy-login-modules-header"><span>YOUR WORKSPACE</span><span>Available after sign-in</span></div>
-            <div className="academy-login-module-grid">
-              {capabilities.map((item) => <article key={item.title} className="academy-login-module"><span className="academy-login-module-icon" aria-hidden="true">{item.icon}</span><h2>{item.title}</h2><p>{item.detail}</p><span className="academy-login-module-arrow" aria-hidden="true">↗</span></article>)}
-            </div>
-            <p className="academy-login-modules-note">Module visibility and data access depend on your assigned Microsoft Entra permissions.</p>
-          </div>
-        </section>
-        <footer className="academy-login-footer"><span>© Skunkworks Academy · Learn · Build · Deploy</span><div><a href="mailto:training@skunkworks.africa">Support</a><a href="https://www.skunkworksacademy.com/">Academy</a></div></footer>
-      </div>
+          <p className="academy-login-panel-overline">WELCOME TO SKUNKWORKS ACADEMY</p>
+          <h2>Sign in to continue</h2>
+          <p>Use your authorised Microsoft work, school or supported personal account.</p>
+          <button type="button" className="academy-login-sso" disabled={submitting} onClick={() => void beginSignIn()}>
+            <span className="academy-login-ms-mark" aria-hidden="true"><i /><i /><i /><i /></span>
+            <span>{submitting ? "Opening Microsoft sign-in…" : "Continue with Microsoft"}</span>
+            <span className="academy-login-arrow" aria-hidden="true">→</span>
+          </button>
+          {error && <p className="academy-login-error" role="alert">{error}</p>}
+          <p className="academy-login-session-note">Your dashboard and navigation are private and appear only after successful sign-in.</p>
+          <div className="academy-login-panel-footer"><span aria-hidden="true">◈</span><span>Microsoft Entra ID · Encrypted sign-in</span></div>
+        </div>
+      </section>
+
+      <footer className="academy-login-footer">
+        <div><strong>SKUNKWORKS ACADEMY</strong><span>Dream. Design. Deliver.</span></div>
+        <nav aria-label="Help and legal"><a href="https://www.skunkworksacademy.com/privacy/">Privacy</a><a href="https://www.skunkworksacademy.com/contact/">Contact</a><a href="mailto:training@skunkworks.africa">Sign-in support</a></nav>
+        <small>© {new Date().getFullYear()} Skunkworks Academy</small>
+      </footer>
     </main>
   );
 }
