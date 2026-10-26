@@ -74,15 +74,15 @@ function resolveApplicationIdUri(rawValue: string | undefined, clientId: string)
   return value.replace(/\/$/, "");
 }
 
-function resolveAuthority(rawValue: string | undefined, tenantId: string) {
-  const fallback = `https://login.microsoftonline.com/${tenantId}`;
-  const value = configuredValue(rawValue);
-  if (!value) return fallback;
-  if (!allowCustomEntraApp && !value.toLowerCase().includes(tenantId.toLowerCase())) {
-    authConfigurationWarnings.push("VITE_MSAL_AUTHORITY attempted to use a non-canonical authority; using the SKUNKWORKS tenant authority.");
-    return fallback;
+// /common accepts both Microsoft Entra work/school accounts and personal Microsoft
+// accounts. The home tenant remains fixed for privileged role and Graph access.
+function resolveAuthority(rawValue: string | undefined) {
+  const expected = "https://login.microsoftonline.com/common";
+  const value = configuredValue(rawValue)?.replace(/\\/$/, "");
+  if (value && value.toLowerCase() !== expected.toLowerCase()) {
+    authConfigurationWarnings.push("A tenant-specific VITE_MSAL_AUTHORITY would block self-service Microsoft accounts; using /common.");
   }
-  return value.replace(/\/$/, "");
+  return expected;
 }
 
 export const skunkworksTenantId = resolveTenantId(import.meta.env.VITE_SKUNKWORKS_TENANT_ID);
@@ -116,7 +116,7 @@ function normalizeApiScope(rawScope?: string) {
 }
 
 export const apiScope = normalizeApiScope(import.meta.env.VITE_API_SCOPE);
-export const msalAuthority = resolveAuthority(import.meta.env.VITE_MSAL_AUTHORITY, skunkworksTenantId);
+export const msalAuthority = resolveAuthority(import.meta.env.VITE_MSAL_AUTHORITY);
 
 function resolveAuthenticationBase() {
   if (browserOrigin === "http://localhost" || browserOrigin.startsWith("http://localhost:") || browserOrigin.startsWith("https://localhost:")) {
