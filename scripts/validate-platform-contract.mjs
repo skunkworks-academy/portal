@@ -33,8 +33,17 @@ if (!supportedCspModes.has(contract.cspMode)) {
 }
 
 const indexHtml = fs.readFileSync("index.html", "utf8");
-if (!indexHtml.includes(`academy-navigation.js?v=${contract.shellVersion}`)) {
-  throw new Error(`Portal shellVersion ${contract.shellVersion} is not the version loaded by index.html`);
+const appBootstrap = fs.readFileSync("src/main.tsx", "utf8");
+const expectedShell = `academy-navigation.js?v=${contract.shellVersion}`;
+const shellLoadedAfterAuth =
+  appBootstrap.includes(expectedShell) &&
+  appBootstrap.includes("if (activeAccount)") &&
+  appBootstrap.includes("msalInstance.handleRedirectPromise()");
+if (!indexHtml.includes(expectedShell) && !shellLoadedAfterAuth) {
+  throw new Error(`Portal shellVersion ${contract.shellVersion} must be loaded after authentication by the portal bootstrap`);
+}
+if (indexHtml.includes('data-skunkworks-global-nav="v9"')) {
+  throw new Error("Public login HTML must not load Academy workspace navigation before authentication");
 }
 
 const theme = fs.readFileSync("src/academy-brand-theme.css", "utf8");
