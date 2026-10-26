@@ -17,6 +17,7 @@ import { portalApi } from "./api";
 import { StudentExperience } from "./student-experience";
 import { CertificateWallet } from "./CertificateWallet";
 import { PortalLanding } from "./landing-page";
+import { AcademyWorkspace } from "./academy-workspace";
 import { classSchedule, courseCatalog, hasStaffRole, landingRoles, roleDefinitions, roleFromClaims } from "./roles";
 import type {
   ApplicationRecord,
@@ -190,6 +191,7 @@ export function App() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showLegacyManagement, setShowLegacyManagement] = useState(false);
 
   function selectRole(role: PortalRole) {
     localStorage.setItem("portalRoleOverride", role);
@@ -450,9 +452,24 @@ export function App() {
     );
   }
 
+  if (!showLegacyManagement && (activeRole === "Staff" || activeRole === "Instructor")) {
+    return <AcademyWorkspace
+      profile={profile}
+      role={activeRole}
+      courses={courses}
+      classes={classes}
+      jobs={visibleJobs}
+      applications={activeRole === "Staff" ? adminApplications : applications}
+      people={activeRole === "Staff" ? adminProfiles : []}
+      onManage={() => setShowLegacyManagement(true)}
+      onSignOut={() => void signOut()}
+    />;
+  }
+
   return (
     <div className="portal-page">
       <main id="main" className="portal-main">
+        <div className="legacy-portal-toolbar"><button type="button" className="primary-action" onClick={() => setShowLegacyManagement(false)}>← Back to Academy workspace</button><span>Existing management tools · Microsoft Entra secured</span></div>
         <section className="portal-hero" id="overview">
           <div className="hero-copy">
             <p>Skunkworks Academy Portal</p>
