@@ -1,4 +1,4 @@
-name: One-time audited dependency lock refresh
+name: One-time audited dependency lock refresh (retry)
 on:
   push:
     branches:
