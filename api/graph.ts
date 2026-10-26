@@ -1,6 +1,6 @@
 import { ClientSecretCredential } from "@azure/identity";
 import { config, requireSettings } from "./config.js";
-import { fallbackClasses, fallbackCourses } from "./fallbackData.js";
+import { fallbackClasses } from "./fallbackData.js";
 import { HttpError } from "./http.js";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalProfile, PortalProfileInput, PortalRole } from "../src/types.js";
 import { portalRoleFromPrincipal, type Principal } from "./auth.js";
@@ -265,13 +265,13 @@ export async function updateJob(id: string, input: Partial<JobInput>) {
 export async function getCourses() {
   const result = await listItems("Courses", "fields/Status eq 'Live'");
   const courses = result.value.map(toCourse);
-  return courses.length ? courses : fallbackCourses;
+  return courses;
 }
 
 export async function getClasses() {
   const result = await listItems("ClassSessions");
   const classes = result.value.map(toClassSession);
-  return classes.length ? classes : fallbackClasses;
+  return classes;
 }
 
 export async function createClass(input: ClassInput, principal: Principal) {
