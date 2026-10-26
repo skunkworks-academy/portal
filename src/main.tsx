@@ -12,6 +12,9 @@ import "./staff-account-navigation";
 import "./workspace-card-navigation";
 import "./form-field-metadata";
 
+// Load the Academy-wide menu only after Microsoft Entra has returned a valid account.
+// This prevents a pre-auth navigation leak or flash of workspace links.
+const academyNavigationUrl = "https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.08.14.2";
 const msalInstance = new PublicClientApplication(msalConfig);
 const rootElement = document.getElementById("root");
 
@@ -36,7 +39,14 @@ async function bootstrapPortal() {
   await msalInstance.initialize();
   const redirectResult = await msalInstance.handleRedirectPromise();
   const activeAccount = redirectResult?.account ?? msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
-  if (activeAccount) msalInstance.setActiveAccount(activeAccount);
+  if (activeAccount) {
+    msalInstance.setActiveAccount(activeAccount);
+    const menu = document.createElement("script");
+    menu.src = academyNavigationUrl;
+    menu.defer = true;
+    menu.dataset.skunkworksGlobalNav = "v9";
+    document.head.append(menu);
+  }
 
   if (!rootElement) throw new Error("Portal root element is missing.");
 
