@@ -36,35 +36,20 @@
     <meta name="twitter:description" content="Portal access for students, instructors, staff operations, jobs, labs and academy resources." />
     <meta name="twitter:image" content="https://skunkworksacademy.com/images/favicon-black.png" />
     <style>
-      :root{--bg:#050505;--text:#f5f5f5;--muted:#a3a3a3;--line:#2a2a2a;--accent:#7c3aed;--accent2:#06b6d4}*{box-sizing:border-box}body{margin:0;min-width:320px;min-height:100vh;background:radial-gradient(circle at top left,rgba(124,58,237,.22),transparent 34rem),radial-gradient(circle at top right,rgba(6,182,212,.18),transparent 32rem),var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}#root{min-height:100vh}.boot{min-height:100vh;width:min(1180px,calc(100% - 32px));margin:auto;display:grid;place-items:center;padding:28px 0}.boot-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.55fr);gap:24px;border:1px solid var(--line);border-radius:28px;padding:clamp(22px,5vw,44px);background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.035));box-shadow:0 24px 80px rgba(0,0,0,.35)}.boot h1{margin:0;font-size:clamp(40px,8vw,82px);line-height:.92;letter-spacing:-.07em}.boot p{max-width:740px;color:var(--muted);line-height:1.6}.boot-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}.boot-actions a{border:1px solid var(--line);border-radius:999px;padding:11px 15px;color:var(--text);text-decoration:none;font-weight:800}.boot-actions a:first-child{border:0;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff}.boot-panel{display:grid;gap:10px}.boot-panel div{border:1px solid var(--line);border-radius:18px;padding:16px;background:rgba(255,255,255,.06)}.boot-panel strong,.boot-panel span{display:block}.boot-panel span{margin-top:4px;color:var(--muted);font-size:14px}@media(max-width:760px){.boot{width:min(100% - 24px,1180px);place-items:start}.boot-card{grid-template-columns:1fr;border-radius:22px}.boot h1{font-size:clamp(38px,14vw,58px)}.boot-actions{display:grid}.boot-actions a{text-align:center}}
+      :root{font-family:Inter,"IBM Plex Sans",system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;min-width:320px;background:#f5f7fb;color:#0d1c34}#root{min-height:100svh}.boot{min-height:100svh;display:grid;place-items:center;padding:24px}.boot-card{width:min(460px,100%);border:1px solid #dce3ed;border-radius:22px;background:#fff;padding:clamp(28px,5vw,46px);box-shadow:0 24px 60px rgba(7,25,56,.09)}.boot-mark{color:#1e6bd0;font-size:12px;letter-spacing:.14em;font-weight:900}.boot h1{font-size:clamp(27px,6vw,35px);letter-spacing:-.045em;margin:16px 0 12px}.boot p{font-size:14px;line-height:1.65;color:#4b5870;margin:0}.boot a{color:#1e6bd0}@media(prefers-color-scheme:dark){body{background:#0a1120;color:#f4f7ff}.boot-card{border-color:#38465d;background:#121e32}.boot p{color:#c3cedd}}
     </style>
-    <script defer src="https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.08.14.2" data-skunkworks-global-nav="v9"></script>
 </head>
   <body data-repo="portal" data-domain="portal.skunkworksacademy.com">
     <div id="root">
-      <main class="boot" aria-label="Skunkworks Academy Portal loading screen">
+      <main class="boot" aria-label="Skunkworks Academy secure sign-in loading">
         <section class="boot-card">
-          <div>
-            <h1>Skunkworks Academy Portal</h1>
-            <p>Loading the role-based portal for students, instructors and staff operations.</p>
-            <div class="boot-actions">
-              <a href="https://skunkworksacademy.com/">Academy Home</a>
-              <a href="https://skunkworksacademy.com/self-paced/">Self-paced</a>
-              <a href="https://labs.skunkworksacademy.com/">Labs</a>
-              <a href="https://skunkworksacademy.com/subscriptions/#pricing">Plans</a>
-            </div>
-          </div>
-          <aside class="boot-panel" aria-label="Portal summary">
-            <div><strong>Students</strong><span>Courses, classes and resources.</span></div>
-            <div><strong>Instructors</strong><span>Jobs, applications and onboarding.</span></div>
-            <div><strong>Staff</strong><span>Operations, scheduling and profiles.</span></div>
-          </aside>
+          <span class="boot-mark">SKUNKWORKS ACADEMY</span>
+          <h1>Secure sign-in</h1>
+          <p>Preparing Microsoft Entra ID authentication…</p>
         </section>
       </main>
     </div>
-    <noscript>
-      <main class="boot"><section class="boot-card"><div><h1>Skunkworks Academy Portal</h1><p>This portal requires JavaScript for Microsoft sign-in and workspace routing.</p><div class="boot-actions"><a href="https://skunkworksacademy.com/">Academy Home</a><a href="https://labs.skunkworksacademy.com/">Labs</a><a href="https://skunkworksacademy.com/subscriptions/#pricing">Plans</a></div></div></section></main>
-    </noscript>
+    <noscript><main class="boot"><section class="boot-card"><span class="boot-mark">SKUNKWORKS ACADEMY</span><h1>JavaScript required</h1><p>Enable JavaScript to sign in with your Microsoft account.</p></section></main></noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
