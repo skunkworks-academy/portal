@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useEffect } from "react";
 import ReactDOM from "react-dom/client";
 import { PublicClientApplication } from "@azure/msal-browser";
-import { MsalProvider } from "@azure/msal-react";
+import { MsalProvider, useMsal } from "@azure/msal-react";
 import { App } from "./App";
 import { SkunkieCompanion } from "./SkunkieCompanion";
 import { msalConfig } from "./authConfig";
@@ -11,6 +11,26 @@ import "./instructor-account-navigation";
 import "./staff-account-navigation";
 import "./workspace-card-navigation";
 import "./form-field-metadata";
+
+// Keep Academy-wide application navigation off the unauthenticated sign-in screen.
+export const academyGlobalNavigationUrl = "https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.08.14.2";
+
+function AuthenticatedPortalExtras() {
+  const { accounts } = useMsal();
+  const isAuthenticated = accounts.length > 0;
+
+  useEffect(() => {
+    if (!isAuthenticated || document.querySelector("script[data-skunkworks-global-nav]")) return;
+    const script = document.createElement("script");
+    script.src = academyGlobalNavigationUrl;
+    script.defer = true;
+    script.dataset.skunkworksGlobalNav = "v9";
+    script.onerror = () => console.warn("Academy global navigation could not load.");
+    document.head.appendChild(script);
+  }, [isAuthenticated]);
+
+  return isAuthenticated ? <SkunkieCompanion /> : null;
+}
 
 const msalInstance = new PublicClientApplication(msalConfig);
 const rootElement = document.getElementById("root");
@@ -44,7 +64,7 @@ async function bootstrapPortal() {
     <React.StrictMode>
       <MsalProvider instance={msalInstance}>
         <App />
-        <SkunkieCompanion />
+        <AuthenticatedPortalExtras />
       </MsalProvider>
     </React.StrictMode>
   );
