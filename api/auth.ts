@@ -33,7 +33,7 @@ export function validatePortalTokenClaims(payload: JWTPayload) {
     throw new HttpError(401, "Unsupported token issuer.");
   }
   if (payload.ver !== "2.0") throw new HttpError(401, "Microsoft v2 access token required.");
-  const scopes = typeof payload.scp === "string" ? payload.scp.split(/\\s+/) : [];
+  const scopes = typeof payload.scp === "string" ? payload.scp.split(/\s+/) : [];
   if (!scopes.includes("access_as_user")) {
     throw new HttpError(403, "A delegated Portal API access_as_user scope is required.");
   }
