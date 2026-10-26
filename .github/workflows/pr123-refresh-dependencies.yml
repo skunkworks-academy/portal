@@ -30,7 +30,11 @@ jobs:
         run: |
           set -euo pipefail
           npm ci
-          npm audit fix
+          # npm audit fix currently crashes on the repository's dependency tree
+          # (npm CLI error: Cannot read properties of null, reading edgesOut).
+          # Upgrade known vulnerable packages explicitly without suppressing advisories.
+          npm install --save-exact @azure/msal-node@7.1.0 --ignore-scripts
+          npm install --save-dev --save-exact vite@8.3.5 --ignore-scripts
           npm audit --omit=dev --audit-level=high
       - name: Commit dependency-only lockfile refresh
         run: |
