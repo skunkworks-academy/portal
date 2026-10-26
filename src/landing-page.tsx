@@ -23,10 +23,10 @@ export function PortalLanding({ onSignIn }: PortalLandingProps) {
         <div className="academy-login-intro">
           <span className="academy-login-kicker"><span aria-hidden="true" /> SKUNKWORKS ACADEMY</span>
           <h1>Everything begins<br /><em>with your sign-in.</em></h1>
-          <p>One secure identity for your Academy experience. Sign in with your Microsoft account to access your authorised learning and operations workspace.</p>
+          <p>One secure identity for your Academy experience. Use any personal Microsoft account or Microsoft Entra work or school account to sign in or register as a learner.</p>
           <div className="academy-login-trust">
             <span className="academy-login-check" aria-hidden="true">✓</span>
-            <span>Microsoft Entra ID authentication</span>
+            <span>Personal Microsoft and Entra ID accounts supported</span>
           </div>
         </div>
 
@@ -38,7 +38,7 @@ export function PortalLanding({ onSignIn }: PortalLandingProps) {
             <span className="academy-login-card-tag">MICROSOFT ACCOUNT</span>
           </div>
           <h2 id="academy-login-title">Welcome to the portal</h2>
-          <p>Sign in securely to continue. Your dashboard and navigation will appear only after authentication.</p>
+          <p>Sign in with an Outlook, Hotmail, Live or Microsoft Entra work or school account. First-time users can create an Academy learner profile automatically.</p>
           <button type="button" className="academy-login-button" onClick={onSignIn}>
             <span>Sign in with Microsoft</span><span aria-hidden="true">→</span>
           </button>
