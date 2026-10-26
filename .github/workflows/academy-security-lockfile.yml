@@ -1,0 +1,39 @@
+name: Temporary dependency lockfile remediation
+
+on:
+  push:
+    branches:
+      - feature/academy-unified-operations-workspace-20261026
+    paths:
+      - .github/workflows/academy-security-lockfile.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Remediate dependency audit findings without executing install scripts
+        run: npm audit fix --package-lock-only --ignore-scripts
+      - name: Verify lockfile and production dependency security
+        run: |
+          npm ci --ignore-scripts
+          npm audit --omit=dev --audit-level=high
+      - name: Push reviewed lockfile-only changes to feature branch
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet -- package-lock.json package.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package-lock.json package.json
+            git commit -m "fix(deps): remediate October 2026 npm advisory findings"
+            git push origin HEAD:feature/academy-unified-operations-workspace-20261026
+          fi
