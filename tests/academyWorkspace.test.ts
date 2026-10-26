@@ -53,7 +53,12 @@ function renderWorkspace(profile: UserProfile) {
 describe("Academy workspace server-side render and sign-in", () => {
   it("renders a prominent Microsoft Entra sign-in button before authentication", () => {
     const markup = renderToStaticMarkup(createElement(PortalLanding, { onSignIn: () => undefined }));
-    expect(markup).toContain("Sign in with Microsoft");
+    expect(markup).toContain("Continue with Microsoft");
+    expect(markup).toContain("Sign in to continue");
+    expect(markup).not.toContain("Dashboard");
+    expect(markup).not.toContain("Courses &amp; catalogues");
+    expect(markup).not.toContain("Instructor opportunities");
+    expect(markup).not.toContain("MY WORKSPACE");
     expect(markup).toContain("Microsoft Entra ID");
   });
 
@@ -73,5 +78,37 @@ describe("Academy workspace server-side render and sign-in", () => {
     expect(unverifiedStaffMarkup).not.toContain("Finance &amp; reporting");
     expect(verifiedStaffMarkup).toContain("Finance &amp; reporting");
     expect(verifiedStaffMarkup).toContain("People &amp; profiles");
+  });
+});
+
+
+describe("signed-out HTML and navigation security regression", () => {
+  it("contains no role previews, dashboards, or navigation before React loads", async () => {
+    const { readFileSync } = await import("node:fs");
+    const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+    expect(html).toContain("Preparing your secure Microsoft sign-in");
+    expect(html).not.toContain("Portal summary");
+    expect(html).not.toContain("Staff Operations");
+    expect(html).not.toContain('data-skunkworks-global-nav="v9"');
+    expect(html).not.toContain('class="boot-panel"');
+  });
+
+  it("only loads the Academy application navigation after authentication", async () => {
+    const { readFileSync } = await import("node:fs");
+    const source = readFileSync(new URL("../src/main.tsx", import.meta.url), "utf8");
+    expect(source).toContain("if (!isAuthenticated");
+    expect(source).toContain("return isAuthenticated ? <SkunkieCompanion /> : null;");
+  });
+
+  it("preserves the existing Academy canonical brand and responsive design", async () => {
+    const { readFileSync } = await import("node:fs");
+    const markup = renderToStaticMarkup(createElement(PortalLanding, { onSignIn: () => undefined }));
+    const css = readFileSync(new URL("../src/landing-page.css", import.meta.url), "utf8");
+    expect(markup).toContain("https://www.skunkworksacademy.com/images/favicon-white.png");
+    expect(markup).toContain("https://www.skunkworksacademy.com/images/favicon-black.png");
+    expect(markup).toContain("Sign-in support");
+    expect(css).toContain("@media(max-width:560px)");
+    expect(css).toContain("@media(prefers-color-scheme:dark)");
+    expect(css).toContain("var(--academy-accent,#1e6bd0)");
   });
 });
