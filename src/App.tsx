@@ -179,6 +179,8 @@ export function App() {
   }
 
   useEffect(() => {
+    // Do not request workspace records before a Microsoft session exists.
+    if (!account) return;
     let cancelled = false;
 
     async function loadPublicData() {
@@ -200,7 +202,7 @@ export function App() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [account?.homeAccountId]);
 
   useEffect(() => {
     if (!auth || !profile) return;
