@@ -14,9 +14,9 @@ Skunkie is the authenticated AI learning companion embedded in the Skunkworks Ac
 
 The launcher expects the approved Skunkie artwork at:
 
-`/assets/skunkie/skunkie-learning-companion.png`
+`/assets/skunkie/skunkie-learning-companion.webp`
 
-Use the canonical black-and-white robotic skunk supplied by Skunkworks Academy. Do not substitute an independently generated mascot. If the asset is unavailable, the UI falls back to a neutral `S` avatar rather than loading a third-party image.
+Use the approved black-and-white robotic skunk supplied by Skunkworks Academy (cropped and optimized from `Skunkie in futuristic poses and expressions.png`, without altering the character design). Do not substitute an independently generated mascot. If the asset is unavailable, the UI falls back to a neutral `S` avatar rather than loading a third-party image.
 
 ## API
 
@@ -67,7 +67,7 @@ The API key must never be exposed through Vite, browser JavaScript, HTML, or rep
 
 ## Next integration phases
 
-1. Add the approved mascot asset to `public/assets/skunkie/skunkie-learning-companion.png`.
+1. Preserve the approved mascot asset at `public/assets/skunkie/skunkie-learning-companion.webp`.
 2. Feed structured course/module/lesson context from the LMS rather than DOM page metadata.
 3. Add learner progress and competency context through narrowly scoped API contracts.
 4. Add streaming responses and optional speech input/output.

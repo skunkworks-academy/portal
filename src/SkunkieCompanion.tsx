@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useRef, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import { apiScope } from "./authConfig";
+import { SKUNKIE_AVATAR_SRC } from "./skunkie-assets";
 import "./skunkie-companion.css";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -80,11 +81,14 @@ export function SkunkieCompanion() {
   return (
     <aside className={`skunkie ${open ? "skunkie--open" : ""}`} aria-label="Skunkie AI learning companion">
       {open && (
-        <section className="skunkie__panel" role="dialog" aria-modal="false" aria-labelledby="skunkie-title">
+        <section id="skunkie-panel" className="skunkie__panel" role="dialog" aria-modal="false" aria-labelledby="skunkie-title">
           <header className="skunkie__header">
-            <div>
-              <strong id="skunkie-title">Skunkie</strong>
-              <span>AI learning companion</span>
+            <div className="skunkie__identity">
+              <img className="skunkie__header-avatar" src={SKUNKIE_AVATAR_SRC} alt="" width="44" height="44" />
+              <div>
+                <strong id="skunkie-title">Skunkie</strong>
+                <span>AI learning companion</span>
+              </div>
             </div>
             <button type="button" className="skunkie__close" onClick={() => setOpen(false)} aria-label="Close Skunkie">×</button>
           </header>
@@ -131,7 +135,7 @@ export function SkunkieCompanion() {
       >
         {!imageFailed ? (
           <img
-            src="/assets/skunkie/skunkie-learning-companion.png"
+            src={SKUNKIE_AVATAR_SRC}
             alt=""
             width="92"
             height="92"
