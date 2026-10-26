@@ -36,6 +36,7 @@ function walk(dir: string, extensions: string[], ignored = new Set<string>()) {
 }
 
 const index = read("index.html");
+const main = read("src/main.tsx");
 const app = read("src/App.tsx");
 const landing = read("src/landing-page.tsx");
 const connections = read("connections/index.html");
@@ -43,7 +44,9 @@ const connectionsCss = read("connections/assets/styles.css");
 const connectionsJs = read("connections/assets/app.js");
 const pkg = read("package.json");
 
-must("index.html", index, canonicalNavigation, "canonical Academy navigation loader is required.");
+must("src/main.tsx", main, canonicalNavigation, "the authenticated-only Academy navigation loader is required.");
+must("src/main.tsx", main, "if (!isAuthenticated", "public navigation must be gated behind authentication.");
+if (index.includes('data-skunkworks-global-nav=')) failures.push("index.html: global navigation must not load before authentication.");
 must("src/App.tsx", app, "SKUNKWORKS_ACADEMY_NAV_ACCOUNT", "portal account integration for the central menu is required.");
 must("src/App.tsx", app, "skunkworksacademy:account-change", "portal account-change event is required.");
 must("src/App.tsx", app, 'signInLabel: "Sign in"', "central sign-in label is required.");
