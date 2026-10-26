@@ -50,3 +50,5 @@ jobs:
             git commit -m "fix(security): regenerate audited production dependency lockfile"
             git push origin HEAD:fix/portal-login-only-security-20261026
           fi
+
+# Re-run after updating sign-in-only regression expectations.
