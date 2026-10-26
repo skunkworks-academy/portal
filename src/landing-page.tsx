@@ -40,7 +40,7 @@ export function PortalLanding({ onSignIn }: PortalLandingProps) {
           <h2 id="academy-login-title">Welcome to the portal</h2>
           <p>Sign in securely to continue. Your dashboard and navigation will appear only after authentication.</p>
           <button type="button" className="academy-login-button" onClick={onSignIn}>
-            <span>Continue with Microsoft</span><span aria-hidden="true">→</span>
+            <span>Sign in with Microsoft</span><span aria-hidden="true">→</span>
           </button>
           <div className="academy-login-security">
             <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
