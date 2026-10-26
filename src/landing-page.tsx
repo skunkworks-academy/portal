@@ -1,14 +1,32 @@
+import { useState } from "react";
 import "./landing-page.css";
 
 type PortalLandingProps = {
-  onSignIn: () => void;
+  onSignIn: () => Promise<void> | void;
+  startupNotice?: string;
 };
 
 /**
  * The anonymous portal entry deliberately renders no workspace navigation,
  * dashboards, module previews, record counts or authenticated UI.
  */
-export function PortalLanding({ onSignIn }: PortalLandingProps) {
+export function PortalLanding({ onSignIn, startupNotice = "" }: PortalLandingProps) {
+  const [signInError, setSignInError] = useState("");
+  const [redirecting, setRedirecting] = useState(false);
+
+  async function beginSignIn() {
+    if (redirecting) return;
+    setRedirecting(true);
+    setSignInError("");
+    try {
+      await onSignIn();
+    } catch (error) {
+      console.error("Could not start Microsoft sign-in", error);
+      setSignInError("Microsoft sign-in could not start in this browser. Try again or open the portal directly in Safari or Chrome.");
+      setRedirecting(false);
+    }
+  }
+
   return (
     <main className="academy-login" id="main">
       <header className="academy-login-header">
@@ -39,9 +57,11 @@ export function PortalLanding({ onSignIn }: PortalLandingProps) {
           </div>
           <h2 id="academy-login-title">Welcome to the portal</h2>
           <p>Sign in with an Outlook, Hotmail, Live or Microsoft Entra work or school account. First-time users can create an Academy learner profile automatically.</p>
-          <button type="button" className="academy-login-button" onClick={onSignIn}>
-            <span>Sign in with Microsoft</span><span aria-hidden="true">→</span>
+          {(signInError || startupNotice) && <p className="academy-login-auth-error" role="alert">{signInError || startupNotice}</p>}
+          <button type="button" className="academy-login-button" disabled={redirecting} onClick={() => void beginSignIn()}>
+            <span>{redirecting ? "Opening Microsoft sign-in…" : "Sign in with Microsoft"}</span><span aria-hidden="true">→</span>
           </button>
+          <p className="academy-login-mobile-help">Having trouble inside an app? Open this website in Safari or Chrome to sign in.</p>
           <div className="academy-login-security">
             <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
             <span>Protected by Microsoft Entra ID and your organisation's access policies.</span>
