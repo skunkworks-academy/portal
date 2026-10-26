@@ -29,6 +29,8 @@ jobs:
       - name: Refresh resolved dependencies
         run: |
           set -euo pipefail
+          npm install -g npm@11.19.1
+          npm --version
           npm ci
           # npm audit fix currently crashes on the repository's dependency tree
           # (npm CLI error: Cannot read properties of null, reading edgesOut).
