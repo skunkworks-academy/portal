@@ -3,7 +3,6 @@ import { config, missingSettings } from "./config.js";
 import { requireAdmin, requireInstructor, requireStudent, requireUser } from "./auth.js";
 import { exchangeBulkMailApiCourse, exchangeBulkMailFinalAssessment } from "./courseContent.js";
 import { requireCourseLesson, scoreFinalAssessment, validateProgressPayload, type AssessmentPayload, type CourseProgressPayload } from "./courseMiddleware.js";
-import { fallbackJobs } from "./fallbackData.js";
 import { empty, failure, json, readJson } from "./http.js";
 import "./paymentFunctions.js";
 import "./skunkieFunctions.js";
@@ -115,14 +114,7 @@ app.http("getJobs", {
   methods: ["GET"],
   authLevel: "anonymous",
   route: "jobs",
-  handler: async (request) => {
-    try {
-      return json(request, await getLiveJobs());
-    } catch (error) {
-      console.warn("Falling back to preset jobs because SharePoint jobs could not be loaded.", error);
-      return json(request, fallbackJobs);
-    }
-  }
+  handler: async (request, context) => handle(request, context, async () => json(request, await getLiveJobs()))
 });
 
 app.http("getCourses", {

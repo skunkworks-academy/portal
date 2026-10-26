@@ -17,7 +17,8 @@ import { portalApi } from "./api";
 import { StudentExperience } from "./student-experience";
 import { CertificateWallet } from "./CertificateWallet";
 import { PortalLanding } from "./landing-page";
-import { classSchedule, courseCatalog, hasStaffRole, landingRoles, roleDefinitions, roleFromClaims } from "./roles";
+import { AcademyWorkspace } from "./academy-workspace";
+import { hasStaffRole, landingRoles, roleDefinitions, roleFromClaims } from "./roles";
 import type {
   ApplicationRecord,
   ClassInput,
@@ -35,51 +36,6 @@ import type {
 } from "./types";
 
 const PORTAL_URL = "https://portal.skunkworksacademy.com/";
-
-const fallbackJobs: JobPosting[] = [
-  {
-    id: "preset-ai-facilitator",
-    title: "AI Tools Facilitator",
-    programme: "Applied AI Short Course",
-    modality: "Remote",
-    rateBand: "To be confirmed",
-    closingDate: "",
-    status: "Live",
-    description: "Guide learners through practical AI tools, prompt workflows, responsible use, and workplace automation.",
-    applicants: 0
-  },
-  {
-    id: "preset-cybersecurity-instructor",
-    title: "Cybersecurity Instructor",
-    programme: "Security Analyst Academy",
-    modality: "Hybrid",
-    rateBand: "To be confirmed",
-    closingDate: "",
-    status: "Live",
-    description: "Lead security fundamentals, labs, incident response exercises, and learner capstone assessment.",
-    applicants: 0
-  },
-  {
-    id: "preset-cloud-labs-coach",
-    title: "Cloud Labs Coach",
-    programme: "Cloud Practitioner Track",
-    modality: "On campus",
-    rateBand: "To be confirmed",
-    closingDate: "",
-    status: "Live",
-    description: "Support learners through cloud fundamentals, hands-on deployments, and practical troubleshooting labs.",
-    applicants: 0
-  }
-];
-
-const fallbackCourses: CourseRecord[] = courseCatalog.map((course) => ({ ...course, status: "Live" }));
-const fallbackClasses: ClassSession[] = classSchedule.map((session) => ({
-  ...session,
-  courseTitle: courseCatalog.find((course) => course.id === session.courseId)?.title ?? session.title,
-  modality: "Hybrid",
-  enrolled: 0,
-  status: "Open"
-}));
 
 const emptyJob: JobInput = {
   title: "",
@@ -177,9 +133,9 @@ export function App() {
   const auth = account ? { instance, account } : undefined;
 
   const [health, setHealth] = useState<PortalHealth | null>(null);
-  const [jobs, setJobs] = useState<JobPosting[]>(fallbackJobs);
-  const [courses, setCourses] = useState<CourseRecord[]>(fallbackCourses);
-  const [classes, setClasses] = useState<ClassSession[]>(fallbackClasses);
+  const [jobs, setJobs] = useState<JobPosting[]>([]);
+  const [courses, setCourses] = useState<CourseRecord[]>([]);
+  const [classes, setClasses] = useState<ClassSession[]>([]);
   const [registrations, setRegistrations] = useState<ClassRegistrationRecord[]>([]);
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
   const [adminApplications, setAdminApplications] = useState<ApplicationRecord[]>([]);
@@ -190,6 +146,7 @@ export function App() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showLegacyManagement, setShowLegacyManagement] = useState(false);
 
   function selectRole(role: PortalRole) {
     localStorage.setItem("portalRoleOverride", role);
@@ -234,9 +191,9 @@ export function App() {
 
       if (cancelled) return;
       if (healthResult.status === "fulfilled") setHealth(healthResult.value);
-      if (jobsResult.status === "fulfilled" && jobsResult.value.length > 0) setJobs(jobsResult.value);
-      if (coursesResult.status === "fulfilled" && coursesResult.value.length > 0) setCourses(coursesResult.value);
-      if (classesResult.status === "fulfilled" && classesResult.value.length > 0) setClasses(classesResult.value);
+      if (jobsResult.status === "fulfilled") setJobs(jobsResult.value);
+      if (coursesResult.status === "fulfilled") setCourses(coursesResult.value);
+      if (classesResult.status === "fulfilled") setClasses(classesResult.value);
     }
 
     void loadPublicData();
@@ -301,7 +258,7 @@ export function App() {
       await portalApi.registerClass(classId, auth);
       setRegistrations(await portalApi.myClasses(auth));
       const nextClasses = await portalApi.classes();
-      setClasses(nextClasses.length ? nextClasses : fallbackClasses);
+      setClasses(nextClasses);
     }, "Class registration saved.");
   }
 
@@ -314,7 +271,7 @@ export function App() {
     await run(async () => {
       await portalApi.assignInstructor(classId, auth);
       const nextClasses = await portalApi.classes();
-      setClasses(nextClasses.length ? nextClasses : fallbackClasses);
+      setClasses(nextClasses);
     }, "Class assigned to your instructor profile.");
   }
 
@@ -375,7 +332,7 @@ export function App() {
       await portalApi.createJob(jobDraft, auth);
       setJobDraft(emptyJob);
       const nextJobs = await portalApi.jobs();
-      setJobs(nextJobs.length ? nextJobs : fallbackJobs);
+      setJobs(nextJobs);
     }, "Job posting saved.");
   }
 
@@ -387,12 +344,11 @@ export function App() {
       await portalApi.createClass(classDraft, auth);
       setClassDraft(emptyClass);
       const nextClasses = await portalApi.classes();
-      setClasses(nextClasses.length ? nextClasses : fallbackClasses);
+      setClasses(nextClasses);
     }, "Class schedule saved.");
   }
 
-  const liveJobs = jobs.filter((job) => job.status === "Live");
-  const visibleJobs = liveJobs.length ? liveJobs : fallbackJobs;
+  const visibleJobs = jobs.filter((job) => job.status === "Live");
   const registeredClassIds = new Set(registrations.map((registration) => registration.classId));
   const roleBadge = formatRole(profile, activeRole);
 
@@ -450,9 +406,24 @@ export function App() {
     );
   }
 
+  if (!showLegacyManagement && (activeRole === "Staff" || activeRole === "Instructor")) {
+    return <AcademyWorkspace
+      profile={profile}
+      role={activeRole}
+      courses={courses}
+      classes={classes}
+      jobs={visibleJobs}
+      applications={activeRole === "Staff" ? adminApplications : applications}
+      people={activeRole === "Staff" ? adminProfiles : []}
+      onManage={() => setShowLegacyManagement(true)}
+      onSignOut={() => void signOut()}
+    />;
+  }
+
   return (
     <div className="portal-page">
       <main id="main" className="portal-main">
+        <div className="legacy-portal-toolbar"><button type="button" className="primary-action" onClick={() => setShowLegacyManagement(false)}>← Back to Academy workspace</button><span>Existing management tools · Microsoft Entra secured</span></div>
         <section className="portal-hero" id="overview">
           <div className="hero-copy">
             <p>Skunkworks Academy Portal</p>
