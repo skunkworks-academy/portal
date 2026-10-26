@@ -1,0 +1,52 @@
+name: Portal dependency lockfile repair (feature branch only)
+on:
+  push:
+    branches: [fix/portal-login-only-security-20261026]
+    paths: [.github/workflows/portal-dependency-refresh.yml]
+permissions:
+  contents: write
+jobs:
+  repair-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: fix/portal-login-only-security-20261026
+          persist-credentials: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Generate fresh lockfile using a current npm resolver
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install -g npm@11.19.1
+          rm -rf node_modules package-lock.json
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify lockfile and security advisories
+        run: |
+          npm ci
+          npm audit --omit=dev --audit-level=high
+      - name: Verify credential constructors (no requests or secrets)
+        run: |
+          node --input-type=module -e 'import {ClientSecretCredential, DefaultAzureCredential} from "@azure/identity"; const credential=new ClientSecretCredential("338a8916-80d9-467c-a94a-7f61d04ef7d5","e22672ae-61a6-434e-b135-3360557819ec","constructor-smoke-test-only"); const managed=new DefaultAzureCredential(); if (typeof credential.getToken!=="function" || typeof managed.getToken!=="function") process.exit(1);'
+      - name: Run unit tests
+        run: npm test
+      - name: Build frontend and backend
+        run: |
+          npm run build
+          npm run build:api
+      - name: Commit verified lockfile to the feature branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            echo "Lockfile was already correct."
+          else
+            git commit -m "fix(security): regenerate audited production dependency lockfile"
+            git push origin HEAD:fix/portal-login-only-security-20261026
+          fi
