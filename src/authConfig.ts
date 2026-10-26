@@ -78,7 +78,7 @@ function resolveApplicationIdUri(rawValue: string | undefined, clientId: string)
 // accounts. The home tenant remains fixed for privileged role and Graph access.
 function resolveAuthority(rawValue: string | undefined) {
   const expected = "https://login.microsoftonline.com/common";
-  const value = configuredValue(rawValue)?.replace(/\\/$/, "");
+  const value = configuredValue(rawValue)?.replace(/\/$/, "");
   if (value && value.toLowerCase() !== expected.toLowerCase()) {
     authConfigurationWarnings.push("A tenant-specific VITE_MSAL_AUTHORITY would block self-service Microsoft accounts; using /common.");
   }
