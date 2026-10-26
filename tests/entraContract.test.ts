@@ -7,7 +7,9 @@ const readJson = <T>(path: string) => JSON.parse(readText(path)) as T;
 
 interface EntraContract {
   tenantId: string;
+  enterpriseApplication: { userAssignmentRequired: boolean };
   application: {
+    signInAudience: string;
     appId: string;
     applicationIdUri: string;
     delegatedScope: string;
@@ -18,6 +20,7 @@ interface EntraContract {
 
 interface EntraManifest {
   appId: string;
+  signInAudience: string;
   identifierUris?: string[];
   spa: { redirectUris: string[] };
   web: {
@@ -44,6 +47,13 @@ describe("Microsoft Entra identity contract", () => {
     expect(apiManifest.identifierUris).toEqual([contract.application.applicationIdUri]);
     expect(new Set(apiManifest.spa.redirectUris)).toEqual(new Set(contract.application.spaRedirectUris));
     expect(new Set(spaManifest.spa.redirectUris)).toEqual(new Set(contract.application.spaRedirectUris));
+  });
+
+  it("enables self-service work/school and personal Microsoft sign-in", () => {
+    expect(contract.application.signInAudience).toBe("AzureADandPersonalMicrosoftAccount");
+    expect(apiManifest.signInAudience).toBe(contract.application.signInAudience);
+    expect(spaManifest.signInAudience).toBe(contract.application.signInAudience);
+    expect(contract.enterpriseApplication.userAssignmentRequired).toBe(false);
   });
 
   it("uses authorization code with PKCE instead of implicit grant", () => {
