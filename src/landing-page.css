@@ -38,3 +38,10 @@
 @media(max-width:520px){.academy-login-header{padding:15px 18px;min-height:72px}.academy-login-brand img{height:35px;width:35px}.academy-login-brand strong{font-size:12px}.academy-login-brand small{font-size:9px}.academy-login-header-label{font-size:10px;padding:7px 9px}.academy-login-stage{width:calc(100% - 32px);padding:39px 0;gap:28px}.academy-login-intro h1{font-size:clamp(36px,10vw,47px);margin:16px 0}.academy-login-intro>p{font-size:14px;line-height:1.7}.academy-login-trust{margin-top:20px;font-size:11px}.academy-login-card{padding:24px 20px;border-radius:17px}.academy-login-card h2{margin-top:23px}.academy-login-footer{padding:20px 18px;display:grid;gap:14px}.academy-login-footer div{gap:18px}}
 @media(prefers-color-scheme:dark){.academy-login{--login-ink:#f7faff;--login-muted:#d5deea;--login-line:#38465d;--login-surface:#121e32;background:radial-gradient(circle at top left,rgba(30,107,208,.14),transparent 30rem),#0a1120;color:var(--login-ink)}.academy-login-intro h1,.academy-login-card h2{color:#f7faff}.academy-login-intro>p,.academy-login-card>p,.academy-login-trust,.academy-login-security,.academy-login-footer{color:#c3cedd}.academy-login-card-tag{color:#bdccdf}.academy-login-footer a{color:#a7ceff}.academy-login-kicker{color:#a5c8fd}}
 @media(prefers-reduced-motion:reduce){.academy-login *{animation:none!important;transition:none!important}}
+
+
+/* Helpful, actionable errors rather than a dead-end start screen in embedded browsers. */
+.academy-login .academy-login-auth-error{border:1px solid #eeb9b2;border-radius:11px;background:#fff0ed;color:#921e10;padding:12px 14px;font-size:13px;line-height:1.5;margin:0 0 16px}
+.academy-login .academy-login-mobile-help{font-size:12px;line-height:1.5;margin:14px 0 0;color:var(--login-muted,#4b5870)}
+.academy-login .academy-login-button:disabled{opacity:.72;cursor:progress}
+@media(prefers-color-scheme:dark){.academy-login .academy-login-auth-error{color:#ffe2dc;background:#421d22;border-color:#a84a41}.academy-login .academy-login-mobile-help{color:#b7c9e3}}

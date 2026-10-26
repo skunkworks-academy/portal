@@ -122,7 +122,7 @@ function formatRole(profile: UserProfile | null, selectedRole: PortalRole) {
   return profile.portalRole;
 }
 
-export function App() {
+export function App({ startupNotice = "" }: { startupNotice?: string }) {
   const { instance, accounts } = useMsal();
   const account = accounts[0];
   const profile = useMemo(() => getProfile(account), [account]);
@@ -397,7 +397,7 @@ export function App() {
   }, [activeRole, profile?.name]);
 
   if (!profile) {
-    return <PortalLanding onSignIn={() => void signIn("Student")} />;
+    return <PortalLanding startupNotice={startupNotice} onSignIn={() => signIn("Student")} />;
   }
 
   const requestedAward = new URLSearchParams(window.location.search).get("certificate");
