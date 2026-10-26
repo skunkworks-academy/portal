@@ -34,14 +34,14 @@ export function PortalLanding({ onSignIn }: PortalLandingProps) {
 
 
       <section className="landing-hero">
-        <p className="landing-eyebrow"><span /> The Skunkworks Academy learning portal</p>
-        <h1>Build skills<br /><em>that move you.</em></h1>
-        <p className="landing-intro">A focused learning space for self-paced courses, practical labs, live classes and guided growth—built around the work you want to do next.</p>
+        <p className="landing-eyebrow"><span /> THE SKUNKWORKS ACADEMY PORTAL</p>
+        <h1>One Academy.<br /><em>Every workspace.</em></h1>
+        <p className="landing-intro">A secure, unified home for learners, instructors and Academy operations. Access courses, cohorts, teaching opportunities, Microsoft Teams and SharePoint through your Microsoft account.</p>
         <div className="landing-actions">
-          <button type="button" className="landing-primary" onClick={onSignIn}>Enter your learning space <span aria-hidden="true">→</span></button>
+          <button type="button" className="landing-primary" onClick={onSignIn}>Continue with Microsoft <span aria-hidden="true">→</span></button>
           <a href="https://skunkworksacademy.com/self-paced/" className="landing-secondary">Browse the catalogue</a>
         </div>
-        <p className="landing-trust">Secured by Microsoft Entra · Your progress stays yours</p>
+        <p className="landing-trust">Microsoft Entra ID single sign-on · Role-based access · Secure sessions</p>
       </section>
 
       <section className="landing-constellation" aria-label="Portal capabilities">
@@ -52,7 +52,7 @@ export function PortalLanding({ onSignIn }: PortalLandingProps) {
       </section>
 
       <footer className="landing-footer">
-        <span>Learning that compounds.</span>
+        <span>One identity. Connected learning.</span>
         <span>South Africa · Built for momentum</span>
         <a href="mailto:training@skunkworks.africa">Get support</a>
       </footer>
