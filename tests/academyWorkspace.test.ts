@@ -55,6 +55,13 @@ describe("Academy workspace server-side render and sign-in", () => {
     const markup = renderToStaticMarkup(createElement(PortalLanding, { onSignIn: () => undefined }));
     expect(markup).toContain("Sign in with Microsoft");
     expect(markup).toContain("Microsoft Entra ID");
+    // No public dashboards, preview navigation, operational module tiles or record counts.
+    expect(markup).not.toContain("Dashboard");
+    expect(markup).not.toContain("YOUR WORKSPACE");
+    expect(markup).not.toContain("Cohorts &amp; scheduling");
+    expect(markup).not.toContain("SharePoint");
+    expect(markup).not.toContain("portal-module");
+    expect(markup).not.toContain("<aside");
   });
 
   it("keeps the empty portal genuinely empty while linking the verified SharePoint site", () => {
