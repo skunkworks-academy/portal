@@ -162,5 +162,34 @@
 @media (max-width: 780px) { .student-shell { display:block; }.student-sidebar { position:static;width:auto;height:auto;gap:1rem;border-right:0;border-bottom:1px solid var(--academy-line); }.student-nav { display:flex;overflow:auto;padding-bottom:.2rem; }.student-nav-item { flex:0 0 auto; }.student-sidebar-footer { display:none; }.student-topbar { align-items:start;flex-direction:column;min-height:auto; }.student-search { width:100%; }.student-main { width:min(100% - 28px,1240px);padding-top:1.25rem; }.student-hero-card,.student-two-column,.student-profile-grid,.student-message-layout { grid-template-columns:1fr; }.student-stat-grid,.student-achievement-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }.student-session-card { grid-template-columns:1fr;gap:.65rem; }.student-session-card button { width:max-content; }.student-message-detail { min-height:240px; }.student-empty-state { flex-wrap:wrap; }.student-empty-state button { margin-left:0; } }
 @media (max-width: 520px) { .student-topbar { padding:1rem; }.student-main { width:min(100% - 20px,1240px); }.student-hero-card { grid-template-columns:1fr; }.student-progress-orbit { width:125px; }.student-stat-grid,.student-course-grid,.student-achievement-grid { grid-template-columns:1fr; }.student-signin-banner { align-items:start;flex-direction:column; }.student-resource-card { grid-template-columns:1fr auto; }.student-resource-card > span { grid-column:1 / -1; }.student-composer { grid-template-columns:1fr; }.student-composer button { width:100%; }.student-nav-item { min-height:40px;padding:0 .65rem;font-size:.82rem; } }
 
-/* Use the approved Skunkie mascot rather than a text placeholder. */
+
+/* Academy-wide Ink Navy/Skunk Blue visual contract: contrast-first student workspace. */
+.student-shell{--student-accent:#1e6bd0;--student-cyan:#1756a9;}
+.student-brand-mark,.student-skunkie-avatar{background:linear-gradient(135deg,#03033a,#1e6bd0);box-shadow:0 8px 22px rgba(30,107,208,.19)}
+.student-nav-item>span{color:var(--academy-accent)}
+.student-nav-item.active,.student-nav-item:hover{background:#1e6bd0;color:#fff}
+.student-nav-item.active>span,.student-nav-item:hover>span{color:#fff}
+.student-kicker,.student-status{color:var(--academy-accent-2,#1756a9)}
+.student-hero-card{background:linear-gradient(125deg,#03033a 0%,#0d4387 58%,#12659b 100%);color:#fff;border-color:rgba(255,255,255,.18)}
+.student-hero-card :is(h2,p){color:#fff}
+.student-hero-card .student-kicker{color:#d4e9ff}
+.student-hero-card .student-action-row button{background:#fff;border:1px solid #fff;color:#092f66;font-weight:800}
+.student-hero-card .student-action-row button:hover{background:#e3f0ff;color:#092f66}
+.student-hero-card .student-action-row .student-secondary-action{background:transparent;border:1px solid rgba(255,255,255,.8);color:#fff}
+.student-hero-card .student-action-row .student-secondary-action:hover{background:rgba(255,255,255,.16);color:#fff}
+.student-progress-summary{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem;width:150px;min-height:150px;padding:18px;border:2px solid #9fcfff;border-radius:50%;text-align:center;color:#fff;background:rgba(255,255,255,.09)}
+.student-progress-summary strong{font-size:clamp(2rem,4vw,3rem);color:#fff;line-height:1}
+.student-progress-summary span{font-size:.83rem;font-weight:650;color:#e5f3ff}
+.student-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.student-topbar h1,.student-panel h2,.student-course-copy h2{color:var(--academy-text)}
+.student-course-art{background:linear-gradient(135deg,#03033a,#1e6bd0)}
+.student-text-button,.student-resource-card>strong{color:var(--academy-accent-2,#1756a9)}
+.student-settings-card a{color:var(--academy-accent-2,#1756a9);text-underline-offset:3px;font-weight:700}
+.student-stat strong{color:var(--academy-text)}
+.student-shell :is(button,a,input,textarea):focus-visible{outline:3px solid var(--academy-focus,#f24208);outline-offset:3px}
+@media(max-width:780px){.student-hero-card{gap:1.3rem}.student-nav{scrollbar-width:thin;scroll-snap-type:x proximity}.student-nav-item{scroll-snap-align:start}.student-progress-summary{width:120px;min-height:120px}}
+@media(max-width:520px){.student-topbar h1{font-size:clamp(1.35rem,5.5vw,1.9rem)}.student-progress-summary{flex-direction:row;width:auto;min-height:64px;border-radius:14px;gap:10px;justify-content:start;text-align:left}.student-progress-summary strong{font-size:1.9rem}.student-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.student-hero-card{padding:1.35rem}.student-hero-card h2{line-height:1.13}}
+@media(prefers-color-scheme:dark){.student-kicker,.student-status,.student-text-button,.student-resource-card>strong,.student-settings-card a{color:#9ec5ff}.student-topbar h1,.student-panel h2,.student-course-copy h2{color:var(--academy-text)}.student-hero-card .student-kicker{color:#d4e9ff}.student-progress-summary{background:rgba(255,255,255,.12)}}
+
+/* Preserve the approved Skunkie mascot in the student companion. */
 .student-skunkie-avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
