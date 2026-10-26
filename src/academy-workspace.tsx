@@ -30,6 +30,10 @@ const NAV: NavItem[] = [
   { id: "settings", label: "Account & access", group: "ACCOUNT", icon: "⚙", detail: "Identity, roles, security and support" }
 ];
 
+export function getVisibleAcademyNavigation(isStaff: boolean) {
+  return NAV.filter((item) => !item.staffOnly || isStaff);
+}
+
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((v) => v[0]?.toUpperCase() ?? "").join("");
 }
@@ -44,7 +48,7 @@ function ExternalLink({ href, children }: { href: string; children: React.ReactN
 
 export function AcademyWorkspace({ profile, role, courses, classes, jobs, applications, people, onManage, onSignOut }: Props) {
   const isStaff = profile.isAdmin && role === "Staff";
-  const nav = useMemo(() => NAV.filter((item) => !item.staffOnly || isStaff), [isStaff]);
+  const nav = useMemo(() => getVisibleAcademyNavigation(isStaff), [isStaff]);
   const [view, setView] = useState<View>("overview");
   const [search, setSearch] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
