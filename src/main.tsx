@@ -7,6 +7,7 @@ import { SkunkieCompanion } from "./SkunkieCompanion";
 import { msalConfig } from "./authConfig";
 import "./styles.css";
 import "./academy-brand-theme.css";
+import "./startup-fallback.css";
 import "./instructor-account-navigation";
 import "./staff-account-navigation";
 import "./workspace-card-navigation";
