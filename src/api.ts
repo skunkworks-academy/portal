@@ -99,6 +99,8 @@ export const portalApi = {
   lmsMyEnrolments: (auth: LmsAuth) => request<LmsEnrolmentRecord[]>("/lms/me/enrolments", {}, auth),
   lmsLessons: (courseId: string, auth: LmsAuth) => request<LmsLessonRecord[]>(`/lms/courses/${encodeURIComponent(courseId)}/lessons`, {}, auth),
   lmsProgress: (courseId: string, auth: LmsAuth) => request<LmsProgressRecord | null>(`/lms/courses/${encodeURIComponent(courseId)}/progress`, {}, auth),
+  lmsAddLesson: (courseId: string, input: { title: string; mediaType: "pdf" | "video"; mimeType: string; blobKey: string }, auth: LmsAuth) =>
+    request<LmsLessonRecord>(`/lms/courses/${encodeURIComponent(courseId)}/lessons`, { method: "POST", body: JSON.stringify(input) }, auth),
   lmsEnrol: (courseId: string, auth: LmsAuth) => request<LmsEnrolmentRecord>(`/lms/courses/${encodeURIComponent(courseId)}/enrol`, { method: "POST" }, auth),
   lmsCompleteLesson: (courseId: string, lessonId: string, auth: LmsAuth) => request<LmsProgressRecord>(
     `/lms/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/complete`, { method: "POST" }, auth
