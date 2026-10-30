@@ -3,3 +3,5 @@
 // as an isolated, default-disabled module. No frontend cutover occurs in this phase.
 import "./functions.js";
 import "./identityBffFunctions.js";
+
+import "./lmsFunctions.js";
