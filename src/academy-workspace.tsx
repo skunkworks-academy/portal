@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ApplicationRecord, ClassSession, CourseRecord, JobPosting, PortalProfile, PortalRole, UserProfile } from "./types";
+import { linkedAcademyServices } from "./academy-service-registry";
 import "./academy-workspace.css";
 
 type View = "overview" | "courses" | "classes" | "recruitment" | "applications" | "people" | "documents" | "teams" | "finance" | "settings";
@@ -131,6 +132,7 @@ export function AcademyWorkspace({ profile, role, courses, classes, jobs, applic
             <section className="aw-panel"><div className="aw-section-title"><div><p className="aw-overline">QUICK ACCESS</p><h2>Your Academy tools</h2></div><span>Role-aware navigation</span></div><div className="aw-tool-grid">
               {nav.filter((i) => i.id !== "overview" && i.id !== "settings").map((item) => <button className="aw-tool" key={item.id} type="button" onClick={() => openView(item.id)}><span className="aw-tool-icon">{item.icon}</span><strong>{item.label}</strong><small>{item.detail}</small><span className="aw-tool-arrow" aria-hidden="true">↗</span></button>)}
             </div></section>
+            <section className="aw-panel" aria-label="Connected Academy services"><div className="aw-section-title"><div><p className="aw-overline">SITE-AWARE ACADEMY</p><h2>Connected learning and career destinations</h2></div><span>Access governed by each service</span></div><div className="aw-record-list">{linkedAcademyServices().map((service) => <article key={service.id}><div><span className="aw-record-tag">{service.area}</span><h3>{service.name}</h3><p>{service.summary}</p></div><a href={service.href!} target="_blank" rel="noopener noreferrer" aria-label={`Open ${service.name} in a new tab`}>Open ↗</a></article>)}</div><p className="aw-muted-note">A configured link is not a paid entitlement, a Microsoft 365 licence or confirmation of a deployed service.</p></section>
             <section className="aw-bottom-grid"><article className="aw-panel"><p className="aw-overline">MICROSOFT 365</p><h2>Connected services</h2><p>Use your Academy Microsoft identity to access Teams and authorised SharePoint resources. Individual document permissions remain enforced by Microsoft 365.</p><div className="aw-button-row"><ExternalLink href={ACADEMY_SHAREPOINT_URL}>SharePoint</ExternalLink><ExternalLink href="https://teams.microsoft.com/">Microsoft Teams</ExternalLink></div></article><article className="aw-panel"><p className="aw-overline">MANAGEMENT TOOLS</p><h2>Existing portal workflows</h2><p>Continue to use the existing forms for authorised instructor applications, job postings, class scheduling and profile updates.</p><button type="button" className="aw-action" onClick={onManage}>Open management tools <span aria-hidden="true">→</span></button></article></section>
           </>}
 
