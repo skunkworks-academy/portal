@@ -79,10 +79,39 @@ async function request<T>(
 }
 
 
+export type LmsCourseRecord = {
+  id: string; organizationId: string; title: string; description: string;
+  status: "draft" | "review" | "published"; ownerSubject: string; createdAt: string;
+};
+export type LmsLessonRecord = { id: string; title: string; mediaType: "pdf" | "video" };
+export type LmsEnrolmentRecord = { courseId: string; organizationId: string; learnerSubject: string; status: "active" | "completed"; enrolledAt: string };
+export type LmsProgressRecord = {
+  organizationId: string; courseId: string; learnerSubject: string;
+  completedLessonIds: string[]; attempts: Array<{ assessmentId: string; percent: number; passed: boolean; at: string }>;
+};
+type LmsAuth = { instance: IPublicClientApplication; account: AccountInfo };
+
 export type AcademyBeginnerAward={version:1;certificateId:string;courseId:string;learnerName:string;issuedAt:string;knowledgeCorrect:number;capstoneScore:number;criticalSafetyPassed:true;approvedBy:string;issuer:string;certificateSvg:string;badgeSvg:string};
 export type AcademyEnrolment={id:string;courseId:string;courseTitle:string;learnerName:string;learnerEmail:string;status:string};
 
 export const portalApi = {
+  lmsCourses: (auth: LmsAuth) => request<LmsCourseRecord[]>("/lms/courses", {}, auth),
+  lmsMyEnrolments: (auth: LmsAuth) => request<LmsEnrolmentRecord[]>("/lms/me/enrolments", {}, auth),
+  lmsLessons: (courseId: string, auth: LmsAuth) => request<LmsLessonRecord[]>(`/lms/courses/${encodeURIComponent(courseId)}/lessons`, {}, auth),
+  lmsProgress: (courseId: string, auth: LmsAuth) => request<LmsProgressRecord | null>(`/lms/courses/${encodeURIComponent(courseId)}/progress`, {}, auth),
+  lmsEnrol: (courseId: string, auth: LmsAuth) => request<LmsEnrolmentRecord>(`/lms/courses/${encodeURIComponent(courseId)}/enrol`, { method: "POST" }, auth),
+  lmsCompleteLesson: (courseId: string, lessonId: string, auth: LmsAuth) => request<LmsProgressRecord>(
+    `/lms/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/complete`, { method: "POST" }, auth
+  ),
+  lmsCreateCourse: (payload: { title: string; description: string }, auth: LmsAuth) => request<LmsCourseRecord>(
+    "/lms/courses", { method: "POST", body: JSON.stringify(payload) }, auth
+  ),
+  lmsReviewCourse: (courseId: string, auth: LmsAuth) => request<LmsCourseRecord>(
+    `/lms/courses/${encodeURIComponent(courseId)}/review`, { method: "POST" }, auth
+  ),
+  lmsPublishCourse: (courseId: string, auth: LmsAuth) => request<LmsCourseRecord>(
+    `/lms/courses/${encodeURIComponent(courseId)}/publish`, { method: "POST" }, auth
+  ),
   requestBeginnerAssessment:(courseId:string,learnerName:string,auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyEnrolment>('/enrolments',{method:'POST',body:JSON.stringify({courseId,learnerName,source:'portal',gateway:'manual'})},auth),
   myBeginnerCertificate:(courseId:string,auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyBeginnerAward>('/me/beginner-certificates/'+encodeURIComponent(courseId),{},auth),
   staffBeginnerEnrolments:(courseId:string,auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyEnrolment[]>('/staff/enrolments?courseId='+encodeURIComponent(courseId),{},auth),
