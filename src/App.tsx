@@ -190,7 +190,13 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
       return;
     }
     let cancelled = false;
+    // Clear previously loaded records immediately on account changes and retries,
+    // rather than displaying another session's stale cards while fetching.
     setServices(loadingServices);
+    setHealth(null);
+    setJobs([]);
+    setCourses([]);
+    setClasses([]);
 
     async function loadPublicData() {
       const results = await Promise.allSettled([
