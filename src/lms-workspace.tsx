@@ -33,10 +33,15 @@ export function LmsWorkspace({ mode }: { mode: Mode }) {
   const [description, setDescription] = useState("");
 
   useEffect(() => {
+    // Reset selection across Microsoft identities and role changes, not refreshes.
+    setSelectedId("");
+  }, [account?.homeAccountId, mode]);
+
+  useEffect(() => {
     let cancelled = false;
-    // Switches of Microsoft identities must not show another learner's records.
-    setCourses([]); setEnrolments([]); setSelectedId(""); setProgress(null); setLessons([]);
-    setError(""); setNotice(""); setLoading(true);
+    // Never show stale records from a previous Microsoft account or refresh.
+    setCourses([]); setEnrolments([]); setProgress(null); setLessons([]);
+    setError(""); setLoading(true);
     if (!auth) { setError("Microsoft authentication is required."); setLoading(false); return; }
     const current = auth;
     void (async () => {
