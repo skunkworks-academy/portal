@@ -15,7 +15,7 @@ export class CosmosLmsStore implements LmsStore {
     if (response.status === 404) return null;
     if ([409,412].includes(response.status)) throw new HttpError(409, "LMS write conflict.");
     if (!response.ok) throw new HttpError(503, "LMS database unavailable.");
-    return response.json();
+    return response.json() as Promise<Record<string, unknown>>;
   }
   async get<T>(collection: string, key: string): Promise<T | null> {
     const partition = key.split(":")[0];
@@ -40,6 +40,6 @@ export class CosmosLmsStore implements LmsStore {
       "x-ms-documentdb-query-enablecrosspartition": "false",
       "x-ms-documentdb-partitionkey": JSON.stringify([partition])
     });
-    return (result?.Documents ?? []).map((d: { value: T }) => d.value);
+    return ((result?.Documents ?? []) as Array<{ value: T }>).map(d => d.value);
   }
 }
