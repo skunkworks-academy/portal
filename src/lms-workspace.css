@@ -20,7 +20,7 @@
 .lms-workspace .lms-secondary:hover:not(:disabled),.lms-actions button:first-child:hover:not(:disabled){background:var(--academy-pill-hover,#e7f0ff);color:var(--lms-ink);border-color:var(--lms-blue)}
 .lms-enrolled{color:#14613a;font-size:.82rem;font-weight:850}.lms-create{margin:0 0 20px;display:grid;gap:12px}
 .lms-create label{display:grid;gap:6px;font-size:.85rem;font-weight:800;color:var(--lms-ink)}
-.lms-create :is(input,textarea){width:100%;min-height:42px;padding:10px;border:1px solid var(--lms-line);border-radius:9px;color:var(--lms-ink);background:var(--academy-surface-elevated,var(--academy-surface))}
+ .lms-create :is(input,textarea,select){width:100%;min-height:42px;padding:10px;border:1px solid var(--lms-line);border-radius:9px;color:var(--lms-ink);background:var(--academy-surface-elevated,var(--academy-surface))}
 .lms-create button{justify-self:start}
 .lms-details{position:sticky;top:12px}.lms-details h4{margin:20px 0 10px;color:var(--lms-ink)}
 .lms-lesson{display:flex;justify-content:space-between;align-items:center;gap:10px;border-top:1px solid var(--lms-line);padding:12px 0}
