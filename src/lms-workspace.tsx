@@ -31,6 +31,9 @@ export function LmsWorkspace({ mode }: { mode: Mode }) {
   const [refresh, setRefresh] = useState(0);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [lessonTitle, setLessonTitle] = useState("");
+  const [lessonType, setLessonType] = useState<"pdf" | "video">("pdf");
+  const [lessonBlobKey, setLessonBlobKey] = useState("");
 
   useEffect(() => {
     // Reset selection across Microsoft identities and role changes, not refreshes.
@@ -103,6 +106,21 @@ export function LmsWorkspace({ mode }: { mode: Mode }) {
     }, "Draft course created. Submit it for review when ready.");
   }
 
+  function addLesson(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!auth || !selected || selected.status !== "draft" || !lessonTitle.trim()) return;
+    const current = auth;
+    void execute(async () => {
+      await portalApi.lmsAddLesson(selected.id, {
+        title: lessonTitle.trim(),
+        mediaType: lessonType,
+        mimeType: lessonType === "pdf" ? "application/pdf" : "video/mp4",
+        blobKey: lessonBlobKey.trim()
+      }, current);
+      setLessonTitle(""); setLessonBlobKey("");
+    }, "Protected lesson metadata saved. Media access requires separately authorised private delivery.");
+  }
+
   const isStudent = mode === "student";
   const published = courses.filter(c => c.status === "published").length;
   const myCourses = isStudent ? courses.filter(c => enrolledIds.has(c.id)) : courses;
@@ -160,6 +178,14 @@ export function LmsWorkspace({ mode }: { mode: Mode }) {
                 : detailsLoading ? <p role="status">Loading authorised lessons…</p>
                 : detailError ? <p className="lms-error" role="alert">{detailError}</p>
                 : <>
+                  {!isStudent && selected.status === "draft" && <form className="lms-create lms-lesson-authoring" onSubmit={addLesson}>
+                    <h4>Add protected lesson metadata</h4>
+                    <label>Lesson title<input required maxLength={200} value={lessonTitle} onChange={e => setLessonTitle(e.target.value)} placeholder="Lesson title" /></label>
+                    <label>Media type<select value={lessonType} onChange={e => setLessonType(e.target.value as "pdf" | "video")}><option value="pdf">PDF document</option><option value="video">MP4 video</option></select></label>
+                    <label>Private storage object key<input required value={lessonBlobKey} onChange={e => setLessonBlobKey(e.target.value)} placeholder={selected.organizationId + "/private/lesson.pdf"} /></label>
+                    <p>The object must already exist in authorised private storage. Use a key beginning with <code>{selected.organizationId}/</code>. This form does not upload media or generate public download URLs.</p>
+                    <button type="submit" disabled={busy || !lessonTitle.trim() || !lessonBlobKey.trim()}>Save lesson metadata</button>
+                  </form>}
                   <h4>Lessons ({lessons.length})</h4>
                   {isStudent && <p className="lms-progress-note">{lessons.length
                     ? `${completed} of ${lessons.length} recorded lessons completed`
