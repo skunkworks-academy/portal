@@ -1,6 +1,7 @@
 import { app, type HttpRequest, type InvocationContext } from "@azure/functions";
 import { requireUser } from "./auth.js";
 import { failure, json, readJson, HttpError } from "./http.js";
+import { isSkunkieConfigured } from "./skunkieReadiness.js";
 
 type SkunkieMessage = { role: "user" | "assistant"; content: string };
 type SkunkieChatPayload = {
@@ -8,15 +9,6 @@ type SkunkieChatPayload = {
   history?: SkunkieMessage[];
   context?: { title?: string; path?: string; heading?: string };
 };
-
-/** Never expose provider keys, deployment IDs, or tenant setup details to the UI. */
-export function isSkunkieConfigured(settings: Record<string, string | undefined>) {
-  return Boolean(
-    settings.AZURE_OPENAI_ENDPOINT?.trim().startsWith("https://") &&
-    settings.AZURE_OPENAI_API_KEY?.trim() &&
-    settings.AZURE_OPENAI_DEPLOYMENT?.trim()
-  );
-}
 
 app.http("skunkieStatus", {
   methods: ["GET"],
