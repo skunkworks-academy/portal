@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { SKUNKIE_AVATAR_SRC } from "./skunkie-assets";
+import { LmsWorkspace } from "./lms-workspace";
 import { linkedAcademyServices } from "./academy-service-registry";
 import { availableServices, PortalServiceNotice, type PortalServiceAvailability } from "./service-availability";
 import type { ClassRegistrationRecord, ClassSession, CourseRecord, PortalProfileInput, UserProfile } from "./types";
 import "./student-experience.css";
 
-type StudentView = "dashboard" | "learning" | "classes" | "achievements" | "resources" | "messages" | "companion" | "profile";
+type StudentView = "dashboard" | "lms" | "learning" | "classes" | "achievements" | "resources" | "messages" | "companion" | "profile";
 
 type StudentExperienceProps = {
   profile: UserProfile | null;
@@ -22,6 +23,7 @@ type StudentExperienceProps = {
 
 const navItems: Array<{ id: StudentView; label: string; icon: string }> = [
   { id: "dashboard", label: "Dashboard", icon: "⌂" },
+  { id: "lms", label: "Academy LMS", icon: "▤" },
   { id: "learning", label: "My learning", icon: "◈" },
   { id: "classes", label: "Classes", icon: "◫" },
   { id: "achievements", label: "Achievements", icon: "✦" },
@@ -124,7 +126,7 @@ export function StudentExperience({
                   <h2>Small, consistent sessions build real confidence.</h2>
                   <p>Continue where you left off, reserve a class, or ask Skunkie to make today’s study plan.</p>
                   <div className="student-action-row">
-                    <button type="button" onClick={() => setView("learning")}>Browse courses</button>
+                    <button type="button" onClick={() => setView("lms")}>My LMS courses</button>
                     <button type="button" className="student-secondary-action" onClick={() => setView("companion")}>Ask Skunkie</button>
                   </div>
                 </div>
@@ -151,6 +153,8 @@ export function StudentExperience({
               </div>
             </section>
           )}
+
+          {view === "lms" && <LmsWorkspace mode="student" />}
 
           {view === "learning" && (
             <section className="student-view" aria-label="My learning">
