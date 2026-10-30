@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ApplicationRecord, ClassSession, CourseRecord, JobPosting, PortalProfile, PortalRole, UserProfile } from "./types";
 import { linkedAcademyServices } from "./academy-service-registry";
+import { LmsWorkspace } from "./lms-workspace";
 import { availableServices, PortalServiceNotice, type PortalServiceAvailability } from "./service-availability";
 import "./academy-workspace.css";
 
-type View = "overview" | "courses" | "classes" | "recruitment" | "applications" | "people" | "documents" | "teams" | "finance" | "settings";
+type View = "overview" | "lms" | "courses" | "classes" | "recruitment" | "applications" | "people" | "documents" | "teams" | "finance" | "settings";
 type NavItem = { id: View; label: string; group: string; icon: string; detail: string; staffOnly?: boolean };
 type Props = {
   profile: UserProfile;
@@ -23,6 +24,7 @@ type Props = {
 export const ACADEMY_SHAREPOINT_URL = "https://bluemix944.sharepoint.com/sites/Academy";
 const NAV: NavItem[] = [
   { id: "overview", label: "Dashboard", group: "WORKSPACE", icon: "▦", detail: "Academy operational overview" },
+  { id: "lms", label: "LMS course management", group: "LEARNING DELIVERY", icon: "▤", detail: "Author drafts, review lessons and publish approved courses" },
   { id: "courses", label: "Courses & catalogues", group: "LEARNING DELIVERY", icon: "▤", detail: "Training catalogue and publishing" },
   { id: "classes", label: "Cohorts & scheduling", group: "LEARNING DELIVERY", icon: "▦", detail: "Instructor-led training and cohorts" },
   { id: "recruitment", label: "Instructor opportunities", group: "PEOPLE", icon: "✧", detail: "Recruitment and instructor applications" },
@@ -139,6 +141,8 @@ export function AcademyWorkspace({ profile, role, courses, classes, jobs, applic
             <section className="aw-panel" aria-label="Connected Academy services"><div className="aw-section-title"><div><p className="aw-overline">SITE-AWARE ACADEMY</p><h2>Connected learning and career destinations</h2></div><span>Access governed by each service</span></div><div className="aw-record-list">{linkedAcademyServices().map((service) => <article key={service.id}><div><span className="aw-record-tag">{service.area}</span><h3>{service.name}</h3><p>{service.summary}</p></div><a href={service.href!} target="_blank" rel="noopener noreferrer" aria-label={`Open ${service.name} in a new tab`}>Open ↗</a></article>)}</div><p className="aw-muted-note">A configured link is not a paid entitlement, a Microsoft 365 licence or confirmation of a deployed service.</p></section>
             <section className="aw-bottom-grid"><article className="aw-panel"><p className="aw-overline">MICROSOFT 365</p><h2>Connected services</h2><p>Use your Academy Microsoft identity to access Teams and authorised SharePoint resources. Individual document permissions remain enforced by Microsoft 365.</p><div className="aw-button-row"><ExternalLink href={ACADEMY_SHAREPOINT_URL}>SharePoint</ExternalLink><ExternalLink href="https://teams.microsoft.com/">Microsoft Teams</ExternalLink></div></article><article className="aw-panel"><p className="aw-overline">MANAGEMENT TOOLS</p><h2>Existing portal workflows</h2><p>Continue to use the existing forms for authorised instructor applications, job postings, class scheduling and profile updates.</p><button type="button" className="aw-action" onClick={onManage}>Open management tools <span aria-hidden="true">→</span></button></article></section>
           </>}
+
+          {view === "lms" && <LmsWorkspace mode={isStaff ? "staff" : "instructor"} />}
 
           {view === "courses" && <section className="aw-panel"><div className="aw-section-title"><div><p className="aw-overline">LEARNING DELIVERY</p><h2>Course catalogue</h2></div><button type="button" className="aw-action" onClick={onManage}>Manage catalogue</button></div><div className="aw-record-list">{shownCourses.map((item) => <article key={item.id}><div><span className="aw-record-tag">{item.status}</span><h3>{item.title}</h3><p>{item.level} · {item.duration}</p></div><span>{item.id}</span></article>)}</div>{!shownCourses.length && <EmptyState title={services.courses === "available" ? "No course records" : "Course catalogue unavailable"} detail={services.courses === "available" ? "No courses match your search. Authorised catalogue management is available in the existing portal." : "Course records could not be retrieved. Retry the Academy services before making catalogue decisions."} />}</section>}
 
