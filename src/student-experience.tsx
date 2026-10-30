@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { SKUNKIE_AVATAR_SRC } from "./skunkie-assets";
+import { linkedAcademyServices } from "./academy-service-registry";
 import type { ClassRegistrationRecord, ClassSession, CourseRecord, PortalProfileInput, UserProfile } from "./types";
 import "./student-experience.css";
 
@@ -197,7 +198,13 @@ function Achievements({ courseCount, registrationCount, onViewLearning }: { cour
 function Achievement({ icon, title, detail }: { icon: string; title: string; detail: string }) { return <article className="student-achievement"><span aria-hidden="true">{icon}</span><h2>{title}</h2><p>{detail}</p></article>; }
 
 function Resources() {
-  return <section className="student-view" aria-label="Resources"><div className="student-section-heading"><div><p className="student-kicker">Study support</p><h2>Resources worth saving</h2><p>Labs, notes, and learning links that support your active courses.</p></div></div><div className="student-resource-list">{resources.map((resource) => <a key={resource.title} href={resource.href} className="student-resource-card"><span>{resource.type}</span><div><h2>{resource.title}</h2><p>{resource.detail}</p></div><strong aria-hidden="true">→</strong></a>)}</div></section>;
+  return <section className="student-view" aria-label="Resources">
+    <div className="student-section-heading"><div><p className="student-kicker">Study support</p><h2>Resources worth saving</h2><p>Labs, notes and learning links that support your active courses.</p></div></div>
+    <div className="student-resource-list">{resources.map((resource) => <a key={resource.title} href={resource.href} className="student-resource-card"><span>{resource.type}</span><div><h2>{resource.title}</h2><p>{resource.detail}</p></div><strong aria-hidden="true">→</strong></a>)}</div>
+    <div className="student-section-heading"><div><p className="student-kicker">Connected Academy ecosystem</p><h2>Continue across Academy services</h2><p>These links open dedicated services. Account permissions, enrolments and product licences govern access.</p></div></div>
+    <div className="student-resource-list">{linkedAcademyServices().map((service) => <a key={service.id} href={service.href!} className="student-resource-card" target="_blank" rel="noopener noreferrer"><span>{service.area}</span><div><h2>{service.name}</h2><p>{service.summary}</p></div><strong aria-hidden="true">↗</strong></a>)}</div>
+    <div className="student-empty-state"><div><h2>Academy community integration</h2><p>Peer discussion, mentorship and study groups are planned. Community access will appear after an authenticated service is connected.</p></div></div>
+  </section>;
 }
 
 function Messages() {
