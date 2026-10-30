@@ -48,3 +48,6 @@
   .skunkie .skunkie__form{gap:6px;padding:8px}
   .skunkie .skunkie__form button{padding-inline:10px}
 }
+
+/* Configuration alone is not proof of end-to-end service health. */
+.skunkie__status--configured{background:#38bdf8;box-shadow:0 0 9px rgba(56,189,248,.35)}
