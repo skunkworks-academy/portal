@@ -117,6 +117,35 @@ export class LmsService {
     await this.store.put("lmsProgress", k, progress);
     return result; // Never expose answer keys to learners.
   }
+  /** Only the verified learner receives their own org-partition enrolments. */
+  async myEnrolments(ctx: LmsContext) {
+    requireRole(ctx, ["student"]);
+    const org = scope(ctx);
+    const records = await this.store.list<LmsEnrolment>("lmsEnrolments", org + ":");
+    return records.filter((record) =>
+      record.organizationId === org && record.learnerSubject === ctx.principal.subject
+        && ["active", "completed"].includes(record.status));
+  }
+
+  /** Lesson *metadata* only. Never return storage keys or assessment answer keys. */
+  async listLessons(ctx: LmsContext, courseId: string) {
+    const org = scope(ctx);
+    const course = await this.store.get<LmsCourse>("lmsCourses", key(org, courseId));
+    requireCourseOrg(course, org);
+    if (ctx.role === "student") {
+      if (course.status !== "published") throw new HttpError(404, "Course not published.");
+      await this.requireEnrolled(ctx, courseId);
+    } else {
+      requireRole(ctx, ["instructor", "staff", "customer-admin"]);
+      if (ctx.role === "instructor" && course.ownerSubject !== ctx.principal.subject) {
+        throw new HttpError(403, "Not course owner.");
+      }
+    }
+    const lessons = await this.store.list<LmsLesson>("lmsLessons", key(org, courseId) + ":");
+    return lessons.filter((lesson) => lesson.organizationId === org && lesson.courseId === courseId)
+      .map(({ id: lessonId, title, mediaType }) => ({ id: lessonId, title, mediaType }));
+  }
+
   async myProgress(ctx: LmsContext, courseId: string) {
     await this.requireEnrolled(ctx, courseId);
     return await this.store.get<LmsProgress>("lmsProgress", key(ctx.organizationId, courseId, ctx.principal.subject));
