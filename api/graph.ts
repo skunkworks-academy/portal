@@ -1,6 +1,5 @@
 import { ClientSecretCredential } from "@azure/identity";
 import { config, requireSettings } from "./config.js";
-import { fallbackClasses } from "./fallbackData.js";
 import { HttpError } from "./http.js";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalProfile, PortalProfileInput, PortalRole } from "../src/types.js";
 import { portalRoleFromPrincipal, type Principal } from "./auth.js";
@@ -222,10 +221,6 @@ function classFields(input: ClassInput, enrolled = 0) {
   };
 }
 
-function sameClassSession(left: ClassSession, right: ClassSession) {
-  return left.courseId === right.courseId && left.title === right.title && left.schedule === right.schedule;
-}
-
 export async function getLiveJobs() {
   const result = await listItems("JobPostings", "fields/Status eq 'Live'");
   return result.value.map(toJob);
@@ -281,18 +276,6 @@ export async function createClass(input: ClassInput, principal: Principal) {
 }
 
 export async function updateClass(id: string, input: Partial<ClassInput>, principal: Principal) {
-  const fallbackClass = fallbackClasses.find((item) => item.id === id);
-  if (fallbackClass) {
-    const classItems = await listItems("ClassSessions");
-    const existing = classItems.value.map(toClassSession).find((item) => sameClassSession(item, fallbackClass));
-    const merged = { ...fallbackClass, ...input };
-    const item = existing
-      ? await patchItem("ClassSessions", existing.id, classFields(merged, existing.enrolled))
-      : await createItem("ClassSessions", classFields(merged, fallbackClass.enrolled));
-    await audit(existing ? "ClassUpdated" : "ClassMaterialized", principal, item.id);
-    return toClassSession(item);
-  }
-
   const fields: Record<string, unknown> = {};
   if (input.title !== undefined) fields.Title = input.title;
   if (input.courseId !== undefined) fields.CourseId = input.courseId;
@@ -318,25 +301,17 @@ export async function getClassRegistrations() {
 }
 
 export async function registerForClass(classId: string, principal: Principal) {
+  // Only a real, persisted SharePoint class can be registered. Unknown or
+  // unpublished/closed classes must never materialise sample cohort data.
+  if (!classId || !/^[-a-zA-Z0-9_]{1,128}$/.test(classId)) {
+    throw new HttpError(400, "Invalid class identifier.");
+  }
   const classItems = await listItems("ClassSessions");
-  const sharePointClasses = classItems.value.map(toClassSession);
-  let classSession = sharePointClasses.find((item) => item.id === classId);
-  const fallbackClass = fallbackClasses.find((item) => item.id === classId);
-  let isSharePointClass = Boolean(classSession);
-
-  if (!classSession && fallbackClass) {
-    classSession = sharePointClasses.find((item) => sameClassSession(item, fallbackClass));
-    isSharePointClass = Boolean(classSession);
+  const classSession = classItems.value.map(toClassSession).find((item) => item.id === classId);
+  if (!classSession) throw new HttpError(404, "Class not found.");
+  if (!["Scheduled", "Open"].includes(classSession.status)) {
+    throw new HttpError(409, "Selected class is not open for registration.");
   }
-
-  if (!classSession && fallbackClass) {
-    const item = await createItem("ClassSessions", classFields(fallbackClass, fallbackClass.enrolled));
-    classSession = toClassSession(item);
-    isSharePointClass = true;
-    await audit("ClassMaterializedForRegistration", principal, item.id);
-  }
-
-  if (!classSession || !["Scheduled", "Open"].includes(classSession.status)) throw new HttpError(400, "Selected class is not open for registration.");
 
   const existing = await listItems("ClassRegistrations", `fields/ClassId eq '${escapeOData(classSession.id)}' and fields/StudentObjectId eq '${escapeOData(principal.subject)}'`);
   if (existing.value[0]) return toClassRegistration(existing.value[0]);
@@ -355,7 +330,7 @@ export async function registerForClass(classId: string, principal: Principal) {
     RegisteredAt: new Date().toISOString()
   });
 
-  if (isSharePointClass && !isFull) {
+  if (!isFull) {
     await patchItem("ClassSessions", classSession.id, {
       Enrolled: classSession.enrolled + 1,
       Status: classSession.enrolled + 1 >= classSession.seats ? "Full" : classSession.status
