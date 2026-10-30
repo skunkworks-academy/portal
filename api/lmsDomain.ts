@@ -111,7 +111,7 @@ export class LmsService {
     const correct = assessment.questions.filter(q => Number.isInteger(answers[q.id]) && answers[q.id] === q.correctOption).length;
     const percent = Math.round(correct / assessment.questions.length * 100);
     const k = key(ctx.organizationId, courseId, ctx.principal.subject);
-    const progress = await this.store.get<LmsProgress>("lmsProgress", k) ?? { organizationId: ctx.organizationId, courseId, learnerSubject: ctx.principal.subject, completedLessonIds: [], attempts: [] };
+    const progress: LmsProgress = await this.store.get<LmsProgress>("lmsProgress", k) ?? { organizationId: ctx.organizationId, courseId, learnerSubject: ctx.principal.subject, completedLessonIds: [], attempts: [] };
     const result = { assessmentId, percent, passed: percent >= assessment.passPercent, at: new Date().toISOString() };
     progress.attempts.push(result);
     await this.store.put("lmsProgress", k, progress);
