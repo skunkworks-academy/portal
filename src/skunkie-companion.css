@@ -3,3 +3,51 @@
 /* Consistent canonical Skunkie avatar in the companion panel. */
 .skunkie__identity{display:flex;align-items:center;gap:10px;min-width:0}
 .skunkie__header-avatar{display:block;flex:none;width:44px;height:44px;object-fit:cover;border-radius:50%;border:1px solid rgba(125,211,252,.4)}
+
+
+/* Skunkie mobile repair: keep the chat header and close control visible in an
+   embedded iOS browser, even when Safari/ChatGPT toolbars reduce the viewport.
+   This is intentionally scoped to Skunkie to avoid changing global Academy forms. */
+.skunkie{bottom:max(16px,env(safe-area-inset-bottom,0px));right:max(14px,env(safe-area-inset-right,0px));display:flex;align-items:flex-end;flex-direction:column;max-width:calc(100vw - 24px);isolation:isolate}
+.skunkie__panel{position:absolute;bottom:calc(100% + 12px);right:0;width:min(390px,calc(100vw - 24px));height:min(530px,calc(100vh - 135px));height:min(530px,calc(100dvh - 135px - env(safe-area-inset-top,0px)));max-height:calc(100dvh - 125px - env(safe-area-inset-top,0px));min-height:0;grid-template-rows:auto minmax(0,1fr) repeat(4,auto);box-sizing:border-box;overflow:hidden;box-shadow:0 18px 56px rgba(0,0,0,.4);font-size:14px;z-index:1}
+.skunkie__header{flex-shrink:0;padding:11px 14px;gap:10px;background:#101e35}
+.skunkie__identity strong{font-size:17px}
+.skunkie__close{min-width:44px;min-height:44px;height:44px;width:44px;flex:none;display:grid;place-items:center;background:#1f3553;border-color:#51647f;font-size:24px}
+.skunkie__messages{min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:12px 14px;gap:8px}
+.skunkie__message{max-width:95%;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.skunkie__quick-actions{padding:8px 12px 9px;gap:7px;min-height:0;flex-shrink:0}
+.skunkie__quick-actions button{min-height:36px;padding:6px 11px;white-space:nowrap}
+.skunkie .skunkie__form{display:grid;grid-template-columns:minmax(0,1fr) auto!important;align-items:end;gap:8px;padding:10px 12px}
+.skunkie .skunkie__form textarea{min-width:0;width:100%;min-height:56px;max-height:90px;resize:vertical;font-size:16px;line-height:1.4;padding:10px 11px;box-sizing:border-box}
+.skunkie .skunkie__form button{grid-column:2!important;align-self:end;min-height:44px;height:auto;padding:9px 14px}
+.skunkie__notice{flex-shrink:0;padding:0 12px 11px;font-size:11px;line-height:1.45}
+.skunkie__error{margin:8px 12px 0;padding:10px 12px;border:1px solid #f9c6a5;border-radius:12px;background:#392119;color:#ffe5d6;font-size:12px;line-height:1.45}
+.skunkie__error strong{display:block;font-size:13px}
+.skunkie__error p{margin:4px 0;color:inherit;font-size:12px}
+.skunkie__error button{min-height:32px;height:auto;padding:4px 12px;background:transparent;border-color:#f9c6a5;color:#ffe5d6;font-size:12px}
+.skunkie__service-notice{margin:7px 12px 0;color:#fcd8b2;font-size:12px;line-height:1.5}
+.skunkie__status{background:#64748b;box-shadow:none}
+.skunkie__status--ready{background:#22c55e;box-shadow:0 0 10px rgba(34,197,94,.65)}
+.skunkie__status--unavailable{background:#f59e0b;box-shadow:0 0 10px rgba(245,158,11,.4)}
+.skunkie :is(button,textarea):focus-visible{outline:3px solid #f24208;outline-offset:2px}
+@media(max-width:600px){
+  .skunkie{left:auto;right:max(12px,env(safe-area-inset-right,0px));bottom:max(16px,env(safe-area-inset-bottom,0px));max-width:calc(100vw - 24px)}
+  .skunkie__launcher{min-height:58px;padding:5px 7px;animation:none}
+  .skunkie__launcher img,.skunkie__fallback{width:46px;height:46px}
+  .skunkie__status{left:41px;bottom:7px}
+  .skunkie__panel{width:calc(100vw - 24px);height:min(470px,65vh);height:min(470px,65dvh);max-height:calc(100dvh - 105px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));border-radius:18px;bottom:calc(100% + 9px)}
+  .skunkie__message{font-size:14px}
+}
+@media(max-height:610px){
+  .skunkie__panel{height:min(350px,63dvh);max-height:calc(100dvh - 92px)}
+  .skunkie__quick-actions{padding-block:5px}
+  .skunkie__notice{padding-bottom:6px}
+}
+@media(max-width:350px){
+  .skunkie__panel{width:calc(100vw - 16px);right:-4px}
+  .skunkie .skunkie__form{gap:6px;padding:8px}
+  .skunkie .skunkie__form button{padding-inline:10px}
+}
+
+/* Configuration alone is not proof of end-to-end service health. */
+.skunkie__status--configured{background:#38bdf8;box-shadow:0 0 9px rgba(56,189,248,.35)}

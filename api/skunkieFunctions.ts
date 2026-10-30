@@ -1,6 +1,7 @@
 import { app, type HttpRequest, type InvocationContext } from "@azure/functions";
 import { requireUser } from "./auth.js";
 import { failure, json, readJson, HttpError } from "./http.js";
+import { isSkunkieConfigured } from "./skunkieReadiness.js";
 
 type SkunkieMessage = { role: "user" | "assistant"; content: string };
 type SkunkieChatPayload = {
@@ -8,6 +9,20 @@ type SkunkieChatPayload = {
   history?: SkunkieMessage[];
   context?: { title?: string; path?: string; heading?: string };
 };
+
+app.http("skunkieStatus", {
+  methods: ["GET"],
+  authLevel: "anonymous",
+  route: "skunkie/status",
+  handler: async (request) => {
+    try {
+      await requireUser(request);
+      return json(request, { available: isSkunkieConfigured(process.env) });
+    } catch (error) {
+      return failure(request, error);
+    }
+  }
+});
 
 const MAX_MESSAGE_LENGTH = 4000;
 const MAX_HISTORY = 8;
@@ -21,7 +36,7 @@ app.http("skunkieChat", {
 
 async function handle(request: HttpRequest, context: InvocationContext) {
   try {
-    const principal = await requireUser(request);
+    await requireUser(request);
     const payload = await readJson<SkunkieChatPayload>(request);
     const message = payload.message?.trim() ?? "";
 
@@ -33,8 +48,8 @@ async function handle(request: HttpRequest, context: InvocationContext) {
     const deployment = process.env.AZURE_OPENAI_DEPLOYMENT;
     const apiVersion = process.env.AZURE_OPENAI_API_VERSION || "2024-10-21";
 
-    if (!endpoint || !apiKey || !deployment) {
-      throw new HttpError(503, "Skunkie is not configured on this environment yet.");
+    if (!isSkunkieConfigured(process.env) || !endpoint || !apiKey || !deployment) {
+      throw new HttpError(503, "The Skunkie AI service has not been configured.");
     }
 
     const history = (payload.history ?? [])
@@ -61,6 +76,7 @@ async function handle(request: HttpRequest, context: InvocationContext) {
       `${endpoint}/openai/deployments/${encodeURIComponent(deployment)}/chat/completions?api-version=${encodeURIComponent(apiVersion)}`,
       {
         method: "POST",
+        signal: AbortSignal.timeout(28000),
         headers: {
           "Content-Type": "application/json",
           "api-key": apiKey
@@ -78,19 +94,17 @@ async function handle(request: HttpRequest, context: InvocationContext) {
     );
 
     if (!response.ok) {
-      const upstreamBody = await response.text();
-      context.error("Azure OpenAI request failed", { status: response.status, body: upstreamBody.slice(0, 1000) });
-      throw new HttpError(502, "Skunkie could not generate a response right now.");
+      // Provider failure bodies can contain user data or internal service details.
+      // Log only a coarse status; never write conversation content into telemetry.
+      context.error("Azure OpenAI request failed", { status: response.status });
+      throw new HttpError(response.status === 429 ? 429 : 502, "Skunkie could not generate a response right now.");
     }
 
     const body = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
     const reply = body.choices?.[0]?.message?.content?.trim();
     if (!reply) throw new HttpError(502, "Skunkie returned an empty response.");
 
-    context.log("Skunkie response generated", {
-      user: principal.email,
-      path: payload.context?.path || "unknown"
-    });
+    context.log("Skunkie response generated", { path: payload.context?.path || "unknown" });
 
     return json(request, { reply });
   } catch (error) {

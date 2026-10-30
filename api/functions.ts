@@ -6,6 +6,7 @@ import { requireCourseLesson, scoreFinalAssessment, validateProgressPayload, typ
 import { empty, failure, json, readJson } from "./http.js";
 import "./paymentFunctions.js";
 import "./skunkieFunctions.js";
+import { isSkunkieConfigured } from "./skunkieReadiness.js";
 import {
   createApplication,
   createClass,
@@ -62,13 +63,14 @@ app.http("health", {
       paypalEnvironment: process.env.PAYPAL_ENV || "sandbox"
     },
     skunkieSettings: {
-      configured: Boolean(process.env.AZURE_OPENAI_ENDPOINT && process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_DEPLOYMENT),
-      deployment: process.env.AZURE_OPENAI_DEPLOYMENT || null
+      configured: isSkunkieConfigured(process.env)
+      // Deployment identifiers and credentials are intentionally never public.
     },
     allowedOrigins: config.allowedOrigins,
     routes: [
       "GET /api/health",
       "POST /api/skunkie/chat",
+      "GET /api/skunkie/status",
       "GET /api/jobs",
       "GET /api/courses",
       "GET /api/classes",
