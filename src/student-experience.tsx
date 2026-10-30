@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { SKUNKIE_AVATAR_SRC } from "./skunkie-assets";
 import { linkedAcademyServices } from "./academy-service-registry";
+import { availableServices, PortalServiceNotice, type PortalServiceAvailability } from "./service-availability";
 import type { ClassRegistrationRecord, ClassSession, CourseRecord, PortalProfileInput, UserProfile } from "./types";
 import "./student-experience.css";
 
@@ -15,6 +16,8 @@ type StudentExperienceProps = {
   onSignIn: () => void;
   onSignOut: () => void;
   onRegister: (classId: string) => Promise<void>;
+  services?: PortalServiceAvailability;
+  onRetryServices?: () => void;
 };
 
 const navItems: Array<{ id: StudentView; label: string; icon: string }> = [
@@ -43,7 +46,9 @@ export function StudentExperience({
   registrations,
   onSignIn,
   onSignOut,
-  onRegister
+  onRegister,
+  services = availableServices,
+  onRetryServices
 }: StudentExperienceProps) {
   const [view, setView] = useState<StudentView>("dashboard");
   const [query, setQuery] = useState("");
@@ -103,6 +108,7 @@ export function StudentExperience({
         </header>
 
         <main id="student-main" className="student-main">
+          {onRetryServices && <PortalServiceNotice services={services} onRetry={onRetryServices} />}
           {!profile && (
             <section className="student-signin-banner">
               <div><strong>Unlock your personal learning space.</strong><span>Sign in to save registrations, learning progress, and profile preferences.</span></div>
@@ -127,19 +133,19 @@ export function StudentExperience({
                 </div>
               </div>
               <div className="student-stat-grid">
-                <Stat value={courses.length} label="Available courses" />
+                <Stat value={services.courses === "available" ? courses.length : "—"} label="Available courses" />
                 <Stat value={registrations.length} label="Class registrations" />
 
               </div>
               <div className="student-two-column">
                 <article className="student-panel">
-                  <div className="student-panel-heading"><div><p className="student-kicker">Course discovery</p><h2>{firstCourse?.title ?? "Choose a course"}</h2></div><button type="button" className="student-text-button" onClick={() => setView("learning")}>View learning</button></div>
-                  <p>{firstCourse?.description ?? "Explore the Academy catalogue to begin your learning pathway."}</p>
+                  <div className="student-panel-heading"><div><p className="student-kicker">Course discovery</p><h2>{services.courses !== "available" ? "Course catalogue unavailable" : firstCourse?.title ?? "Choose a course"}</h2></div><button type="button" className="student-text-button" onClick={() => setView("learning")}>View learning</button></div>
+                  <p>{services.courses !== "available" ? "Course data could not be retrieved. Use Retry services above." : firstCourse?.description ?? "Explore the Academy catalogue to begin your learning pathway."}</p>
                   <span className="student-muted">Learning progress appears after verified course activity is available.</span>
                 </article>
                 <article className="student-panel student-next-class">
-                  <div className="student-panel-heading"><div><p className="student-kicker">Classes</p><h2>{nextClass?.title ?? "No class scheduled"}</h2></div><button type="button" className="student-text-button" onClick={() => setView("classes")}>View classes</button></div>
-                  <p>{nextClass ? `${nextClass.schedule} · ${nextClass.modality}` : "Register for an upcoming study group or live session."}</p>
+                  <div className="student-panel-heading"><div><p className="student-kicker">Classes</p><h2>{services.classes !== "available" ? "Class schedule unavailable" : nextClass?.title ?? "No class scheduled"}</h2></div><button type="button" className="student-text-button" onClick={() => setView("classes")}>View classes</button></div>
+                  <p>{services.classes !== "available" ? "Class data could not be retrieved. Use Retry services above." : nextClass ? `${nextClass.schedule} · ${nextClass.modality}` : "Register for an upcoming study group or live session."}</p>
                   <span className="student-muted">{nextClass ? `${nextClass.enrolled}/${nextClass.seats} seats reserved` : "Your schedule is clear."}</span>
                 </article>
               </div>
@@ -151,7 +157,10 @@ export function StudentExperience({
               <div className="student-section-heading"><div><p className="student-kicker">Learning library</p><h2>Choose your next learning step</h2><p>Courses are tailored to practical skills, labs, and certification preparation.</p></div><span className="student-count">{filteredCourses.length} courses</span></div>
               <div className="student-course-grid">
                 {filteredCourses.map((course) => <CourseCard key={course.id} course={course} onContinue={() => setView("companion")} />)}
-                {filteredCourses.length === 0 && <div className="student-empty-state"><div><h2>No courses available</h2><p>No matching Academy courses have been published yet.</p></div></div>}
+                {filteredCourses.length === 0 && <div className="student-empty-state"><div>
+                  <h2>{services.courses === "available" ? "No courses available" : "Course catalogue unavailable"}</h2>
+                  <p>{services.courses === "available" ? "No matching Academy courses have been published yet." : "The course catalogue could not be loaded. Try again when the service is available."}</p>
+                </div></div>}
               </div>
             </section>
           )}
@@ -164,7 +173,10 @@ export function StudentExperience({
                   const registered = registeredClassIds.has(classItem.id);
                   return <article className="student-session-card" key={classItem.id}><div className="student-session-date"><strong>{classItem.schedule}</strong><span>{classItem.modality}</span></div><div><span className="student-status">{classItem.status}</span><h2>{classItem.title}</h2><p>{classItem.courseTitle} · {classItem.instructor}</p><small>{classItem.enrolled}/{classItem.seats} places reserved</small></div><button type="button" disabled={registered} onClick={() => void onRegister(classItem.id)}>{registered ? "Registered" : "Register"}</button></article>;
                 })}
-                {classes.length === 0 && <div className="student-empty-state"><div><h2>No scheduled classes</h2><p>New sessions will appear here when published.</p></div></div>}
+                {classes.length === 0 && <div className="student-empty-state"><div>
+                  <h2>{services.classes === "available" ? "No scheduled classes" : "Class schedule unavailable"}</h2>
+                  <p>{services.classes === "available" ? "New sessions will appear here when published." : "Live classes could not be retrieved. Try loading Academy services again."}</p>
+                </div></div>}
               </div>
             </section>
           )}
