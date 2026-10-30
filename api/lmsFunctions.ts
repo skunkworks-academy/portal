@@ -32,6 +32,10 @@ async function handle(request: HttpRequest, fn: () => Promise<unknown>) {
 }
 app.http("lmsCoursesList", { methods: ["GET"], authLevel: "anonymous", route: "lms/courses",
   handler: request => handle(request, async () => service().listCourses(await context(request))) });
+app.http("lmsMyEnrolments", { methods: ["GET"], authLevel: "anonymous", route: "lms/me/enrolments",
+  handler: request => handle(request, async () => service().myEnrolments(await context(request))) });
+app.http("lmsCourseLessons", { methods: ["GET"], authLevel: "anonymous", route: "lms/courses/{courseId}/lessons",
+  handler: request => handle(request, async () => service().listLessons(await context(request), request.params.courseId)) });
 app.http("lmsCoursesCreate", { methods: ["POST"], authLevel: "anonymous", route: "lms/courses",
   handler: request => handle(request, async () => service().createCourse(await context(request), await readJson<{title:string;description:string}>(request))) });
 app.http("lmsCourseReview", { methods: ["POST"], authLevel: "anonymous", route: "lms/courses/{courseId}/review",
