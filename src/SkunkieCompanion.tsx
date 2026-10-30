@@ -41,6 +41,16 @@ export function SkunkieCompanion() {
   }), [open]);
 
   useEffect(() => {
+    // Never leak one signed-in learner's conversation into a subsequent
+    // Microsoft account session on a shared browser/device.
+    setOpen(false);
+    setInput("");
+    setChatError("");
+    setServiceState("unknown");
+    setMessages([{ role: "assistant", content: "Hi, I’m Skunkie. Ask me to explain a concept, quiz you, or help you work through a learning problem." }]);
+  }, [account?.homeAccountId]);
+
+  useEffect(() => {
     if (open) closeRef.current?.focus({ preventScroll: true });
   }, [open]);
 
