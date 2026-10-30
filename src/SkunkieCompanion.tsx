@@ -26,7 +26,7 @@ export function SkunkieCompanion() {
   const [input, setInput] = useState("");
   const [imageFailed, setImageFailed] = useState(false);
   const [chatError, setChatError] = useState("");
-  const [serviceState, setServiceState] = useState<"unknown" | "ready" | "unavailable">("unknown");
+  const [serviceState, setServiceState] = useState<"unknown" | "configured" | "ready" | "unavailable">("unknown");
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "assistant", content: "Hi, I’m Skunkie. Ask me to explain a concept, quiz you, or help you work through a learning problem." }
   ]);
@@ -71,7 +71,7 @@ export function SkunkieCompanion() {
         });
         if (!response.ok) throw new Error("Service status unavailable");
         const result = await response.json() as { available?: boolean };
-        if (!cancelled) setServiceState(result.available ? "ready" : "unavailable");
+        if (!cancelled) setServiceState(result.available ? "configured" : "unavailable");
       } catch {
         if (!cancelled) setServiceState("unknown");
       }
