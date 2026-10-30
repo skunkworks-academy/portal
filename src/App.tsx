@@ -14,6 +14,7 @@ import {
   skunkworksTenantId
 } from "./authConfig";
 import { portalApi } from "./api";
+import { loadingServices, resolveAvailability, type PortalServiceAvailability } from "./service-availability";
 import { StudentExperience } from "./student-experience";
 import { CertificateWallet } from "./CertificateWallet";
 import { PortalLanding } from "./landing-page";
@@ -135,6 +136,8 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
   const auth = account ? { instance, account } : undefined;
 
   const [health, setHealth] = useState<PortalHealth | null>(null);
+  const [services, setServices] = useState<PortalServiceAvailability>(loadingServices);
+  const [refreshServices, setRefreshServices] = useState(0);
   const [jobs, setJobs] = useState<JobPosting[]>([]);
   const [courses, setCourses] = useState<CourseRecord[]>([]);
   const [classes, setClasses] = useState<ClassSession[]>([]);
@@ -182,29 +185,42 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
 
   useEffect(() => {
     // Do not request workspace records before a Microsoft session exists.
-    if (!account) return;
+    if (!account) {
+      setServices(loadingServices);
+      return;
+    }
     let cancelled = false;
+    // Clear previously loaded records immediately on account changes and retries,
+    // rather than displaying another session's stale cards while fetching.
+    setServices(loadingServices);
+    setHealth(null);
+    setJobs([]);
+    setCourses([]);
+    setClasses([]);
 
     async function loadPublicData() {
-      const [healthResult, jobsResult, coursesResult, classesResult] = await Promise.allSettled([
+      const results = await Promise.allSettled([
         portalApi.health(),
         portalApi.jobs(),
         portalApi.courses(),
         portalApi.classes()
-      ]);
+      ] as const);
 
       if (cancelled) return;
-      if (healthResult.status === "fulfilled") setHealth(healthResult.value);
-      if (jobsResult.status === "fulfilled") setJobs(jobsResult.value);
-      if (coursesResult.status === "fulfilled") setCourses(coursesResult.value);
-      if (classesResult.status === "fulfilled") setClasses(classesResult.value);
+      const [healthResult, jobsResult, coursesResult, classesResult] = results;
+      setServices(resolveAvailability(results));
+      setHealth(healthResult.status === "fulfilled" ? healthResult.value : null);
+      // Never reuse another account's old records when a request fails.
+      setJobs(jobsResult.status === "fulfilled" ? jobsResult.value : []);
+      setCourses(coursesResult.status === "fulfilled" ? coursesResult.value : []);
+      setClasses(classesResult.status === "fulfilled" ? classesResult.value : []);
     }
 
     void loadPublicData();
     return () => {
       cancelled = true;
     };
-  }, [account?.homeAccountId]);
+  }, [account?.homeAccountId, refreshServices]);
 
   useEffect(() => {
     if (!auth || !profile) return;
@@ -414,6 +430,8 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
         onSignIn={() => void signIn("Student")}
         onSignOut={() => void signOut()}
         onRegister={registerForClass}
+        services={services}
+        onRetryServices={() => setRefreshServices((value) => value + 1)}
       />
     );
   }
@@ -428,6 +446,8 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
       applications={activeRole === "Staff" ? adminApplications : applications}
       people={activeRole === "Staff" ? adminProfiles : []}
       onManage={() => setShowLegacyManagement(true)}
+      services={services}
+      onRetryServices={() => setRefreshServices((value) => value + 1)}
       onSignOut={() => void signOut()}
     />;
   }

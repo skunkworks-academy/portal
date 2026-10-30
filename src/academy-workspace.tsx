@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ApplicationRecord, ClassSession, CourseRecord, JobPosting, PortalProfile, PortalRole, UserProfile } from "./types";
 import { linkedAcademyServices } from "./academy-service-registry";
+import { availableServices, PortalServiceNotice, type PortalServiceAvailability } from "./service-availability";
 import "./academy-workspace.css";
 
 type View = "overview" | "courses" | "classes" | "recruitment" | "applications" | "people" | "documents" | "teams" | "finance" | "settings";
@@ -15,6 +16,8 @@ type Props = {
   people: PortalProfile[];
   onManage: () => void;
   onSignOut: () => void;
+  services?: PortalServiceAvailability;
+  onRetryServices?: () => void;
 };
 
 export const ACADEMY_SHAREPOINT_URL = "https://bluemix944.sharepoint.com/sites/Academy";
@@ -47,7 +50,7 @@ function ExternalLink({ href, children }: { href: string; children: React.ReactN
   return <a className="aw-action secondary" href={href} target="_blank" rel="noopener noreferrer">{children} <span aria-hidden="true">↗</span></a>;
 }
 
-export function AcademyWorkspace({ profile, role, courses, classes, jobs, applications, people, onManage, onSignOut }: Props) {
+export function AcademyWorkspace({ profile, role, courses, classes, jobs, applications, people, onManage, onSignOut, services = availableServices, onRetryServices }: Props) {
   const isStaff = profile.isAdmin && role === "Staff";
   const nav = useMemo(() => getVisibleAcademyNavigation(isStaff), [isStaff]);
   const [view, setView] = useState<View>("overview");
@@ -117,6 +120,7 @@ export function AcademyWorkspace({ profile, role, courses, classes, jobs, applic
         </header>
 
         <main className="aw-main" id="aw-main">
+          {onRetryServices && <PortalServiceNotice services={services} onRetry={onRetryServices} />}
           {search.trim() && view === "overview" && <section className="aw-panel"><div className="aw-section-title"><h2>Quick navigation matches</h2><span>{visible.length} matches</span></div><div className="aw-quicklinks">{visible.map((item) => <button type="button" key={item.id} onClick={() => openView(item.id)}>{item.label}<span>→</span></button>)}</div>{!visible.length && <EmptyState title="No matches" detail="Try a course, people, document or operations keyword." />}</section>}
           {view === "overview" && <>
             <section className="aw-welcome">
@@ -124,9 +128,9 @@ export function AcademyWorkspace({ profile, role, courses, classes, jobs, applic
               <div className="aw-hero-mark" aria-hidden="true"><span>SKUNKWORKS</span><strong>ACADEMY</strong><small>LEARN · BUILD · DEPLOY</small></div>
             </section>
             <section className="aw-stat-grid" aria-label="Workspace summary">
-              <article><span>Catalogue records</span><strong>{courses.length}</strong><small>Listed in portal</small></article>
-              <article><span>Class records</span><strong>{classes.length}</strong><small>Available for scheduling</small></article>
-              <article><span>Instructor opportunities</span><strong>{jobs.length}</strong><small>Portal listings</small></article>
+              <article><span>Catalogue records</span><strong>{services.courses === "available" ? courses.length : "—"}</strong><small>Listed in portal</small></article>
+              <article><span>Class records</span><strong>{services.classes === "available" ? classes.length : "—"}</strong><small>Available for scheduling</small></article>
+              <article><span>Instructor opportunities</span><strong>{services.jobs === "available" ? jobs.length : "—"}</strong><small>Portal listings</small></article>
               <article><span>{isStaff ? "Applications" : "My applications"}</span><strong>{applications.length}</strong><small>Records available to your role</small></article>
             </section>
             <section className="aw-panel"><div className="aw-section-title"><div><p className="aw-overline">QUICK ACCESS</p><h2>Your Academy tools</h2></div><span>Role-aware navigation</span></div><div className="aw-tool-grid">
@@ -136,11 +140,11 @@ export function AcademyWorkspace({ profile, role, courses, classes, jobs, applic
             <section className="aw-bottom-grid"><article className="aw-panel"><p className="aw-overline">MICROSOFT 365</p><h2>Connected services</h2><p>Use your Academy Microsoft identity to access Teams and authorised SharePoint resources. Individual document permissions remain enforced by Microsoft 365.</p><div className="aw-button-row"><ExternalLink href={ACADEMY_SHAREPOINT_URL}>SharePoint</ExternalLink><ExternalLink href="https://teams.microsoft.com/">Microsoft Teams</ExternalLink></div></article><article className="aw-panel"><p className="aw-overline">MANAGEMENT TOOLS</p><h2>Existing portal workflows</h2><p>Continue to use the existing forms for authorised instructor applications, job postings, class scheduling and profile updates.</p><button type="button" className="aw-action" onClick={onManage}>Open management tools <span aria-hidden="true">→</span></button></article></section>
           </>}
 
-          {view === "courses" && <section className="aw-panel"><div className="aw-section-title"><div><p className="aw-overline">LEARNING DELIVERY</p><h2>Course catalogue</h2></div><button type="button" className="aw-action" onClick={onManage}>Manage catalogue</button></div><div className="aw-record-list">{shownCourses.map((item) => <article key={item.id}><div><span className="aw-record-tag">{item.status}</span><h3>{item.title}</h3><p>{item.level} · {item.duration}</p></div><span>{item.id}</span></article>)}</div>{!shownCourses.length && <EmptyState title="No course records" detail="No courses match your search. Authorised catalogue management is available in the existing portal." />}</section>}
+          {view === "courses" && <section className="aw-panel"><div className="aw-section-title"><div><p className="aw-overline">LEARNING DELIVERY</p><h2>Course catalogue</h2></div><button type="button" className="aw-action" onClick={onManage}>Manage catalogue</button></div><div className="aw-record-list">{shownCourses.map((item) => <article key={item.id}><div><span className="aw-record-tag">{item.status}</span><h3>{item.title}</h3><p>{item.level} · {item.duration}</p></div><span>{item.id}</span></article>)}</div>{!shownCourses.length && <EmptyState title={services.courses === "available" ? "No course records" : "Course catalogue unavailable"} detail={services.courses === "available" ? "No courses match your search. Authorised catalogue management is available in the existing portal." : "Course records could not be retrieved. Retry the Academy services before making catalogue decisions."} />}</section>}
 
-          {view === "classes" && <section className="aw-panel"><div className="aw-section-title"><div><p className="aw-overline">LEARNING DELIVERY</p><h2>Cohorts and scheduling</h2></div><button type="button" className="aw-action" onClick={onManage}>Manage schedules</button></div><div className="aw-record-list">{shownClasses.map((item) => <article key={item.id}><div><span className="aw-record-tag">{item.status}</span><h3>{item.title}</h3><p>{item.schedule} · {item.modality} · {item.instructor || "Instructor not assigned"}</p></div><span>{item.enrolled} / {item.seats} seats</span></article>)}</div>{!shownClasses.length && <EmptyState title="No cohorts listed" detail="There are no matching scheduled classes. Use the management tools to administer authorised schedules." />}</section>}
+          {view === "classes" && <section className="aw-panel"><div className="aw-section-title"><div><p className="aw-overline">LEARNING DELIVERY</p><h2>Cohorts and scheduling</h2></div><button type="button" className="aw-action" onClick={onManage}>Manage schedules</button></div><div className="aw-record-list">{shownClasses.map((item) => <article key={item.id}><div><span className="aw-record-tag">{item.status}</span><h3>{item.title}</h3><p>{item.schedule} · {item.modality} · {item.instructor || "Instructor not assigned"}</p></div><span>{item.enrolled} / {item.seats} seats</span></article>)}</div>{!shownClasses.length && <EmptyState title={services.classes === "available" ? "No cohorts listed" : "Class schedule unavailable"} detail={services.classes === "available" ? "There are no matching scheduled classes. Use the management tools to administer authorised schedules." : "Class records could not be retrieved. Retry services before changing schedules."} />}</section>}
 
-          {view === "recruitment" && <section className="aw-panel"><div className="aw-section-title"><div><p className="aw-overline">PEOPLE</p><h2>Instructor opportunities</h2></div><button type="button" className="aw-action" onClick={onManage}>{isStaff ? "Manage postings" : "Apply for a role"}</button></div><div className="aw-record-list">{shownJobs.map((item) => <article key={item.id}><div><span className="aw-record-tag">{item.status}</span><h3>{item.title}</h3><p>{item.programme} · {item.modality}</p></div><span>{item.rateBand || "Rate pending"}</span></article>)}</div>{!shownJobs.length && <EmptyState title="No opportunities listed" detail="No matching instructor opportunities are currently available in this view." />}</section>}
+          {view === "recruitment" && <section className="aw-panel"><div className="aw-section-title"><div><p className="aw-overline">PEOPLE</p><h2>Instructor opportunities</h2></div><button type="button" className="aw-action" onClick={onManage}>{isStaff ? "Manage postings" : "Apply for a role"}</button></div><div className="aw-record-list">{shownJobs.map((item) => <article key={item.id}><div><span className="aw-record-tag">{item.status}</span><h3>{item.title}</h3><p>{item.programme} · {item.modality}</p></div><span>{item.rateBand || "Rate pending"}</span></article>)}</div>{!shownJobs.length && <EmptyState title={services.jobs === "available" ? "No opportunities listed" : "Instructor opportunities unavailable"} detail={services.jobs === "available" ? "No matching instructor opportunities are currently available in this view." : "Job records could not be retrieved. Retry the Academy services."} />}</section>}
 
           {view === "applications" && <section className="aw-panel"><div className="aw-section-title"><div><p className="aw-overline">PEOPLE</p><h2>{isStaff ? "Instructor applications" : "My applications"}</h2></div><button type="button" className="aw-action" onClick={onManage}>Open application tools</button></div><div className="aw-record-list">{shownApps.map((item) => <article key={item.id}><div><span className="aw-record-tag">{item.status}</span><h3>{item.jobTitle}</h3><p>{isStaff ? item.applicantName + " · " : ""}{item.submittedAt || "Date unavailable"}</p></div><span>{item.owner || "Unassigned"}</span></article>)}</div>{!shownApps.length && <EmptyState title="No applications" detail="Applications will appear once they have been submitted and authorised for your role." />}</section>}
 
