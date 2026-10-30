@@ -183,6 +183,35 @@ jobs:
               --output none
 
 
+      - name: Restore Skunkie Azure OpenAI configuration
+        uses: azure/cli@v2
+        env:
+          SKUNKIE_ENDPOINT: ${{ vars.PORTAL_AZURE_OPENAI_ENDPOINT }}
+          SKUNKIE_DEPLOYMENT: ${{ vars.PORTAL_AZURE_OPENAI_DEPLOYMENT }}
+          SKUNKIE_API_VERSION: ${{ vars.PORTAL_AZURE_OPENAI_API_VERSION || '2024-10-21' }}
+          SKUNKIE_API_KEY: ${{ secrets.PORTAL_AZURE_OPENAI_API_KEY }}
+        with:
+          inlineScript: |
+            set -euo pipefail
+            if [ -n "${SKUNKIE_ENDPOINT:-}" ] && [ -n "${SKUNKIE_DEPLOYMENT:-}" ] && [ -n "${SKUNKIE_API_KEY:-}" ]; then
+              if [[ "$SKUNKIE_ENDPOINT" != https://* ]]; then
+                echo "Skunkie Azure OpenAI endpoint must use HTTPS." >&2
+                exit 1
+              fi
+              az functionapp config appsettings set \
+                --resource-group "$RESOURCE_GROUP_NAME" \
+                --name "$FUNCTION_APP_NAME" \
+                --settings "AZURE_OPENAI_ENDPOINT=$SKUNKIE_ENDPOINT" \
+                           "AZURE_OPENAI_DEPLOYMENT=$SKUNKIE_DEPLOYMENT" \
+                           "AZURE_OPENAI_API_VERSION=$SKUNKIE_API_VERSION" \
+                           "AZURE_OPENAI_API_KEY=$SKUNKIE_API_KEY" \
+                --output none
+              echo "Skunkie provider settings restored securely from production environment configuration."
+            else
+              echo "::warning::Skunkie AI is not configured. Supply PORTAL_AZURE_OPENAI_ENDPOINT, PORTAL_AZURE_OPENAI_DEPLOYMENT (GitHub environment variables) and PORTAL_AZURE_OPENAI_API_KEY (production environment secret)."
+              echo "- Skunkie AI: configuration incomplete. Chat will display an availability notice until provisioned." >> "$GITHUB_STEP_SUMMARY"
+            fi
+
       - name: Assemble Function deployment package
         shell: bash
         run: |
@@ -248,6 +277,18 @@ jobs:
             echo "Health check attempt $attempt failed; retrying in 10 seconds."
             sleep 10
           done
+          echo "$response" | jq -e '(.routes // [] | index("POST /api/skunkie/chat") != null) and (.routes // [] | index("GET /api/skunkie/status") != null)' >/dev/null
+          skunkie_status=$(curl --silent --show-error --max-time 20 --output /tmp/skunkie-status.body --write-out '%{http_code}' "$API_BASE_URL/skunkie/status" || true)
+          case "$skunkie_status" in
+            401|403) echo "Skunkie status endpoint exists and requires Microsoft authentication." ;;
+            *) echo "Expected HTTP 401/403 from protected Skunkie status; received $skunkie_status." >&2; exit 1 ;;
+          esac
+          if echo "$response" | jq -e '.skunkieSettings.configured == true' >/dev/null; then
+            echo "- Skunkie AI: configuration present (live generation still requires authenticated functional test)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Skunkie AI is not configured in the running Function App."
+            echo "- Skunkie AI: unavailable until production Azure OpenAI settings are configured." >> "$GITHUB_STEP_SUMMARY"
+          fi
           admin_status=$(curl --silent --show-error --location --max-time 20 --output /tmp/admin-applications.body --write-out '%{http_code}' "$API_BASE_URL/staff/applications" || true)
           case "$admin_status" in
             401|403) echo "Staff applications endpoint resolved and correctly requires authentication (HTTP $admin_status)." ;;
