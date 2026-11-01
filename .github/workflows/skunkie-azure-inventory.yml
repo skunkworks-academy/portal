@@ -114,6 +114,17 @@ jobs:
             trap 'rm -rf "$tmp_dir"' EXIT
             ai_name="swa-skunkie-$(printf %s "$AZURE_SUBSCRIPTION_ID" | sha256sum | cut -c1-10)"
 
+            network_mode="$(az cognitiveservices account show --resource-group "$RESOURCE_GROUP_NAME" --name "$ai_name" --query 'properties.publicNetworkAccess' -o tsv)"
+            disable_local_auth="$(az cognitiveservices account show --resource-group "$RESOURCE_GROUP_NAME" --name "$ai_name" --query 'properties.disableLocalAuth' -o tsv)"
+            network_default_action="$(az cognitiveservices account show --resource-group "$RESOURCE_GROUP_NAME" --name "$ai_name" --query 'properties.networkAcls.defaultAction' -o tsv)"
+            echo "Skunkie resource network policy: publicNetworkAccess=$network_mode, localAuthDisabled=$disable_local_auth, defaultNetworkAction=$network_default_action"
+            {
+              echo "- Public network access: $network_mode"
+              echo "- Local key authentication disabled: $disable_local_auth"
+              echo "- Default network rule: $network_default_action"
+              echo "- The account has no model deployment; these policy values do not indicate production chat availability."
+            } >> "$GITHUB_STEP_SUMMARY"
+
             if az cognitiveservices account list-models --name "$ai_name" --resource-group "$RESOURCE_GROUP_NAME" \
                  --only-show-errors -o json > "$tmp_dir/models.json" 2>"$tmp_dir/models.err"; then
               echo "Skunkie resource model options count: $(jq 'length' "$tmp_dir/models.json")"
