@@ -119,6 +119,10 @@ jobs:
               echo "Skunkie resource model options count: $(jq 'length' "$tmp_dir/models.json")"
               echo "Supported target model options (public model metadata only):"
               jq -r '.[] | select(((.name // .model.name // "") == "gpt-4.1-mini") or ((.name // .model.name // "") == "gpt-4o-mini") or ((.name // .model.name // "") == "gpt-4o")) | [( .name // .model.name // ""), (.version // .model.version // ""), ([.skus[]?.name] | unique | join(","))] | @tsv' "$tmp_dir/models.json" | head -20
+              regional_options="$(jq '[.[] | select(any(.skus[]?; .name == "Standard"))] | length' "$tmp_dir/models.json")"
+              echo "Regional Standard model options on new Skunkie account: $regional_options"
+              echo "Regional Standard model names (public metadata): $(jq -r '[.[] | select(any(.skus[]?; .name == "Standard")) | .name] | unique | join(",")' "$tmp_dir/models.json" | cut -c1-250)"
+              echo "- Regional Standard model options: $regional_options" >> "$GITHUB_STEP_SUMMARY"
               echo "- Provisioned resource model catalog query: successful" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "::warning::Unable to read the new resource model catalogue; subscription approvals may still be pending."
