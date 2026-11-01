@@ -104,6 +104,36 @@ jobs:
               echo "::warning::Resource is not yet fully provisioned. No model or API settings will be changed."
             fi
 
+      - name: Check model quota and supported deployment types for the provisioned Skunkie resource
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            umask 077
+            tmp_dir="$(mktemp -d)"
+            trap 'rm -rf "$tmp_dir"' EXIT
+            ai_name="swa-skunkie-$(printf %s "$AZURE_SUBSCRIPTION_ID" | sha256sum | cut -c1-10)"
+
+            if az cognitiveservices account list-models --name "$ai_name" --resource-group "$RESOURCE_GROUP_NAME" \
+                 --only-show-errors -o json > "$tmp_dir/models.json" 2>"$tmp_dir/models.err"; then
+              echo "Skunkie resource model options count: $(jq 'length' "$tmp_dir/models.json")"
+              echo "Supported target model options (public model metadata only):"
+              jq -r '.[] | select(((.name // .model.name // "") == "gpt-4.1-mini") or ((.name // .model.name // "") == "gpt-4o-mini") or ((.name // .model.name // "") == "gpt-4o")) | [( .name // .model.name // ""), (.version // .model.version // ""), ([.skus[]?.name] | unique | join(","))] | @tsv' "$tmp_dir/models.json" | head -20
+              echo "- Provisioned resource model catalog query: successful" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::warning::Unable to read the new resource model catalogue; subscription approvals may still be pending."
+              echo "- Provisioned resource model catalog query: unavailable" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            if az cognitiveservices account list-usage --name "$ai_name" --resource-group "$RESOURCE_GROUP_NAME" \
+                 --only-show-errors -o json > "$tmp_dir/usage.json" 2>"$tmp_dir/usage.err"; then
+              count="$(jq 'length' "$tmp_dir/usage.json")"
+              positive="$(jq '[.[] | select((.limit // 0) > 0)] | length' "$tmp_dir/usage.json")"
+              echo "Skunkie AI quota categories: total=$count; nonzero limits=$positive"
+              echo "- Quota categories visible: $count (nonzero: $positive)" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::warning::Resource usage/quota could not be read by the production federated identity."
+            fi
+
       - name: Discover existing Azure AI resources and model deployments (no writes)
         uses: azure/cli@v2
         with:
