@@ -50,19 +50,14 @@ jobs:
               if az rest --method get \
                   --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/providers/Microsoft.CognitiveServices/locations/$region/usages?api-version=2024-10-01" \
                   --only-show-errors -o json > "$tmp/quota.json" 2>"$tmp/error.txt"; then
-                jq -r '
-                  [(.value // [])[]
-                    | select((.name.value // "") | test("^OpenAI\\.(GlobalStandard|Standard|DataZoneStandard)\\.(gpt-4[.]1-mini|gpt-4o-mini|gpt-4o)$"))
-                    | {
-                        model: .name.value,
-                        used: (.currentValue // 0),
-                        limit: (.limit // 0),
-                        available: ((.limit // 0) - (.currentValue // 0))
-                      }
-                  ] | if length == 0 then "No matching interactive quota records." else
-                    .[] | "- \\(.model): \\(.available) TPM available (limit=\\(.limit), used=\\(.used))"
-                  end
-                ' "$tmp/quota.json" >> "$GITHUB_STEP_SUMMARY"
+                matches="$(jq -r '(.value // [])[] | select((.name.value // "") | test("^OpenAI[.](GlobalStandard|Standard|DataZoneStandard)[.](gpt-4[.]1-mini|gpt-4o-mini|gpt-4o)$")) | [.name.value, ((.currentValue // 0) | tostring), ((.limit // 0) | tostring)] | @tsv' "$tmp/quota.json")"
+                if [ -z "$matches" ]; then
+                  echo "$region: no matching interactive quota rows" | tee -a "$GITHUB_STEP_SUMMARY"
+                else
+                  while IFS="$(printf '\t')" read -r model used limit; do
+                    echo "$region: $model used=$used limit=$limit" | tee -a "$GITHUB_STEP_SUMMARY"
+                  done <<< "$matches"
+                fi
                 echo "Region $region: quota inspected."
               else
                 echo "- Quota inspection unavailable to existing federated identity in this region." >> "$GITHUB_STEP_SUMMARY"
