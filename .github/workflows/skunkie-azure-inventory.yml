@@ -135,9 +135,9 @@ jobs:
                 echo "First model catalogue item field names (not values): $(jq -r '.[0] | keys | join(",")' "$inventory_dir/models.json")"
                 echo "OpenAI model IDs visible: $(jq -r '[.[] | ((.model.name // .name // "") | tostring) | select(startswith("gpt-"))] | unique | join(",")' "$inventory_dir/models.json" | cut -c1-200)"
               fi
-              regional_mini="$(jq '[.[] | select((.model.name // "") == "gpt-4.1-mini") | .skus[]? | select(.name == "Standard")] | length' "$inventory_dir/models.json")"
-              global_mini="$(jq '[.[] | select((.model.name // "") == "gpt-4.1-mini") | .skus[]? | select(.name == "GlobalStandard")] | length' "$inventory_dir/models.json")"
-              regional_4o="$(jq '[.[] | select((.model.name // "") == "gpt-4o") | .skus[]? | select(.name == "Standard")] | length' "$inventory_dir/models.json")"
+              regional_mini="$(jq '[.[] | select((.model.name // "") == "gpt-4.1-mini" and (.skuName // "") == "Standard")] | length' "$inventory_dir/models.json")"
+              global_mini="$(jq '[.[] | select((.model.name // "") == "gpt-4.1-mini" and (.skuName // "") == "GlobalStandard")] | length' "$inventory_dir/models.json")"
+              regional_4o="$(jq '[.[] | select((.model.name // "") == "gpt-4o" and (.skuName // "") == "Standard")] | length' "$inventory_dir/models.json")"
               echo "- gpt-4.1-mini regional Standard deployment options: $regional_mini" >> "$GITHUB_STEP_SUMMARY"
               echo "- gpt-4.1-mini GlobalStandard deployment options: $global_mini" >> "$GITHUB_STEP_SUMMARY"
               echo "- gpt-4o regional Standard deployment options: $regional_4o" >> "$GITHUB_STEP_SUMMARY"
