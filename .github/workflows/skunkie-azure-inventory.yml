@@ -126,6 +126,20 @@ jobs:
               echo "- Cognitive Services resource provider registration: $provider_state" >> "$GITHUB_STEP_SUMMARY"
               echo "Cognitive Services registration state: $provider_state"
             fi
+            if az cognitiveservices model list --location southafricanorth --only-show-errors -o json > "$inventory_dir/models.json" 2>"$inventory_dir/models-error.txt"; then
+              # Read-only inspection: model deployment SKU and version availability
+              # in this subscription; no model or billable resource is created.
+              regional_mini="$(jq '[.[] | select((.model.name // "") == "gpt-4.1-mini") | .skus[]? | select(.name == "Standard")] | length' "$inventory_dir/models.json")"
+              global_mini="$(jq '[.[] | select((.model.name // "") == "gpt-4.1-mini") | .skus[]? | select(.name == "GlobalStandard")] | length' "$inventory_dir/models.json")"
+              regional_4o="$(jq '[.[] | select((.model.name // "") == "gpt-4o") | .skus[]? | select(.name == "Standard")] | length' "$inventory_dir/models.json")"
+              echo "- gpt-4.1-mini regional Standard deployment options: $regional_mini" >> "$GITHUB_STEP_SUMMARY"
+              echo "- gpt-4.1-mini GlobalStandard deployment options: $global_mini" >> "$GITHUB_STEP_SUMMARY"
+              echo "- gpt-4o regional Standard deployment options: $regional_4o" >> "$GITHUB_STEP_SUMMARY"
+              echo "Model availability (SA North): mini-regional=$regional_mini mini-global=$global_mini gpt4o-regional=$regional_4o"
+            else
+              echo "::warning::Subscription model catalogue is unavailable; further registration or quota approval may be required."
+              echo "- Model catalogue check: unavailable under the current subscription permissions/provider state." >> "$GITHUB_STEP_SUMMARY"
+            fi
             if [ "$account_count" -eq 0 ]; then
               echo "::warning::No accessible existing OpenAI/AIServices resource was found in the configured production subscription."
             fi
