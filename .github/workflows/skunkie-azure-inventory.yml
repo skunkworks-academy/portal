@@ -134,6 +134,8 @@ jobs:
               if [ "$model_total" -gt 0 ]; then
                 echo "First model catalogue item field names (not values): $(jq -r '.[0] | keys | join(",")' "$inventory_dir/models.json")"
                 echo "OpenAI model IDs visible: $(jq -r '[.[] | ((.model.name // .name // "") | tostring) | select(startswith("gpt-"))] | unique | join(",")' "$inventory_dir/models.json" | cut -c1-200)"
+                echo "Visible gpt-4.1-mini SKU descriptors: $(jq -r '[.[] | select((.model.name // "") == "gpt-4.1-mini") | (.skuName // "null")] | unique | join(",")' "$inventory_dir/models.json" | cut -c1-150)"
+                echo "Visible gpt-4o SKU descriptors: $(jq -r '[.[] | select((.model.name // "") == "gpt-4o") | (.skuName // "null")] | unique | join(",")' "$inventory_dir/models.json" | cut -c1-150)"
               fi
               regional_mini="$(jq '[.[] | select((.model.name // "") == "gpt-4.1-mini" and (.skuName // "") == "Standard")] | length' "$inventory_dir/models.json")"
               global_mini="$(jq '[.[] | select((.model.name // "") == "gpt-4.1-mini" and (.skuName // "") == "GlobalStandard")] | length' "$inventory_dir/models.json")"
