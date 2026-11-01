@@ -64,4 +64,21 @@ jobs:
                 echo "::warning::Quota inspection unavailable in $region"
               fi
             done
+            echo "### Sweden Central gpt-4o-mini capacity check" >> "$GITHUB_STEP_SUMMARY"
+            if az rest --method get \
+              --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/providers/Microsoft.CognitiveServices/modelCapacities?api-version=2024-10-01&modelFormat=OpenAI&modelName=gpt-4o-mini&modelVersion=2024-07-18" \
+              --only-show-errors -o json > "$tmp/capacities.json" 2>"$tmp/capacity-error.txt"; then
+              entries="$(jq '[.value[]? | select((.location // "") == "swedencentral" and (.properties.skuName // "") == "Standard")] | length' "$tmp/capacities.json")"
+              echo "Sweden Central regional Standard gpt-4o-mini capacity rows: $entries" | tee -a "$GITHUB_STEP_SUMMARY"
+              jq -r '.value[]? | select((.location // "") == "swedencentral" and (.properties.skuName // "") == "Standard") | [(.properties.skuName // ""), ((.properties.availableCapacity // 0) | tostring)] | @tsv' "$tmp/capacities.json" | tee -a "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::warning::Sweden Central model capacity read unavailable."
+              echo "Sweden Central model capacity: could not verify" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "### Quota units (Sweden Central)" >> "$GITHUB_STEP_SUMMARY"
+            if az rest --method get \
+              --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/providers/Microsoft.CognitiveServices/locations/swedencentral/usages?api-version=2024-10-01" \
+              --only-show-errors -o json > "$tmp/sweden-quota.json" 2>"$tmp/sweden-error.txt"; then
+              jq -r '(.value // [])[] | select((.name.value // "") == "OpenAI.Standard.gpt-4o-mini" or (.name.value // "") == "OpenAI.Standard.gpt-4o") | [.name.value, (.unit // "unspecified"), ((.limit // 0)|tostring)] | @tsv' "$tmp/sweden-quota.json" | tee -a "$GITHUB_STEP_SUMMARY"
+            fi
             echo "Model deployments: none created or altered. Azure AI credentials: none read."
