@@ -1,4 +1,4 @@
-name: Skunkie Azure AI subscription preparation
+name: Skunkie Azure AI account preparation
 
 on:
   push:
@@ -19,6 +19,7 @@ jobs:
       AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
       AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
       AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME || 'rg-skunkworks-academy-portal-prod' }}
     steps:
       - name: Verify configured Azure federation target
         shell: bash
@@ -57,6 +58,51 @@ jobs:
             next="$(az provider show --namespace Microsoft.CognitiveServices --query registrationState -o tsv)"
             echo "Microsoft.CognitiveServices registration state: $next"
             echo "- Cognitive Services resource provider state after request: $next" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Provision dedicated South Africa North Skunkie OpenAI account (no model)
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            if [ "$(az provider show --namespace Microsoft.CognitiveServices --query registrationState -o tsv)" != "Registered" ]; then
+              echo "::error::Microsoft.CognitiveServices resource provider registration is incomplete."
+              exit 1
+            fi
+            if [ "$(az group exists --name "$RESOURCE_GROUP_NAME")" != "true" ]; then
+              echo "::error::Approved Skunkworks Academy production resource group is unavailable."
+              exit 1
+            fi
+            # Deterministic globally unique account name. Do not put keys,
+            # subscription identifiers or endpoint names into public run logs.
+            ai_name="swa-skunkie-$(printf %s "$AZURE_SUBSCRIPTION_ID" | sha256sum | cut -c1-10)"
+            created="false"
+            if ! az cognitiveservices account show --resource-group "$RESOURCE_GROUP_NAME" --name "$ai_name" --only-show-errors --output none 2>/dev/null; then
+              if ! az cognitiveservices account create \
+                --resource-group "$RESOURCE_GROUP_NAME" \
+                --name "$ai_name" \
+                --location southafricanorth \
+                --kind OpenAI --sku S0 \
+                --custom-domain "$ai_name" \
+                --tags project=skunkworks-academy component=skunkie environment=production purpose=learning-companion \
+                --yes --only-show-errors --output none 2>/dev/null; then
+                echo "::error::Azure did not allow creation of the Skunkie OpenAI account. The authorised Azure administrator must review subscription permissions, resource provider status, regional model access and Azure activity logs."
+                exit 1
+              fi
+              created="true"
+            fi
+            resource_state="$(az cognitiveservices account show --resource-group "$RESOURCE_GROUP_NAME" --name "$ai_name" --query 'properties.provisioningState' --output tsv)"
+            echo "Skunkie Azure OpenAI account: present (created in this run: $created), provisioning state: $resource_state"
+            {
+              echo "## Dedicated South Africa North Azure OpenAI resource"
+              echo "- OpenAI resource account exists: yes"
+              echo "- Created in this run: $created"
+              echo "- Resource provisioning state: $resource_state"
+              echo "- Model deployment: not requested by this step"
+              echo "- Chat billing/credentials: not activated by this step"
+            } >> "$GITHUB_STEP_SUMMARY"
+            if [ "$resource_state" != "Succeeded" ]; then
+              echo "::warning::Resource is not yet fully provisioned. No model or API settings will be changed."
+            fi
 
       - name: Discover existing Azure AI resources and model deployments (no writes)
         uses: azure/cli@v2
@@ -104,7 +150,7 @@ jobs:
               echo "- Successfully provisioned OpenAI-format model deployments: $chat_deployment_count"
               echo "- Deployment enumeration failures: $failures"
               echo ""
-              echo "This workflow may register the Microsoft.CognitiveServices resource provider. It does not create metered AI resources or models, read keys, update Function App settings or change the Portal."
+              echo "This workflow may register the Microsoft.CognitiveServices provider and provision one S0 South Africa North OpenAI account. It does not deploy a model, read keys, update Function App settings or change the Portal."
             } >> "$GITHUB_STEP_SUMMARY"
             echo "Azure AI inventory complete (counts only): candidates=$account_count, deployments=$deployment_count, ready-format=$chat_deployment_count, access-errors=$failures"
 
