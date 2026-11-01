@@ -1,0 +1,94 @@
+name: Skunkie Azure AI read-only inventory
+
+on:
+  push:
+    branches:
+      - diagnostic/skunkie-azure-ai-inventory-20261101
+    paths:
+      - .github/workflows/skunkie-azure-inventory.yml
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 12
+    env:
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+    steps:
+      - name: Verify configured Azure federation target
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_CLIENT_ID; do
+            if [ -z "${!key:-}" ]; then
+              echo "::error::Missing the authorised production Azure federation setting: $key"
+              exit 1
+            fi
+          done
+
+      - name: Sign in to configured Azure subscription
+        uses: azure/login@v3
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          auth-type: SERVICE_PRINCIPAL
+
+      - name: Discover existing Azure AI resources and model deployments (no writes)
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            umask 077
+            inventory_dir="$(mktemp -d)"
+            trap 'rm -rf "$inventory_dir"' EXIT
+
+            actual_subscription="$(az account show --query id -o tsv)"
+            if [ "$actual_subscription" != "$AZURE_SUBSCRIPTION_ID" ]; then
+              echo "::error::Azure subscription did not match the approved production target."
+              exit 1
+            fi
+
+            # Do not print internal endpoint URLs, resource names or any key material.
+            az cognitiveservices account list --only-show-errors -o json > "$inventory_dir/accounts.json"
+            jq -r '.[] | select((.kind // "") == "OpenAI" or (.kind // "") == "AIServices") | [.name, .resourceGroup] | @tsv' "$inventory_dir/accounts.json" > "$inventory_dir/ai-resources.tsv"
+            account_count="$(wc -l < "$inventory_dir/ai-resources.tsv" | tr -d ' ')"
+            deployment_count=0
+            chat_deployment_count=0
+            failures=0
+
+            while IFS="$(printf '\t')" read -r account_name resource_group; do
+              [ -n "$account_name" ] || continue
+              if az cognitiveservices account deployment list \
+                --resource-group "$resource_group" --name "$account_name" \
+                --only-show-errors -o json > "$inventory_dir/deployments.json" 2>"$inventory_dir/read-error.txt"; then
+                count="$(jq 'length' "$inventory_dir/deployments.json")"
+                deployment_count=$((deployment_count + count))
+                matches="$(jq '[.[] | select((.properties.model.format // "") == "OpenAI") | select((.properties.provisioningState // "") == "Succeeded")] | length' "$inventory_dir/deployments.json")"
+                chat_deployment_count=$((chat_deployment_count + matches))
+              else
+                failures=$((failures + 1))
+                echo "::warning::A Cognitive Services deployment inventory could not be read with the configured Azure identity."
+              fi
+            done < "$inventory_dir/ai-resources.tsv"
+
+            {
+              echo "## Skunkie Azure AI inventory — read only"
+              echo ""
+              echo "- Azure AI resource candidates visible to the existing production identity: $account_count"
+              echo "- Total existing model deployments observed: $deployment_count"
+              echo "- Successfully provisioned OpenAI-format model deployments: $chat_deployment_count"
+              echo "- Deployment enumeration failures: $failures"
+              echo ""
+              echo "This workflow did not create resources, deploy models, read API keys, update Azure app settings, or change the Portal."
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "Azure AI inventory complete (counts only): candidates=$account_count, deployments=$deployment_count, ready-format=$chat_deployment_count, access-errors=$failures"
+            if [ "$account_count" -eq 0 ]; then
+              echo "::warning::No accessible existing OpenAI/AIServices resource was found in the configured production subscription."
+            fi
