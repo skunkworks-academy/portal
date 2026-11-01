@@ -51,7 +51,7 @@ jobs:
               n="$(jq '(.value // []) | length' "$tmp/usages.json")"
               relevant="$(jq '[(.value // [])[] | select((.name.value // "") | test("gpt-4\\.1-mini|gpt-4o";"i"))] | length' "$tmp/usages.json")"
               echo "Quota entries total=$n target-model entries=$relevant"
-              jq -r '(.value // [])[] | select((.name.value // "") | test("gpt-4\\.1-mini|gpt-4o";"i")) | "quota: \\(.name.value): \\(.currentValue)/\\(.limit)"' "$tmp/usages.json" | head -25
+              jq -r '(.value // [])[] | select((.name.value // "") | test("gpt-4\\.1-mini|gpt-4o";"i")) | [.name.value, (.currentValue | tostring), (.limit | tostring)] | @tsv' "$tmp/usages.json" | head -25
               echo "- Quota rows visible: $n; matching target-model quotas: $relevant" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "::warning::Subscription-scoped quota inspection is unavailable to this identity; Cognitive Services Usages Reader at subscription scope may be required."
@@ -60,7 +60,7 @@ jobs:
             if az rest --method get \
               --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/providers/Microsoft.CognitiveServices/modelCapacities?api-version=2024-10-01&modelFormat=OpenAI&modelName=gpt-4.1-mini&modelVersion=2025-04-14" \
               --only-show-errors --output json > "$tmp/capacity.json" 2>"$tmp/capacity.err"; then
-              jq -r '(.value // [])[] | select((.location // "") == "southafricanorth") | "SA North capacity: \\(.properties.skuName)=\\(.properties.availableCapacity)"' "$tmp/capacity.json" | head -20
+              jq -r '(.value // [])[] | select((.location // "") == "southafricanorth") | [.properties.skuName, (.properties.availableCapacity | tostring)] | @tsv' "$tmp/capacity.json" | head -20
               entries="$(jq '[(.value // [])[] | select((.location // "") == "southafricanorth")] | length' "$tmp/capacity.json")"
               echo "- gpt-4.1-mini (2025-04-14) South Africa North capacity entries: $entries" >> "$GITHUB_STEP_SUMMARY"
             else
