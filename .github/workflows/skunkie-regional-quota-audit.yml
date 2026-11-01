@@ -1,0 +1,72 @@
+name: Skunkie regional interactive quota audit (read-only)
+
+on:
+  push:
+    branches:
+      - diagnostic/skunkie-regional-quota-20261101
+    paths:
+      - .github/workflows/skunkie-regional-quota-audit.yml
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  inspect:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+    steps:
+      - name: Validate configured Azure federation
+        shell: bash
+        run: |
+          set -euo pipefail
+          for setting in AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_CLIENT_ID; do
+            [ -n "${!setting:-}" ] || { echo "::error::Missing production Azure identity configuration"; exit 1; }
+          done
+      - name: Authorize against existing production subscription
+        uses: azure/login@v3
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          auth-type: SERVICE_PRINCIPAL
+      - name: Compare interactive model quotas (no deployment or changes)
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            [ "$(az account show --query id -o tsv)" = "$AZURE_SUBSCRIPTION_ID" ] || exit 1
+            tmp="$(mktemp -d)"
+            trap 'rm -rf "$tmp"' EXIT
+            echo "## Academy Skunkie regional interactive model quota (read-only)" >> "$GITHUB_STEP_SUMMARY"
+            echo "This is a quota feasibility study only. No alternative region is approved for learner data processing." >> "$GITHUB_STEP_SUMMARY"
+            for region in southafricanorth southafricawest swedencentral francecentral uaenorth; do
+              echo "### $region" >> "$GITHUB_STEP_SUMMARY"
+              if az rest --method get \
+                  --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/providers/Microsoft.CognitiveServices/locations/$region/usages?api-version=2024-10-01" \
+                  --only-show-errors -o json > "$tmp/quota.json" 2>"$tmp/error.txt"; then
+                jq -r '
+                  [(.value // [])[]
+                    | select((.name.value // "") | test("^OpenAI\\.(GlobalStandard|Standard|DataZoneStandard)\\.(gpt-4[.]1-mini|gpt-4o-mini|gpt-4o)$"))
+                    | {
+                        model: .name.value,
+                        used: (.currentValue // 0),
+                        limit: (.limit // 0),
+                        available: ((.limit // 0) - (.currentValue // 0))
+                      }
+                  ] | if length == 0 then "No matching interactive quota records." else
+                    .[] | "- \\(.model): \\(.available) TPM available (limit=\\(.limit), used=\\(.used))"
+                  end
+                ' "$tmp/quota.json" >> "$GITHUB_STEP_SUMMARY"
+                echo "Region $region: quota inspected."
+              else
+                echo "- Quota inspection unavailable to existing federated identity in this region." >> "$GITHUB_STEP_SUMMARY"
+                echo "::warning::Quota inspection unavailable in $region"
+              fi
+            done
+            echo "Model deployments: none created or altered. Azure AI credentials: none read."
