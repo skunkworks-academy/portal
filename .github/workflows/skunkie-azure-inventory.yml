@@ -128,6 +128,13 @@ jobs:
             if az cognitiveservices model list --location southafricanorth --only-show-errors -o json > "$inventory_dir/models.json" 2>"$inventory_dir/models-error.txt"; then
               # Read-only inspection: model deployment SKU and version availability
               # in this subscription; no model or billable resource is created.
+              model_total="$(jq 'if type == "array" then length else 0 end' "$inventory_dir/models.json")"
+              echo "- Total regional model catalogue rows visible in subscription: $model_total" >> "$GITHUB_STEP_SUMMARY"
+              echo "Model catalogue rows visible: $model_total"
+              if [ "$model_total" -gt 0 ]; then
+                echo "First model catalogue item field names (not values): $(jq -r '.[0] | keys | join(",")' "$inventory_dir/models.json")"
+                echo "OpenAI model IDs visible: $(jq -r '[.[] | ((.model.name // .name // "") | tostring) | select(startswith("gpt-"))] | unique | join(",")' "$inventory_dir/models.json" | cut -c1-200)"
+              fi
               regional_mini="$(jq '[.[] | select((.model.name // "") == "gpt-4.1-mini") | .skus[]? | select(.name == "Standard")] | length' "$inventory_dir/models.json")"
               global_mini="$(jq '[.[] | select((.model.name // "") == "gpt-4.1-mini") | .skus[]? | select(.name == "GlobalStandard")] | length' "$inventory_dir/models.json")"
               regional_4o="$(jq '[.[] | select((.model.name // "") == "gpt-4o") | .skus[]? | select(.name == "Standard")] | length' "$inventory_dir/models.json")"
