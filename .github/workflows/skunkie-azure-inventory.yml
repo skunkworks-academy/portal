@@ -4,8 +4,7 @@ on:
   push:
     branches:
       - diagnostic/skunkie-azure-ai-inventory-20261101
-    paths:
-      - .github/workflows/skunkie-azure-inventory.yml
+
 
 permissions:
   id-token: write
