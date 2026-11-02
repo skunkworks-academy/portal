@@ -51,3 +51,9 @@
 
 /* Configuration alone is not proof of end-to-end service health. */
 .skunkie__status--configured{background:#38bdf8;box-shadow:0 0 9px rgba(56,189,248,.35)}
+
+/* Opaque surfaces keep course text behind the panel out of the conversation. */
+.skunkie .skunkie__panel{background:#0b1220;background-image:none;color:#e5eefb}
+.skunkie .skunkie__message--assistant{background:#102b40;color:#e5eefb}
+.skunkie .skunkie__quick-actions button{background:#182235;color:#e2e8f0}
+.skunkie .skunkie__form button:not(:disabled){background:#1d4ed8;color:#fff}

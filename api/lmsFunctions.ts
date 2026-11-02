@@ -26,32 +26,35 @@ async function context(request: HttpRequest): Promise<LmsContext> {
   else if (hasPortalRole(principal, ["Portal.Instructor"])) role = "instructor";
   return { principal, organizationId, role };
 }
-async function handle(request: HttpRequest, fn: () => Promise<unknown>) {
-  try { return json(request, await fn()); }
+async function handle(request: HttpRequest, fn: (lms: LmsService, ctx: LmsContext) => Promise<unknown>) {
+  try {
+    const ctx = await context(request);
+    return json(request, await fn(service(), ctx));
+  }
   catch (error) { return failure(request, error); }
 }
 app.http("lmsCoursesList", { methods: ["GET"], authLevel: "anonymous", route: "lms/courses",
-  handler: request => handle(request, async () => service().listCourses(await context(request))) });
+  handler: request => handle(request, async (lms, ctx) => lms.listCourses(ctx)) });
 app.http("lmsMyEnrolments", { methods: ["GET"], authLevel: "anonymous", route: "lms/me/enrolments",
-  handler: request => handle(request, async () => service().myEnrolments(await context(request))) });
+  handler: request => handle(request, async (lms, ctx) => lms.myEnrolments(ctx)) });
 app.http("lmsCourseLessons", { methods: ["GET"], authLevel: "anonymous", route: "lms/courses/{courseId}/lessons",
-  handler: request => handle(request, async () => service().listLessons(await context(request), request.params.courseId)) });
+  handler: request => handle(request, async (lms, ctx) => lms.listLessons(ctx, request.params.courseId)) });
 app.http("lmsCoursesCreate", { methods: ["POST"], authLevel: "anonymous", route: "lms/courses",
-  handler: request => handle(request, async () => service().createCourse(await context(request), await readJson<{title:string;description:string}>(request))) });
+  handler: request => handle(request, async (lms, ctx) => lms.createCourse(ctx, await readJson<{title:string;description:string}>(request))) });
 app.http("lmsCourseReview", { methods: ["POST"], authLevel: "anonymous", route: "lms/courses/{courseId}/review",
-  handler: request => handle(request, async () => service().setCourseStatus(await context(request), request.params.courseId, "review")) });
+  handler: request => handle(request, async (lms, ctx) => lms.setCourseStatus(ctx, request.params.courseId, "review")) });
 app.http("lmsCoursePublish", { methods: ["POST"], authLevel: "anonymous", route: "lms/courses/{courseId}/publish",
-  handler: request => handle(request, async () => service().setCourseStatus(await context(request), request.params.courseId, "published")) });
+  handler: request => handle(request, async (lms, ctx) => lms.setCourseStatus(ctx, request.params.courseId, "published")) });
 app.http("lmsLessonCreate", { methods: ["POST"], authLevel: "anonymous", route: "lms/courses/{courseId}/lessons",
-  handler: request => handle(request, async () => service().addLesson(await context(request), request.params.courseId, await readJson<{title:string;mediaType:"video"|"pdf";blobKey:string;mimeType:string}>(request))) });
+  handler: request => handle(request, async (lms, ctx) => lms.addLesson(ctx, request.params.courseId, await readJson<{title:string;mediaType:"video"|"pdf";blobKey:string;mimeType:string}>(request))) });
 app.http("lmsEnrol", { methods: ["POST"], authLevel: "anonymous", route: "lms/courses/{courseId}/enrol",
-  handler: request => handle(request, async () => service().enrol(await context(request), request.params.courseId)) });
+  handler: request => handle(request, async (lms, ctx) => lms.enrol(ctx, request.params.courseId)) });
 app.http("lmsLessonComplete", { methods: ["POST"], authLevel: "anonymous", route: "lms/courses/{courseId}/lessons/{lessonId}/complete",
-  handler: request => handle(request, async () => service().completeLesson(await context(request), request.params.courseId, request.params.lessonId)) });
+  handler: request => handle(request, async (lms, ctx) => lms.completeLesson(ctx, request.params.courseId, request.params.lessonId)) });
 app.http("lmsAssessmentSubmit", { methods: ["POST"], authLevel: "anonymous", route: "lms/courses/{courseId}/assessments/{assessmentId}/submit",
-  handler: request => handle(request, async () => {
+  handler: request => handle(request, async (lms, ctx) => {
     const input = await readJson<{answers:Record<string,number>}>(request);
-    return service().submitAssessment(await context(request), request.params.courseId, request.params.assessmentId, input.answers);
+    return lms.submitAssessment(ctx, request.params.courseId, request.params.assessmentId, input.answers);
   }) });
 app.http("lmsMyProgress", { methods: ["GET"], authLevel: "anonymous", route: "lms/courses/{courseId}/progress",
-  handler: request => handle(request, async () => service().myProgress(await context(request), request.params.courseId)) });
+  handler: request => handle(request, async (lms, ctx) => lms.myProgress(ctx, request.params.courseId)) });

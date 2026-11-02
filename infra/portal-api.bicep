@@ -39,6 +39,56 @@ var appInsightsName = '${functionAppName}-insights'
 var workspaceName = '${functionAppName}-logs'
 var storageConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storage.name};EndpointSuffix=${environment().suffixes.storage};AccountKey=${listKeys(storage.id, storage.apiVersion).keys[0].value}'
 
+// Durable LMS data stays in the API region; no provisioned idle throughput.
+resource lmsAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
+  name: 'portal-lms-${uniqueString(resourceGroup().id, functionAppName)}'
+  location: location
+  kind: 'GlobalDocumentDB'
+  properties: {
+    databaseAccountOfferType: 'Standard'
+    disableLocalAuth: true
+    minimalTlsVersion: 'Tls12'
+    consistencyPolicy: { defaultConsistencyLevel: 'Session' }
+    capabilities: [{ name: 'EnableServerless' }]
+    locations: [{ locationName: location, failoverPriority: 0, isZoneRedundant: false }]
+    backupPolicy: {
+      type: 'Periodic'
+      periodicModeProperties: {
+        backupIntervalInMinutes: 240
+        backupRetentionIntervalInHours: 8
+        backupStorageRedundancy: 'Local'
+      }
+    }
+  }
+}
+
+resource lmsDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15' = {
+  parent: lmsAccount
+  name: 'academy'
+  properties: { resource: { id: 'academy' } }
+}
+
+resource lmsContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
+  parent: lmsDatabase
+  name: 'lms'
+  properties: {
+    resource: {
+      id: 'lms'
+      partitionKey: { paths: ['/organizationId'], kind: 'Hash', version: 2 }
+    }
+  }
+}
+
+resource lmsDataAccess 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-05-15' = {
+  parent: lmsAccount
+  name: guid(lmsAccount.id, functionApp.id, 'lms-data-contributor')
+  properties: {
+    principalId: functionApp.identity.principalId
+    roleDefinitionId: '${lmsAccount.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
+    scope: '${lmsAccount.id}/dbs/${lmsDatabase.name}/colls/${lmsContainer.name}'
+  }
+}
+
 resource storage 'Microsoft.Storage/storageAccounts@2023-05-01' = {
   name: storageAccountName
   location: location
@@ -108,6 +158,22 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         supportCredentials: false
       }
       appSettings: [
+        {
+          name: 'LMS_COSMOS_ENDPOINT'
+          value: lmsAccount.properties.documentEndpoint
+        }
+        {
+          name: 'LMS_COSMOS_DATABASE'
+          value: lmsDatabase.name
+        }
+        {
+          name: 'LMS_COSMOS_CONTAINER'
+          value: lmsContainer.name
+        }
+        {
+          name: 'LMS_HOME_ORGANIZATION_ID'
+          value: 'skunkworks-academy'
+        }
         {
           name: 'AzureWebJobsStorage'
           value: storageConnectionString

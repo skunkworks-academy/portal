@@ -7,6 +7,7 @@ import { empty, failure, json, readJson } from "./http.js";
 import "./paymentFunctions.js";
 import "./skunkieFunctions.js";
 import { isSkunkieConfigured } from "./skunkieReadiness.js";
+import { isLmsConfigured } from "./lmsReadiness.js";
 import {
   createApplication,
   createClass,
@@ -66,11 +67,14 @@ app.http("health", {
       configured: isSkunkieConfigured(process.env)
       // Deployment identifiers and credentials are intentionally never public.
     },
+    lmsSettings: { configured: isLmsConfigured(process.env) },
     allowedOrigins: config.allowedOrigins,
     routes: [
       "GET /api/health",
       "POST /api/skunkie/chat",
       "GET /api/skunkie/status",
+      "GET /api/lms/courses",
+      "GET /api/lms/me/enrolments",
       "GET /api/jobs",
       "GET /api/courses",
       "GET /api/classes",
