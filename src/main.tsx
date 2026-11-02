@@ -5,6 +5,7 @@ import { MsalProvider } from "@azure/msal-react";
 import { App } from "./App";
 import { SkunkieCompanion } from "./SkunkieCompanion";
 import { msalConfig } from "./authConfig";
+import { clearAuthResponseFromAddressBar } from "./auth-response-cleanup";
 import "./styles.css";
 import "./academy-brand-theme.css";
 import "./startup-fallback.css";
@@ -35,7 +36,7 @@ function renderStartupError(error?: unknown) {
         </div>
       </section>
     </main>`;
-  console.error("Microsoft sign-in startup could not initialise", error);
+  console.error("Microsoft sign-in startup could not initialise");
   rootElement.querySelector<HTMLButtonElement>("[data-reload-page]")?.addEventListener("click", () => window.location.reload());
   rootElement.querySelector<HTMLElement>("#main")?.focus();
 }
@@ -49,8 +50,10 @@ async function bootstrapPortal() {
   try {
     redirectResult = await msalInstance.handleRedirectPromise();
   } catch (error) {
-    console.error("Microsoft redirect sign-in could not finish", error);
+    console.error("Microsoft redirect sign-in could not finish");
     startupNotice = "Microsoft sign-in could not finish in this browser. Try again or open the portal directly in Safari or Chrome.";
+  } finally {
+    clearAuthResponseFromAddressBar();
   }
   const activeAccount = redirectResult?.account ?? msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
   if (activeAccount) {
@@ -76,5 +79,6 @@ async function bootstrapPortal() {
 }
 
 void bootstrapPortal().catch((error) => {
+  clearAuthResponseFromAddressBar();
   renderStartupError(error);
 });

@@ -277,6 +277,15 @@ jobs:
             echo "Health check attempt $attempt failed; retrying in 10 seconds."
             sleep 10
           done
+          echo "$response" | jq -e '.lmsSettings.configured == true' >/dev/null
+          for route in lms/courses lms/me/enrolments; do
+            lms_status=$(curl --silent --show-error --max-time 20 --output /tmp/lms-status.body --write-out '%{http_code}' "$API_BASE_URL/$route" || true)
+            case "$lms_status" in
+              401|403) echo "LMS route $route requires Microsoft authentication." ;;
+              *) echo "Expected HTTP 401/403 from protected LMS route; received $lms_status." >&2; exit 1 ;;
+            esac
+          done
+          echo "- LMS: storage settings present; unauthenticated access denied. Signed-in database round trip still requires verification." >> "$GITHUB_STEP_SUMMARY"
           echo "$response" | jq -e '(.routes // [] | index("POST /api/skunkie/chat") != null) and (.routes // [] | index("GET /api/skunkie/status") != null)' >/dev/null
           skunkie_status=$(curl --silent --show-error --max-time 20 --output /tmp/skunkie-status.body --write-out '%{http_code}' "$API_BASE_URL/skunkie/status" || true)
           case "$skunkie_status" in
