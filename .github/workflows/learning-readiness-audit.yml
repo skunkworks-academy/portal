@@ -1,0 +1,42 @@
+name: Portal learning readiness audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [fix/portal-learning-recovery-20261102]
+    paths: [.github/workflows/learning-readiness-audit.yml]
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      RESOURCE_GROUP_NAME: ${{ vars.AZURE_RESOURCE_GROUP_NAME || 'rg-skunkworks-academy-portal-prod' }}
+      FUNCTION_APP_NAME: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
+    steps:
+      - uses: azure/login@v3
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - name: Inspect learning service configuration without credentials or learner records
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            [ "$(az account show --query id -o tsv)" = "$AZURE_SUBSCRIPTION_ID" ]
+            az functionapp show -g "$RESOURCE_GROUP_NAME" -n "$FUNCTION_APP_NAME" --query '{name:name,state:state,identity:identity.principalId}' -o json
+            az functionapp config appsettings list -g "$RESOURCE_GROUP_NAME" -n "$FUNCTION_APP_NAME" -o json |
+              jq '[.[] | select(.name | test("^(LMS_|AZURE_OPENAI_)")) | {name,configured:(.value != null and .value != "")}]'
+            az cosmosdb list --query '[].{name:name,resourceGroup:resourceGroup,locations:locations[].locationName,state:provisioningState}' -o json
+            accounts="$(az cosmosdb list -g "$RESOURCE_GROUP_NAME" --query '[].name' -o tsv)"
+            for account in $accounts; do
+              echo "Cosmos account: $account"
+              az cosmosdb sql database list -g "$RESOURCE_GROUP_NAME" -a "$account" --query '[].name' -o json
+              az cosmosdb sql role assignment list -g "$RESOURCE_GROUP_NAME" -a "$account" --query '[].{principalId:principalId,scope:scope,roleDefinitionId:roleDefinitionId}' -o json
+            done
+            curl --fail --silent --show-error --max-time 30 https://api.skunkworksacademy.com/api/health
