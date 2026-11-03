@@ -27,6 +27,7 @@ export function LearnerDiscovery({
   initial,
   busy,
   editing,
+  rememberByDefault,
   onSave,
   onSkip
 }: {
@@ -34,11 +35,12 @@ export function LearnerDiscovery({
   initial: LearnerPreferences | null;
   busy: boolean;
   editing: boolean;
+  rememberByDefault: boolean;
   onSave: (profile: LearnerPreferences, remember: boolean) => Promise<void>;
   onSkip: () => void;
 }) {
   const [draft, setDraft] = useState<LearnerPreferences>(initial ?? defaultLearnerPreferences);
-  const [remember, setRemember] = useState(false);
+  const [remember, setRemember] = useState(rememberByDefault);
   function set<K extends keyof LearnerPreferences>(field: K, value: LearnerPreferences[K]) {
     setDraft(current => ({ ...current, [field]: value }));
   }
