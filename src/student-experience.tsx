@@ -243,7 +243,7 @@ export function StudentExperience({
               editing={learnerEditing}
               busy={learnerBusy}
               onSave={saveLearnerPreferences}
-              onSkip={() => { setLearnerSkipped(true); setLearnerEditing(false); }} />
+              onSkip={() => { if (learnerEditing) setLearnerEditing(false); else setLearnerSkipped(true); }} />
           )}
           {view === "dashboard" && adaptivePilot && learnerReady && learnerPreferences &&
             !learnerEditing && !learnerSkipped && (
