@@ -5,11 +5,20 @@ import {
   learnerStorageKey,
   readBrowserLearnerPreferences,
   saveBrowserLearnerPreferences,
+  shouldShowSkunkieWelcome,
   recommendCourses,
   validateLearnerPreferences
 } from "./learner-adaptation";
 
 describe("Skunkie learner discovery", () => {
+  it("shows only Skunkie during opted-in discovery, then yields to the dashboard", () => {
+    expect(shouldShowSkunkieWelcome(false, true, false, false)).toBe(false);
+    expect(shouldShowSkunkieWelcome(true, false, false, false)).toBe(true);
+    expect(shouldShowSkunkieWelcome(true, true, false, false)).toBe(true);
+    expect(shouldShowSkunkieWelcome(true, true, true, false)).toBe(false);
+    expect(shouldShowSkunkieWelcome(true, true, false, true)).toBe(false);
+  });
+
   it("accepts a complete, allowlisted learner profile", () => {
     expect(validateLearnerPreferences(defaultLearnerPreferences)).toEqual(defaultLearnerPreferences);
   });
