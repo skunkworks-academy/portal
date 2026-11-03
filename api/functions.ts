@@ -6,6 +6,7 @@ import { requireCourseLesson, scoreFinalAssessment, validateProgressPayload, typ
 import { empty, failure, json, readJson } from "./http.js";
 import "./paymentFunctions.js";
 import "./skunkieFunctions.js";
+import "./learnerPreferencesFunctions.js";
 import { isSkunkieConfigured } from "./skunkieReadiness.js";
 import { isLmsConfigured } from "./lmsReadiness.js";
 import {
@@ -71,6 +72,9 @@ app.http("health", {
     allowedOrigins: config.allowedOrigins,
     routes: [
       "GET /api/health",
+      "GET /api/learner/preferences",
+      "PUT /api/learner/preferences",
+      "DELETE /api/learner/preferences",
       "POST /api/skunkie/chat",
       "GET /api/skunkie/status",
       "GET /api/lms/courses",

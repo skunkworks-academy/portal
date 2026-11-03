@@ -1,5 +1,6 @@
 import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser";
 import { apiScope } from "./authConfig";
+import type { LearnerPreferences } from "./learner-adaptation";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
 // Public production origin. Azure Functions reserves the "admin" namespace, so privileged
@@ -95,6 +96,9 @@ export type AcademyBeginnerAward={version:1;certificateId:string;courseId:string
 export type AcademyEnrolment={id:string;courseId:string;courseTitle:string;learnerName:string;learnerEmail:string;status:string};
 
 export const portalApi = {
+  learnerPreferences: (auth: LmsAuth) => request<LearnerPreferences | null>("/learner/preferences", {}, auth),
+  saveLearnerPreferences: (preferences: LearnerPreferences, auth: LmsAuth) => request<LearnerPreferences>("/learner/preferences", { method: "PUT", body: JSON.stringify(preferences) }, auth),
+  deleteLearnerPreferences: (auth: LmsAuth) => request<void>("/learner/preferences", { method: "DELETE" }, auth),
   lmsCourses: (auth: LmsAuth) => request<LmsCourseRecord[]>("/lms/courses", {}, auth),
   lmsMyEnrolments: (auth: LmsAuth) => request<LmsEnrolmentRecord[]>("/lms/me/enrolments", {}, auth),
   lmsLessons: (courseId: string, auth: LmsAuth) => request<LmsLessonRecord[]>(`/lms/courses/${encodeURIComponent(courseId)}/lessons`, {}, auth),
