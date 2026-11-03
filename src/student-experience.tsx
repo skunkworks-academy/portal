@@ -1,4 +1,15 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useMsal } from "@azure/msal-react";
+import { portalApi } from "./api";
+import { LearnerDiscovery, PersonalisedLearningOverview } from "./LearnerDiscovery";
+import {
+  deleteBrowserLearnerPreferences,
+  readBrowserLearnerPreferences,
+  recommendCourses,
+  saveBrowserLearnerPreferences,
+  validateLearnerPreferences,
+  type LearnerPreferences
+} from "./learner-adaptation";
 import { SKUNKIE_AVATAR_SRC } from "./skunkie-assets";
 import { LmsWorkspace } from "./lms-workspace";
 import { linkedAcademyServices } from "./academy-service-registry";
@@ -52,20 +63,117 @@ export function StudentExperience({
   services = availableServices,
   onRetryServices
 }: StudentExperienceProps) {
+  const { instance, accounts } = useMsal();
+  const account = accounts[0];
+  const accountId = account?.homeAccountId ?? "";
+  // Private pilot is opt-in until real authenticated browser acceptance testing is complete.
+  const adaptivePilot = Boolean(account && profile) && (
+    import.meta.env.VITE_ENABLE_SKUNKIE_ADAPTIVE === "true" ||
+    new URLSearchParams(window.location.search).get("skunkiePilot") === "1"
+  );
   const [view, setView] = useState<StudentView>("dashboard");
+  const [learnerState, setLearnerState] = useState<{ accountId: string; data: LearnerPreferences } | null>(null);
+  const learnerPreferences = learnerState?.accountId === accountId ? learnerState.data : null;
+  const [learnerReady, setLearnerReady] = useState(false);
+  const [learnerEditing, setLearnerEditing] = useState(false);
+  const [learnerSkipped, setLearnerSkipped] = useState(false);
+  const [learnerBusy, setLearnerBusy] = useState(false);
+  const [learnerNotice, setLearnerNotice] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLearnerEditing(false);
+    setLearnerSkipped(false);
+    setLearnerReady(false);
+    setLearnerNotice("");
+    if (!account || !adaptivePilot) {
+      setLearnerState(null);
+      setLearnerReady(true);
+      return;
+    }
+    const identity = account.homeAccountId;
+    const cached = readBrowserLearnerPreferences(identity);
+    setLearnerState(cached ? { accountId: identity, data: cached } : null);
+    if (cached) setLearnerNotice("These preferences are saved on this browser; checking account sync.");
+    void portalApi.learnerPreferences({ account, instance }).then(saved => {
+      if (cancelled) return;
+      if (saved) {
+        const validated = validateLearnerPreferences(saved);
+        if (validated) {
+          setLearnerState({ accountId: identity, data: validated });
+          setLearnerNotice("Your preferences were loaded securely from your Academy account.");
+        }
+      } else if (!cached) {
+        setLearnerNotice("Choose how you'd like to learn. Your profile is not yet saved.");
+      }
+    }).catch(() => {
+      if (!cancelled) setLearnerNotice("Account sync is not currently available. You can still personalise this session.");
+    }).finally(() => { if (!cancelled) setLearnerReady(true); });
+    return () => { cancelled = true; };
+  }, [accountId, adaptivePilot, instance]);
+
+  async function saveLearnerPreferences(preferences: LearnerPreferences, remember: boolean) {
+    if (!account || !accountId) return;
+    const validated = validateLearnerPreferences(preferences);
+    if (!validated) return;
+    setLearnerBusy(true);
+    let notice = "Your choices apply to this session only.";
+    try {
+      if (remember) {
+        try {
+          await portalApi.saveLearnerPreferences(validated, { instance, account });
+          notice = "Your preferences are saved securely to your Academy account.";
+        } catch {
+          notice = "Cloud sync is unavailable. Your preferences are only saved on this browser, not across devices.";
+        }
+      }
+      try {
+        saveBrowserLearnerPreferences(accountId, validated, remember);
+      } catch {
+        if (!remember || notice.startsWith("Cloud sync")) {
+          notice = "Browser storage is unavailable. Your preferences apply to this page only.";
+        }
+      }
+      setLearnerState({ accountId, data: validated });
+      setLearnerNotice(notice);
+      setLearnerEditing(false);
+      setLearnerSkipped(false);
+    } finally { setLearnerBusy(false); }
+  }
+
+  async function resetLearnerPreferences() {
+    if (!account || !accountId) return;
+    setLearnerBusy(true);
+    try {
+      try { deleteBrowserLearnerPreferences(accountId); } catch { /* browser storage may be disabled */ }
+      try {
+        await portalApi.deleteLearnerPreferences({ account, instance });
+        setLearnerNotice("Your saved learner preferences were deleted.");
+      } catch {
+        setLearnerNotice("Local preferences were reset. Account-side deletion could not be confirmed.");
+      }
+      setLearnerState(null);
+      setLearnerEditing(false);
+      setLearnerSkipped(false);
+    } finally { setLearnerBusy(false); }
+  }
   const [query, setQuery] = useState("");
   const displayName = portalProfile.displayName || profile?.name || "Learner";
   const registeredClassIds = useMemo(() => new Set(registrations.map((registration) => registration.classId)), [registrations]);
   const filteredCourses = useMemo(
-    () => courses.filter((course) => `${course.title} ${course.description} ${course.level}`.toLowerCase().includes(query.trim().toLowerCase())),
-    [courses, query]
+    () => (adaptivePilot && learnerPreferences ? recommendCourses(courses, learnerPreferences) : courses)
+      .filter((course) => `${course.title} ${course.description} ${course.level}`.toLowerCase().includes(query.trim().toLowerCase())),
+    [courses, query, adaptivePilot, learnerPreferences]
   );
   const firstCourse = courses[0];
   const nextClass = classes.find((classItem) => registeredClassIds.has(classItem.id));
 
 
   return (
-    <div className="student-shell">
+    <div className="student-shell"
+      data-learner-palette={adaptivePilot ? learnerPreferences?.palette : undefined}
+      data-learner-text={adaptivePilot ? learnerPreferences?.textSize : undefined}
+      data-reduce-motion={adaptivePilot && learnerPreferences?.reduceMotion ? "true" : undefined}>
       <a className="skip-link" href="#student-main">Skip to student content</a>
       <aside className="student-sidebar" aria-label="Student navigation">
         <a className="student-brand" href="https://skunkworksacademy.com/" aria-label="Skunkworks Academy home">
@@ -118,7 +226,36 @@ export function StudentExperience({
             </section>
           )}
 
-          {view === "dashboard" && (
+          {view === "dashboard" && adaptivePilot && learnerNotice && (
+            <p role="status" aria-live="polite" className="learner-account-status">{learnerNotice}</p>
+          )}
+          {view === "dashboard" && adaptivePilot && !learnerReady && (
+            <section className="learner-discovery" role="status" aria-live="polite">
+              <h2>Skunkie is preparing your learning space</h2>
+              <p>Checking for existing preferences on your Academy account.</p>
+            </section>
+          )}
+          {view === "dashboard" && adaptivePilot && learnerReady &&
+            (!learnerPreferences || learnerEditing) && !learnerSkipped && (
+            <LearnerDiscovery key={learnerEditing ? "edit" : "new"}
+              name={displayName}
+              initial={learnerPreferences}
+              editing={learnerEditing}
+              busy={learnerBusy}
+              onSave={saveLearnerPreferences}
+              onSkip={() => { setLearnerSkipped(true); setLearnerEditing(false); }} />
+          )}
+          {view === "dashboard" && adaptivePilot && learnerReady && learnerPreferences &&
+            !learnerEditing && !learnerSkipped && (
+            <PersonalisedLearningOverview
+              preferences={learnerPreferences}
+              courses={courses}
+              syncNotice={learnerNotice}
+              onEdit={() => setLearnerEditing(true)}
+              onReset={() => void resetLearnerPreferences()}
+              onNavigate={setView} />
+          )}
+          {view === "dashboard" && (!adaptivePilot || learnerSkipped) && (
             <section className="student-view student-dashboard-view" aria-label="Student dashboard">
               <div className="student-hero-card">
                 <div>
