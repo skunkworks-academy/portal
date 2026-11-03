@@ -1,0 +1,80 @@
+name: Skunkie regional interactive quota audit (read-only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  inspect:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+    steps:
+      - name: Validate configured Azure federation
+        shell: bash
+        run: |
+          set -euo pipefail
+          for setting in AZURE_SUBSCRIPTION_ID AZURE_TENANT_ID AZURE_CLIENT_ID; do
+            [ -n "${!setting:-}" ] || { echo "::error::Missing production Azure identity configuration"; exit 1; }
+          done
+      - name: Authorize against existing production subscription
+        uses: azure/login@v3
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+          auth-type: SERVICE_PRINCIPAL
+      - name: Compare interactive model quotas (no deployment or changes)
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            [ "$(az account show --query id -o tsv)" = "$AZURE_SUBSCRIPTION_ID" ] || exit 1
+            tmp="$(mktemp -d)"
+            trap 'rm -rf "$tmp"' EXIT
+            echo "## Academy Skunkie regional interactive model quota (read-only)" >> "$GITHUB_STEP_SUMMARY"
+            echo "This is a quota feasibility study only. No alternative region is approved for learner data processing." >> "$GITHUB_STEP_SUMMARY"
+            for region in southafricanorth southafricawest swedencentral francecentral uaenorth; do
+              echo "### $region" >> "$GITHUB_STEP_SUMMARY"
+              if az rest --method get \
+                  --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/providers/Microsoft.CognitiveServices/locations/$region/usages?api-version=2024-10-01" \
+                  --only-show-errors -o json > "$tmp/quota.json" 2>"$tmp/error.txt"; then
+                matches="$(jq -r '(.value // [])[] | select((.name.value // "") | test("^OpenAI[.](GlobalStandard|Standard|DataZoneStandard)[.](gpt-4[.]1-mini|gpt-4o-mini|gpt-4o)$")) | [.name.value, ((.currentValue // 0) | tostring), ((.limit // 0) | tostring)] | @tsv' "$tmp/quota.json")"
+                if [ -z "$matches" ]; then
+                  echo "$region: no matching interactive quota rows" | tee -a "$GITHUB_STEP_SUMMARY"
+                else
+                  while IFS="$(printf '\t')" read -r model used limit; do
+                    echo "$region: $model used=$used limit=$limit" | tee -a "$GITHUB_STEP_SUMMARY"
+                  done <<< "$matches"
+                fi
+                echo "Region $region: quota inspected."
+              else
+                echo "- Quota inspection unavailable to existing federated identity in this region." >> "$GITHUB_STEP_SUMMARY"
+                echo "::warning::Quota inspection unavailable in $region"
+              fi
+            done
+            echo "### Sweden Central gpt-4o-mini capacity check" >> "$GITHUB_STEP_SUMMARY"
+            if az rest --method get \
+              --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/providers/Microsoft.CognitiveServices/modelCapacities?api-version=2024-10-01&modelFormat=OpenAI&modelName=gpt-4o-mini&modelVersion=2024-07-18" \
+              --only-show-errors -o json > "$tmp/capacities.json" 2>"$tmp/capacity-error.txt"; then
+              entries="$(jq '[.value[]? | select((.location // "") == "swedencentral" and (.properties.skuName // "") == "Standard")] | length' "$tmp/capacities.json")"
+              echo "Sweden Central regional Standard gpt-4o-mini capacity rows: $entries" | tee -a "$GITHUB_STEP_SUMMARY"
+              jq -r '.value[]? | select((.location // "") == "swedencentral" and (.properties.skuName // "") == "Standard") | [(.properties.skuName // ""), ((.properties.availableCapacity // 0) | tostring)] | @tsv' "$tmp/capacities.json" | tee -a "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::warning::Sweden Central model capacity read unavailable."
+              echo "Sweden Central model capacity: could not verify" >> "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "### Quota units (Sweden Central)" >> "$GITHUB_STEP_SUMMARY"
+            if az rest --method get \
+              --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/providers/Microsoft.CognitiveServices/locations/swedencentral/usages?api-version=2024-10-01" \
+              --only-show-errors -o json > "$tmp/sweden-quota.json" 2>"$tmp/sweden-error.txt"; then
+              jq -r '(.value // [])[] | select((.name.value // "") == "OpenAI.Standard.gpt-4o-mini" or (.name.value // "") == "OpenAI.Standard.gpt-4o") | [.name.value, (.unit // "unspecified"), ((.limit // 0)|tostring)] | @tsv' "$tmp/sweden-quota.json" | tee -a "$GITHUB_STEP_SUMMARY"
+            fi
+            echo "Model deployments: none created or altered. Azure AI credentials: none read."
