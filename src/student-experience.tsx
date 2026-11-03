@@ -74,6 +74,8 @@ export function StudentExperience({
   const [view, setView] = useState<StudentView>("dashboard");
   const [learnerState, setLearnerState] = useState<{ accountId: string; data: LearnerPreferences } | null>(null);
   const learnerPreferences = learnerState?.accountId === accountId ? learnerState.data : null;
+  // Track account-side persistence separately from browser data so a learner can revoke it.
+  const [cloudSyncedAccountId, setCloudSyncedAccountId] = useState<string | null>(null);
   const [learnerReady, setLearnerReady] = useState(false);
   const [learnerEditing, setLearnerEditing] = useState(false);
   const [learnerSkipped, setLearnerSkipped] = useState(false);
@@ -86,6 +88,7 @@ export function StudentExperience({
     setLearnerSkipped(false);
     setLearnerReady(false);
     setLearnerNotice("");
+    setCloudSyncedAccountId(null);
     if (!account || !adaptivePilot) {
       setLearnerState(null);
       setLearnerReady(true);
@@ -101,6 +104,7 @@ export function StudentExperience({
         const validated = validateLearnerPreferences(saved);
         if (validated) {
           setLearnerState({ accountId: identity, data: validated });
+          setCloudSyncedAccountId(identity);
           setLearnerNotice("Your preferences were loaded securely from your Academy account.");
         }
       } else if (!cached) {
@@ -122,15 +126,27 @@ export function StudentExperience({
       if (remember) {
         try {
           await portalApi.saveLearnerPreferences(validated, { instance, account });
+          setCloudSyncedAccountId(accountId);
           notice = "Your preferences are saved securely to your Academy account.";
         } catch {
           notice = "Cloud sync is unavailable. Your preferences are only saved on this browser, not across devices.";
+        }
+      } else if (cloudSyncedAccountId === accountId) {
+        // Opting out of durable storage must also revoke a previously saved account copy.
+        try {
+          await portalApi.deleteLearnerPreferences({ instance, account });
+          setCloudSyncedAccountId(null);
+          notice = "Your earlier account copy was deleted. These choices apply to this session only.";
+        } catch {
+          notice = "Session-only choices are active, but your earlier account copy could not be removed. Use Reset to retry deletion.";
         }
       }
       try {
         saveBrowserLearnerPreferences(accountId, validated, remember);
       } catch {
-        if (!remember || notice.startsWith("Cloud sync")) {
+        if (notice.includes("could not be removed")) {
+          notice += " Browser storage is also unavailable.";
+        } else if (!remember || notice.startsWith("Cloud sync")) {
           notice = "Browser storage is unavailable. Your preferences apply to this page only.";
         }
       }
@@ -148,6 +164,7 @@ export function StudentExperience({
       try { deleteBrowserLearnerPreferences(accountId); } catch { /* browser storage may be disabled */ }
       try {
         await portalApi.deleteLearnerPreferences({ account, instance });
+        setCloudSyncedAccountId(null);
         setLearnerNotice("Your saved learner preferences were deleted.");
       } catch {
         setLearnerNotice("Local preferences were reset. Account-side deletion could not be confirmed.");
@@ -237,10 +254,11 @@ export function StudentExperience({
           )}
           {view === "dashboard" && adaptivePilot && learnerReady &&
             (!learnerPreferences || learnerEditing) && !learnerSkipped && (
-            <LearnerDiscovery key={learnerEditing ? "edit" : "new"}
+            <LearnerDiscovery key={accountId + ":" + (learnerEditing ? "edit" : "new")}
               name={displayName}
               initial={learnerPreferences}
               editing={learnerEditing}
+              rememberByDefault={cloudSyncedAccountId === accountId}
               busy={learnerBusy}
               onSave={saveLearnerPreferences}
               onSkip={() => { if (learnerEditing) setLearnerEditing(false); else setLearnerSkipped(true); }} />
