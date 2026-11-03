@@ -174,12 +174,17 @@ export function StudentExperience({
     setLearnerBusy(true);
     try {
       try { deleteBrowserLearnerPreferences(accountId); } catch { /* browser storage may be disabled */ }
-      try {
-        await portalApi.deleteLearnerPreferences({ account, instance });
+      if (!canSyncAcademyAccount) {
         setCloudSyncedAccountId(null);
-        setLearnerNotice("Your saved learner preferences were deleted.");
-      } catch {
-        setLearnerNotice("Local preferences were reset. Account-side deletion could not be confirmed.");
+        setLearnerNotice("Browser preferences reset. Academy account storage is not available for this Microsoft account.");
+      } else {
+        try {
+          await portalApi.deleteLearnerPreferences({ account, instance });
+          setCloudSyncedAccountId(null);
+          setLearnerNotice("Your saved learner preferences were deleted.");
+        } catch {
+          setLearnerNotice("Local preferences were reset. Account-side deletion could not be confirmed.");
+        }
       }
       setLearnerState(null);
       setLearnerEditing(false);
