@@ -18,6 +18,11 @@ export interface LearnerPreferences {
   confidence: 1 | 2 | 3;
 }
 
+/** The learner introduction must be the first screen when an opt-in pilot lacks completed preferences. */
+export function shouldShowSkunkieWelcome(pilot: boolean, ready: boolean, hasPreferences: boolean, skipped: boolean): boolean {
+  return pilot && !skipped && (!ready || !hasPreferences);
+}
+
 export const defaultLearnerPreferences: LearnerPreferences = {
   version: 1,
   focus: "exploring",
