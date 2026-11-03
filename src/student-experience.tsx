@@ -11,6 +11,7 @@ import {
   type LearnerPreferences
 } from "./learner-adaptation";
 import { SKUNKIE_AVATAR_SRC } from "./skunkie-assets";
+import { skunkworksTenantId } from "./authConfig";
 import { LmsWorkspace } from "./lms-workspace";
 import { linkedAcademyServices } from "./academy-service-registry";
 import { availableServices, PortalServiceNotice, type PortalServiceAvailability } from "./service-availability";
@@ -66,6 +67,7 @@ export function StudentExperience({
   const { instance, accounts } = useMsal();
   const account = accounts[0];
   const accountId = account?.homeAccountId ?? "";
+  const canSyncAcademyAccount = profile?.tenantId?.toLowerCase() === skunkworksTenantId.toLowerCase();
   // Private pilot is opt-in until real authenticated browser acceptance testing is complete.
   const adaptivePilot = Boolean(account && profile) && (
     import.meta.env.VITE_ENABLE_SKUNKIE_ADAPTIVE === "true" ||
