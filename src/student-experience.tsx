@@ -6,6 +6,7 @@ import {
   deleteBrowserLearnerPreferences,
   readBrowserLearnerPreferences,
   recommendCourses,
+  shouldShowSkunkieWelcome,
   saveBrowserLearnerPreferences,
   validateLearnerPreferences,
   type LearnerPreferences
@@ -201,7 +202,7 @@ export function StudentExperience({
   );
   const firstCourse = courses[0];
   const nextClass = classes.find((classItem) => registeredClassIds.has(classItem.id));
-  const firstLoginSkunkie = adaptivePilot && !learnerSkipped && (!learnerReady || !learnerPreferences);
+  const firstLoginSkunkie = shouldShowSkunkieWelcome(adaptivePilot, learnerReady, Boolean(learnerPreferences), learnerSkipped);
 
 
   return (
