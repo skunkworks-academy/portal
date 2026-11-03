@@ -133,7 +133,9 @@ export function StudentExperience({
     setLearnerBusy(true);
     let notice = "Your choices apply to this session only.";
     try {
-      if (remember) {
+      if (remember && !canSyncAcademyAccount) {
+        notice = "Saved on this browser only. Account-wide sync is not available for this Microsoft account.";
+      } else if (remember) {
         try {
           await portalApi.saveLearnerPreferences(validated, { instance, account });
           setCloudSyncedAccountId(accountId);
