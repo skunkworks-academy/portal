@@ -84,6 +84,7 @@ export function StudentExperience({
 
   useEffect(() => {
     let cancelled = false;
+    setView("dashboard");
     setLearnerEditing(false);
     setLearnerSkipped(false);
     setLearnerReady(false);
