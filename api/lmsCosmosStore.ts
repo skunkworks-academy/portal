@@ -18,9 +18,10 @@ export class CosmosLmsStore implements LmsStore {
       // Identity and network failures must not expose tokens or provider details.
       throw new HttpError(503, "LMS database unavailable.");
     }
-    if (response.status === 404 && method === "GET") return null;
+    if (response.status === 404 && (method === "GET" || method === "DELETE")) return null;
     if ([409,412].includes(response.status)) throw new HttpError(409, "LMS write conflict.");
     if (!response.ok) throw new HttpError(503, "LMS database unavailable.");
+    if (response.status === 204) return { data: {}, continuation: null };
     return { data: await response.json() as Record<string, unknown>, continuation: response.headers.get("x-ms-continuation") };
   }
   async get<T>(collection: string, key: string): Promise<T | null> {
@@ -33,6 +34,12 @@ export class CosmosLmsStore implements LmsStore {
     await this.call(this.docs, "POST", { id: collection + ":" + key, organizationId: partition, collection, value }, {
       "x-ms-documentdb-partitionkey": JSON.stringify([partition]),
       "x-ms-documentdb-is-upsert": options?.ifAbsent ? "false" : "true"
+    });
+  }
+  async delete(collection: string, key: string): Promise<void> {
+    const partition = key.split(":")[0];
+    await this.call(this.docs + "/" + encodeURIComponent(collection + ":" + key), "DELETE", undefined, {
+      "x-ms-documentdb-partitionkey": JSON.stringify([partition])
     });
   }
   async list<T>(collection: string, prefix: string): Promise<T[]> {
