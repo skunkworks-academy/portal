@@ -101,6 +101,13 @@ export function StudentExperience({
     const cached = readBrowserLearnerPreferences(identity);
     setLearnerState(cached ? { accountId: identity, data: cached } : null);
     if (cached) setLearnerNotice("These preferences are saved on this browser; checking account sync.");
+    if (!canSyncAcademyAccount) {
+      setLearnerNotice(cached
+        ? "Preferences loaded from this browser. Academy account sync is not available for this Microsoft account."
+        : "Choose your preferences. Your personal Microsoft account can use browser or session storage.");
+      setLearnerReady(true);
+      return;
+    }
     void portalApi.learnerPreferences({ account, instance }).then(saved => {
       if (cancelled) return;
       if (saved) {
@@ -117,7 +124,7 @@ export function StudentExperience({
       if (!cancelled) setLearnerNotice("Account sync is not currently available. You can still personalise this session.");
     }).finally(() => { if (!cancelled) setLearnerReady(true); });
     return () => { cancelled = true; };
-  }, [accountId, adaptivePilot, instance]);
+  }, [accountId, adaptivePilot, canSyncAcademyAccount, instance]);
 
   async function saveLearnerPreferences(preferences: LearnerPreferences, remember: boolean) {
     if (!account || !accountId) return;
