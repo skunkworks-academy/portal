@@ -6,11 +6,13 @@ import {
   deleteBrowserLearnerPreferences,
   readBrowserLearnerPreferences,
   recommendCourses,
+  shouldShowSkunkieWelcome,
   saveBrowserLearnerPreferences,
   validateLearnerPreferences,
   type LearnerPreferences
 } from "./learner-adaptation";
 import { SKUNKIE_AVATAR_SRC } from "./skunkie-assets";
+import { skunkworksTenantId } from "./authConfig";
 import { LmsWorkspace } from "./lms-workspace";
 import { linkedAcademyServices } from "./academy-service-registry";
 import { availableServices, PortalServiceNotice, type PortalServiceAvailability } from "./service-availability";
@@ -66,6 +68,7 @@ export function StudentExperience({
   const { instance, accounts } = useMsal();
   const account = accounts[0];
   const accountId = account?.homeAccountId ?? "";
+  const canSyncAcademyAccount = profile?.tenantId?.toLowerCase() === skunkworksTenantId.toLowerCase();
   // Private pilot is opt-in until real authenticated browser acceptance testing is complete.
   const adaptivePilot = Boolean(account && profile) && (
     import.meta.env.VITE_ENABLE_SKUNKIE_ADAPTIVE === "true" ||
@@ -74,6 +77,8 @@ export function StudentExperience({
   const [view, setView] = useState<StudentView>("dashboard");
   const [learnerState, setLearnerState] = useState<{ accountId: string; data: LearnerPreferences } | null>(null);
   const learnerPreferences = learnerState?.accountId === accountId ? learnerState.data : null;
+  // Track account-side persistence separately from browser data so a learner can revoke it.
+  const [cloudSyncedAccountId, setCloudSyncedAccountId] = useState<string | null>(null);
   const [learnerReady, setLearnerReady] = useState(false);
   const [learnerEditing, setLearnerEditing] = useState(false);
   const [learnerSkipped, setLearnerSkipped] = useState(false);
@@ -82,10 +87,12 @@ export function StudentExperience({
 
   useEffect(() => {
     let cancelled = false;
+    setView("dashboard");
     setLearnerEditing(false);
     setLearnerSkipped(false);
     setLearnerReady(false);
     setLearnerNotice("");
+    setCloudSyncedAccountId(null);
     if (!account || !adaptivePilot) {
       setLearnerState(null);
       setLearnerReady(true);
@@ -95,12 +102,20 @@ export function StudentExperience({
     const cached = readBrowserLearnerPreferences(identity);
     setLearnerState(cached ? { accountId: identity, data: cached } : null);
     if (cached) setLearnerNotice("These preferences are saved on this browser; checking account sync.");
+    if (!canSyncAcademyAccount) {
+      setLearnerNotice(cached
+        ? "Preferences loaded from this browser. Academy account sync is not available for this Microsoft account."
+        : "Choose your preferences. Your personal Microsoft account can use browser or session storage.");
+      setLearnerReady(true);
+      return;
+    }
     void portalApi.learnerPreferences({ account, instance }).then(saved => {
       if (cancelled) return;
       if (saved) {
         const validated = validateLearnerPreferences(saved);
         if (validated) {
           setLearnerState({ accountId: identity, data: validated });
+          setCloudSyncedAccountId(identity);
           setLearnerNotice("Your preferences were loaded securely from your Academy account.");
         }
       } else if (!cached) {
@@ -110,7 +125,7 @@ export function StudentExperience({
       if (!cancelled) setLearnerNotice("Account sync is not currently available. You can still personalise this session.");
     }).finally(() => { if (!cancelled) setLearnerReady(true); });
     return () => { cancelled = true; };
-  }, [accountId, adaptivePilot, instance]);
+  }, [accountId, adaptivePilot, canSyncAcademyAccount, instance]);
 
   async function saveLearnerPreferences(preferences: LearnerPreferences, remember: boolean) {
     if (!account || !accountId) return;
@@ -119,18 +134,32 @@ export function StudentExperience({
     setLearnerBusy(true);
     let notice = "Your choices apply to this session only.";
     try {
-      if (remember) {
+      if (remember && !canSyncAcademyAccount) {
+        notice = "Saved on this browser only. Account-wide sync is not available for this Microsoft account.";
+      } else if (remember) {
         try {
           await portalApi.saveLearnerPreferences(validated, { instance, account });
+          setCloudSyncedAccountId(accountId);
           notice = "Your preferences are saved securely to your Academy account.";
         } catch {
           notice = "Cloud sync is unavailable. Your preferences are only saved on this browser, not across devices.";
+        }
+      } else if (cloudSyncedAccountId === accountId) {
+        // Opting out of durable storage must also revoke a previously saved account copy.
+        try {
+          await portalApi.deleteLearnerPreferences({ instance, account });
+          setCloudSyncedAccountId(null);
+          notice = "Your earlier account copy was deleted. These choices apply to this session only.";
+        } catch {
+          notice = "Session-only choices are active, but your earlier account copy could not be removed. Use Reset to retry deletion.";
         }
       }
       try {
         saveBrowserLearnerPreferences(accountId, validated, remember);
       } catch {
-        if (!remember || notice.startsWith("Cloud sync")) {
+        if (notice.includes("could not be removed")) {
+          notice += " Browser storage is also unavailable.";
+        } else if (!remember || notice.startsWith("Cloud sync")) {
           notice = "Browser storage is unavailable. Your preferences apply to this page only.";
         }
       }
@@ -146,11 +175,17 @@ export function StudentExperience({
     setLearnerBusy(true);
     try {
       try { deleteBrowserLearnerPreferences(accountId); } catch { /* browser storage may be disabled */ }
-      try {
-        await portalApi.deleteLearnerPreferences({ account, instance });
-        setLearnerNotice("Your saved learner preferences were deleted.");
-      } catch {
-        setLearnerNotice("Local preferences were reset. Account-side deletion could not be confirmed.");
+      if (!canSyncAcademyAccount) {
+        setCloudSyncedAccountId(null);
+        setLearnerNotice("Browser preferences reset. Academy account storage is not available for this Microsoft account.");
+      } else {
+        try {
+          await portalApi.deleteLearnerPreferences({ account, instance });
+          setCloudSyncedAccountId(null);
+          setLearnerNotice("Your saved learner preferences were deleted.");
+        } catch {
+          setLearnerNotice("Local preferences were reset. Account-side deletion could not be confirmed.");
+        }
       }
       setLearnerState(null);
       setLearnerEditing(false);
@@ -167,10 +202,11 @@ export function StudentExperience({
   );
   const firstCourse = courses[0];
   const nextClass = classes.find((classItem) => registeredClassIds.has(classItem.id));
+  const firstLoginSkunkie = shouldShowSkunkieWelcome(adaptivePilot, learnerReady, Boolean(learnerPreferences), learnerSkipped);
 
 
   return (
-    <div className="student-shell"
+    <div className="student-shell" data-skunkie-welcome={firstLoginSkunkie ? "true" : undefined}
       data-learner-palette={adaptivePilot ? learnerPreferences?.palette : undefined}
       data-learner-text={adaptivePilot ? learnerPreferences?.textSize : undefined}
       data-reduce-motion={adaptivePilot && learnerPreferences?.reduceMotion ? "true" : undefined}>
@@ -237,10 +273,11 @@ export function StudentExperience({
           )}
           {view === "dashboard" && adaptivePilot && learnerReady &&
             (!learnerPreferences || learnerEditing) && !learnerSkipped && (
-            <LearnerDiscovery key={learnerEditing ? "edit" : "new"}
+            <LearnerDiscovery key={accountId + ":" + (learnerEditing ? "edit" : "new")}
               name={displayName}
               initial={learnerPreferences}
               editing={learnerEditing}
+              rememberByDefault={cloudSyncedAccountId === accountId}
               busy={learnerBusy}
               onSave={saveLearnerPreferences}
               onSkip={() => { if (learnerEditing) setLearnerEditing(false); else setLearnerSkipped(true); }} />

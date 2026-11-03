@@ -93,3 +93,39 @@
 @media (prefers-reduced-motion: reduce) {
  .learner-discovery *, .learner-overview * { animation: none !important; transition: none !important; }
 }
+
+
+/* First-login gate: nothing from the regular learner dashboard appears before
+   the optional discovery step is completed or explicitly skipped. */
+.student-shell[data-skunkie-welcome="true"] {
+  display: block;
+  min-height: 100dvh;
+  padding: clamp(16px, 3vw, 48px);
+  box-sizing: border-box;
+  background: var(--academy-background, #f7f9fc);
+}
+.student-shell[data-skunkie-welcome="true"] > .student-sidebar,
+.student-shell[data-skunkie-welcome="true"] .student-topbar,
+.student-shell[data-skunkie-welcome="true"] .student-main > :not(.learner-discovery):not(.learner-account-status) {
+  display: none !important;
+}
+.student-shell[data-skunkie-welcome="true"] .student-main {
+  width: min(100%, 920px);
+  margin: clamp(16px, 5vh, 64px) auto;
+  padding: 0;
+}
+.student-shell[data-skunkie-welcome="true"] .student-workspace {
+  width: 100%;
+  min-width: 0;
+}
+.student-shell[data-skunkie-welcome="true"] .learner-discovery {
+  border: 1px solid var(--academy-line);
+  box-shadow: var(--academy-shadow-soft);
+}
+body:has(.student-shell[data-skunkie-welcome="true"]) .skunkie {
+  display: none;
+}
+@media (max-width: 600px) {
+  .student-shell[data-skunkie-welcome="true"] { padding: 12px; }
+  .student-shell[data-skunkie-welcome="true"] .student-main { margin: 8px auto; }
+}
