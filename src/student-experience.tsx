@@ -184,10 +184,11 @@ export function StudentExperience({
   );
   const firstCourse = courses[0];
   const nextClass = classes.find((classItem) => registeredClassIds.has(classItem.id));
+  const firstLoginSkunkie = adaptivePilot && !learnerSkipped && (!learnerReady || !learnerPreferences);
 
 
   return (
-    <div className="student-shell"
+    <div className="student-shell" data-skunkie-welcome={firstLoginSkunkie ? "true" : undefined}
       data-learner-palette={adaptivePilot ? learnerPreferences?.palette : undefined}
       data-learner-text={adaptivePilot ? learnerPreferences?.textSize : undefined}
       data-reduce-motion={adaptivePilot && learnerPreferences?.reduceMotion ? "true" : undefined}>
