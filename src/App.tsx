@@ -131,7 +131,16 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
     const stored = localStorage.getItem("portalRoleOverride");
     return stored === "Instructor" || stored === "Staff" || stored === "Student" ? stored : "Student";
   });
-  const activeRole = profile?.portalRole ?? selectedRole;
+  // A workspace choice is a UI preference, never a permission grant.
+  const availableRoles: PortalRole[] = !profile ? ["Student"] : [
+    "Student",
+    ...(profile.isAdmin || profile.roles.some(role => role.toLowerCase() === "portal.instructor") ? ["Instructor" as const] : []),
+    ...(profile.isAdmin ? ["Staff" as const] : [])
+  ];
+  const storedChoiceApplies = Boolean(profile && localStorage.getItem("portalRoleAccount") === account?.homeAccountId);
+  const activeRole: PortalRole = profile
+    ? (storedChoiceApplies && availableRoles.includes(selectedRole) ? selectedRole : profile.portalRole)
+    : "Student";
   const roleDefinition = roleDefinitions[activeRole];
   const auth = account ? { instance, account } : undefined;
 
@@ -154,9 +163,11 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
   const [showLegacyManagement, setShowLegacyManagement] = useState(false);
 
   function selectRole(role: PortalRole) {
+    if (profile && !availableRoles.includes(role)) return;
     localStorage.setItem("portalRoleOverride", role);
+    if (account) localStorage.setItem("portalRoleAccount", account.homeAccountId);
     setSelectedRole(role);
-    setPortalProfile((current) => ({ ...current, portalRole: role }));
+    setShowLegacyManagement(false);
   }
 
   async function signIn(role?: PortalRole) {
@@ -232,7 +243,7 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
       const saved = existingProfile ?? await portalApi.updateProfile({
         ...defaultProfileInput,
         displayName: profile.name,
-        portalRole: "Student"
+        portalRole: profile.portalRole
       }, auth);
       setPortalProfile(
         saved
@@ -419,8 +430,30 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
   const requestedAward = new URLSearchParams(window.location.search).get("certificate");
   if(requestedAward)return <CertificateWallet courseId={requestedAward} auth={auth} isStaff={Boolean(profile.isAdmin)} onSignOut={()=>void signOut()}/>;
 
+  const roleSelector = availableRoles.length > 1 ? (
+    <nav aria-label="Switch Academy workspace" style={{
+      position: "relative", zIndex: 30, display: "flex", flexWrap: "wrap",
+      gap: 8, alignItems: "center", justifyContent: "center",
+      padding: "12px 16px", background: "var(--surface, #101b30)",
+      color: "var(--text-primary, #ffffff)", borderBottom: "1px solid #64748b"
+    }}>
+      <strong style={{ marginRight: 8 }}>Workspace: {profile.isAdmin ? "Administrator" : "Academy"}</strong>
+      {availableRoles.map(role => <button key={role} type="button"
+        aria-pressed={activeRole === role}
+        onClick={() => selectRole(role)}
+        style={{
+          cursor: "pointer", borderRadius: 8, padding: "8px 14px", fontWeight: 700,
+          border: "2px solid #64748b",
+          background: activeRole === role ? "#facc15" : "#ffffff",
+          color: "#111827"
+        }}>{role}</button>)}
+    </nav>
+  ) : null;
+
   if (activeRole === "Student") {
     return (
+      <>
+      {roleSelector}
       <StudentExperience
         profile={profile}
         portalProfile={portalProfile}
@@ -433,11 +466,12 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
         services={services}
         onRetryServices={() => setRefreshServices((value) => value + 1)}
       />
+      </>
     );
   }
 
   if (!showLegacyManagement && (activeRole === "Staff" || activeRole === "Instructor")) {
-    return <AcademyWorkspace
+    return <>{roleSelector}<AcademyWorkspace
       profile={profile}
       role={activeRole}
       courses={courses}
@@ -449,11 +483,12 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
       services={services}
       onRetryServices={() => setRefreshServices((value) => value + 1)}
       onSignOut={() => void signOut()}
-    />;
+    /></>;
   }
 
   return (
     <div className="portal-page">
+      {roleSelector}
       <main id="main" className="portal-main">
         <div className="legacy-portal-toolbar"><button type="button" className="primary-action" onClick={() => setShowLegacyManagement(false)}>← Back to Academy workspace</button><span>Existing management tools · Microsoft Entra secured</span></div>
         <section className="portal-hero" id="overview">
