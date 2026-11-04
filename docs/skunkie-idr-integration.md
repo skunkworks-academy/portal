@@ -1,52 +1,47 @@
-# Skunkie Individual Development Roadmap — implementation foundation
+# Skunkie learner assessment + Individual Development Roadmap (IDR)
 
-Status: **foundation only; NOT deployed or connected to production**.
+**Architectural distinction:** Skunkie learner assessment profiles learning preferences, engagement, self-reported confidence, interests and optional support needs. It does **not** diagnose fixed learning styles, measure IQ or infer aptitude from a short questionnaire. A separate career/competency assessment drives the IDR. Evidence-based tasks can extend the learner profile later.
 
-## Existing system
+## Implemented on feature branch
 
-- Student portal: `src/student-experience.tsx`, React/MSAL.
-- Authentication: Entra ID; the API must derive `learnerSubject` from the verified bearer-token claims.
-- API client: `src/api.ts`, Azure Functions under `/api`.
-- Existing learner-preferences pilot is **not** the formal IDR assessment.
-- References: `skunkworks-academy/ls1607` (30/60/90/365 milestones, projects, mentoring) and `skunkworks-academy/aacca` (curriculum, badges, PDF, calendar).
+- `src/learner-assessment/model.ts` — versioned learner-assessment and learner-profile schemas, separate from `src/idr/model.ts`.
+- `api/skunkieAssessmentFunctions.ts` — Microsoft Entra-verified routes and per-student Cosmos DB storage, with home-tenant restriction, server-derived ownership and consent.
+- `src/api.ts` — authenticated API client.
+- `src/learner-assessment/workspace.tsx` — learner questionnaire and private IDR reader.
+- `src/student-experience.tsx` — independent navigation items: My learner assessment and My development roadmap.
+- `src/idr/generate.ts` + unit tests — separate, unconnected draft career-plan engine for an approved competency template.
 
-## Proposed learner workflow
+### Authenticated endpoints (available once the Azure Functions build is deployed/configured)
 
-1. Student authenticates and expressly opts in to assessment storage.
-2. Skunkie presents a versioned assessment questionnaire, including approved fields from the existing Microsoft Form.
-3. Backend validates answers and binds submission to the verified student identity; do not accept a client-supplied owner.
-4. `generateDraftRoadmap` computes evidence-based competency gaps against an approved role template. Unknown competency level is treated as *unassessed* for presentation; default zero is used only for prioritisation.
-5. Optional AI adds narrative and maps **real, published** courses, labs and certifications; label recommendations as proposed until validated.
-6. Staff or student review and approve the draft; publish a private authenticated IDR dashboard.
-7. Persist milestones, evidence references, updates and audit history server-side. Export PDF/iCalendar on demand.
+| Endpoint | Function |
+| --- | --- |
+| `GET /api/me/skunkie/assessment` | Read only the signed-in learner's assessment |
+| `PUT /api/me/skunkie/assessment` | Validate, consent-check and persist questionnaire responses |
+| `DELETE /api/me/skunkie/assessment` | Remove learner-assessment profile |
+| `GET /api/me/idr/roadmap` | Read only the signed-in learner's private roadmap |
+| `PUT /api/me/idr/roadmap` | Create an **empty draft shell only**, never overwrite an existing roadmap |
 
-## Proposed API contract (not implemented)
+**Important:** These endpoints do not yet perform aptitude tests, generate AI career plans, import Microsoft Forms, approve roadmap content, or delete all potential downstream derivatives. An IDR is not automatically created by completing the learner questionnaire.
 
-- `GET /api/me/idr/assessment-template`
-- `POST /api/me/idr/assessments` (consent + validated responses)
-- `GET /api/me/idr/roadmap`
-- `POST /api/me/idr/roadmap/generate`
-- `PATCH /api/me/idr/milestones/{id}`
-- `POST /api/me/idr/roadmap/approve`
-- `DELETE /api/me/idr/data` (subject to legitimate retention obligations)
+## Backend prerequisites
 
-Each handler must verify the access token and enforce per-student ownership; staff access requires an explicit role. Enforce payload size limits, input validation, request rate limits and audit logging without storing raw responses in logs.
+The API expects the existing `ENTRA_TENANT_ID`, `LMS_HOME_ORGANIZATION_ID`, `LMS_COSMOS_ENDPOINT`, `LMS_COSMOS_DATABASE`, and `LMS_COSMOS_CONTAINER` settings plus Cosmos RBAC permissions for the Function App's managed identity. No new frontend secret. The home-tenant restriction matches the current learner-preferences pilot, so external MSA learners require a separate deliberate provisioning policy before full access.
 
-## Microsoft Forms transition
+## Acceptance criteria before production
 
-The supplied Forms response URL is a **respondent-facing** link, not permission to retrieve its question schema or responses. Obtain an authorised form export/question definition, then map stable question identifiers to the versioned assessment schema. A historical Excel import must require an explicit identity match and avoid automatic linking by display name. The supplied workbook currently has a single header `ID` and no student responses.
+1. Authenticated learner A can save, reload, and delete her own assessment across devices; learner B cannot see A's record.
+2. Expired, invalid, wrong-audience or forged access tokens return an authorization error.
+3. No unauthenticated access, no public GitHub commit of user assessment data.
+4. Input validation, malformed JSON, invalid consent, missing Cosmos settings and provider failures produce safe, predictable responses.
+5. IDR is never silently invented from learning preferences and an existing IDR is never replaced by an unreviewed draft.
+6. Student navigation and screen-reader support work in mobile, desktop, dark and light modes.
+7. End-to-end tests run against **synthetic** learners and a non-production Azure environment.
 
-## Security and privacy
+## Next build stages
 
-- Do not commit any real student records or sensitive assessment exports to GitHub or static GitHub Pages.
-- Store learner assessments in a restricted data store with scoped identities, encryption at rest, retention limits and deletion workflows.
-- Do not put student PII into AI prompts except the minimum necessary; log redacted operational metadata only.
-- Apply POPIA privacy notices and consent as appropriate. Consent is not a substitute for evaluating the applicable lawful processing basis.
-- Existing browser-local progress trackers in example sites cannot be treated as cross-device records.
-
-## Build sequence
-
-1. **Completed in this branch:** versioned TypeScript IDR model, baseline draft generator, unit tests.
-2. Next: confirm Forms questions + role competency catalogue; implement authenticated Azure Functions persistence.
-3. Then: add student navigation, Skunkie questionnaire and private roadmap UI.
-4. Finally: end-to-end acceptance tests with synthetic student identities before production deployment.
+- Review exact Microsoft Forms questions and the assessment workbook's mappings before migrating form data.
+- Add structured learning activity evidence (practice performance, assistance requirements, reflection), with explicit user permission and calibrated interpretation.
+- Add vetted career-role skill matrices and assessment instruments to drive the IDR.
+- Add the private IDR timeline, evidence submission, staff review/approval, and version history with optimistic concurrency.
+- Integrate Skunkie conversations with the saved learner profile through secured backend authorization, not public static data.
+- Run `npm test`, `npm run build`, `npm run build:api`, and authenticated staging end-to-end tests before merge/deploy.
