@@ -14,12 +14,13 @@ import {
 import { SKUNKIE_AVATAR_SRC } from "./skunkie-assets";
 import { skunkworksTenantId } from "./authConfig";
 import { LmsWorkspace } from "./lms-workspace";
+import { LearnerAssessmentWorkspace, IndividualRoadmapWorkspace } from "./learner-assessment/workspace";
 import { linkedAcademyServices } from "./academy-service-registry";
 import { availableServices, PortalServiceNotice, type PortalServiceAvailability } from "./service-availability";
 import type { ClassRegistrationRecord, ClassSession, CourseRecord, PortalProfileInput, UserProfile } from "./types";
 import "./student-experience.css";
 
-type StudentView = "dashboard" | "lms" | "learning" | "classes" | "achievements" | "resources" | "messages" | "companion" | "profile";
+type StudentView = "dashboard" | "assessment" | "idr" | "lms" | "learning" | "classes" | "achievements" | "resources" | "messages" | "companion" | "profile";
 
 type StudentExperienceProps = {
   profile: UserProfile | null;
@@ -36,6 +37,8 @@ type StudentExperienceProps = {
 
 const navItems: Array<{ id: StudentView; label: string; icon: string }> = [
   { id: "dashboard", label: "Dashboard", icon: "⌂" },
+  { id: "assessment", label: "My learner assessment", icon: "◈" },
+  { id: "idr", label: "My development roadmap", icon: "◇" },
   { id: "lms", label: "Academy LMS", icon: "▤" },
   { id: "learning", label: "My learning", icon: "◈" },
   { id: "classes", label: "Classes", icon: "◫" },
@@ -328,6 +331,8 @@ export function StudentExperience({
             </section>
           )}
 
+          {view === "assessment" && <LearnerAssessmentWorkspace />}
+          {view === "idr" && <IndividualRoadmapWorkspace />}
           {view === "lms" && <LmsWorkspace mode="student" />}
 
           {view === "learning" && (
