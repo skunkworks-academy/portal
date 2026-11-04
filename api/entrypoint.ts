@@ -5,3 +5,6 @@ import "./functions.js";
 import "./identityBffFunctions.js";
 
 import "./lmsFunctions.js";
+
+// Authenticated, per-learner Skunkie assessment and IDR records.
+import "./skunkieAssessmentFunctions.js";
