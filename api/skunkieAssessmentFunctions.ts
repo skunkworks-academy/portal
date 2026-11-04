@@ -121,6 +121,7 @@ app.http("studentIdrSaveDraft", {
         throw new HttpError(400, "Only an empty, unreviewed roadmap shell can be submitted; generated career plans require staff review.");
       }
       const existing = await store.get<IdRRoadmap>(roadmapCollection, key);
+      if (existing) throw new HttpError(409, "An IDR already exists. Use the reviewed revision workflow to make changes.");
       const timestamp = new Date().toISOString();
       const record: IdRRoadmap = {
         schemaVersion: 1, roadmapId: p.roadmapId, assessmentId: p.assessmentId,
