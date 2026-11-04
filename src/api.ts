@@ -1,6 +1,8 @@
 import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser";
 import { apiScope } from "./authConfig";
 import type { LearnerPreferences } from "./learner-adaptation";
+import type { SkunkieLearnerAssessment, SkunkieLearnerProfile } from "./learner-assessment/model";
+import type { IdRRoadmap } from "./idr/model";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
 // Public production origin. Azure Functions reserves the "admin" namespace, so privileged
@@ -96,6 +98,10 @@ export type AcademyBeginnerAward={version:1;certificateId:string;courseId:string
 export type AcademyEnrolment={id:string;courseId:string;courseTitle:string;learnerName:string;learnerEmail:string;status:string};
 
 export const portalApi = {
+  mySkunkieAssessment: (auth: LmsAuth) => request<SkunkieLearnerProfile | null>("/me/skunkie/assessment", {}, auth),
+  saveSkunkieAssessment: (input: SkunkieLearnerAssessment, auth: LmsAuth) => request<SkunkieLearnerProfile>("/me/skunkie/assessment", { method: "PUT", body: JSON.stringify(input) }, auth),
+  deleteSkunkieAssessment: (auth: LmsAuth) => request<void>("/me/skunkie/assessment", { method: "DELETE" }, auth),
+  myIdrRoadmap: (auth: LmsAuth) => request<IdRRoadmap | null>("/me/idr/roadmap", {}, auth),
   learnerPreferences: (auth: LmsAuth) => request<LearnerPreferences | null>("/learner/preferences", {}, auth),
   saveLearnerPreferences: (preferences: LearnerPreferences, auth: LmsAuth) => request<LearnerPreferences>("/learner/preferences", { method: "PUT", body: JSON.stringify(preferences) }, auth),
   deleteLearnerPreferences: (auth: LmsAuth) => request<void>("/learner/preferences", { method: "DELETE" }, auth),
