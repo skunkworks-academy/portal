@@ -125,8 +125,8 @@ app.http("studentIdrSaveDraft", {
       const timestamp = new Date().toISOString();
       const record: IdRRoadmap = {
         schemaVersion: 1, roadmapId: p.roadmapId, assessmentId: p.assessmentId,
-        learnerSubject: user.subject, createdAt: existing?.createdAt ?? timestamp, updatedAt: timestamp,
-        revision: (existing?.revision ?? 0) + 1, reviewState: "draft", targetRole: p.targetRole,
+        learnerSubject: user.subject, createdAt: timestamp, updatedAt: timestamp,
+        revision: 1, reviewState: "draft", targetRole: p.targetRole,
         strengths: [], skillGaps: [], milestones: [], recommendations: [], author: "staff"
       };
       await store.put(roadmapCollection, key, record);
