@@ -12,6 +12,7 @@ import {
   type LearnerPreferences
 } from "./learner-adaptation";
 import { SKUNKIE_AVATAR_SRC } from "./skunkie-assets";
+import { SkunkieOrchestrationPanel } from "./skunkie/SkunkieOrchestrationPanel";
 import { skunkworksTenantId } from "./authConfig";
 import { LmsWorkspace } from "./lms-workspace";
 import { LearnerAssessmentWorkspace, IndividualRoadmapWorkspace } from "./learner-assessment/workspace";
@@ -367,7 +368,7 @@ export function StudentExperience({
           {view === "achievements" && <Achievements courseCount={courses.length} registrationCount={registrations.length} onViewLearning={() => setView("learning")} />}
           {view === "resources" && <Resources />}
           {view === "messages" && <Messages />}
-          {view === "companion" && <Companion />}
+          {view === "companion" && <SkunkieOrchestrationPanel onAssess={() => setView("assessment")} onCourses={() => setView("learning")} />}
           {view === "profile" && <ProfileSettings displayName={displayName} portalProfile={portalProfile} courseCount={courses.length} registrations={registrations.length} />}
         </main>
       </section>
