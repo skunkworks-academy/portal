@@ -1,0 +1,126 @@
+name: SCIM isolated staging deployment (manual and disabled by default)
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact reviewed commit SHA to deploy
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: scim-isolated-staging
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assert reviewed branch and SHA
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          test "${{ github.ref }}" = "refs/heads/feat/entra-scim-provisioning-gallery-readiness"
+          test "$GITHUB_SHA" = "$EXPECTED_SHA"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npm run build:api
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    environment: scim-staging
+    env:
+      STAGING_APP: ${{ vars.SCIM_STAGING_FUNCTION_APP }}
+      STAGING_RG: ${{ vars.SCIM_STAGING_RESOURCE_GROUP }}
+      STAGING_CLIENT_ID: ${{ vars.SCIM_STAGING_AZURE_CLIENT_ID }}
+      STAGING_TENANT_ID: ${{ vars.SCIM_STAGING_AZURE_TENANT_ID }}
+      STAGING_SUBSCRIPTION_ID: ${{ vars.SCIM_STAGING_AZURE_SUBSCRIPTION_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build:api
+      - name: Enforce separate staging resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          for name in STAGING_APP STAGING_RG STAGING_CLIENT_ID STAGING_TENANT_ID STAGING_SUBSCRIPTION_ID; do
+            test -n "${!name:-}" || { echo "Missing staging variable: $name" >&2; exit 1; }
+          done
+          [[ "$STAGING_APP" =~ (stg|staging) ]] || { echo "Function app must be isolated staging." >&2; exit 1; }
+          [[ "$STAGING_RG" =~ (stg|staging) ]] || { echo "Resource group must be isolated staging." >&2; exit 1; }
+          [[ "$STAGING_APP" != "skunkworks-academy-portal-api-za" ]] || exit 1
+          [[ "$STAGING_RG" != "rg-skunkworks-academy-portal-prod" ]] || exit 1
+      - name: Authenticate with staging-only Azure federated identity
+        uses: azure/login@v3
+        with:
+          client-id: ${{ env.STAGING_CLIENT_ID }}
+          tenant-id: ${{ env.STAGING_TENANT_ID }}
+          subscription-id: ${{ env.STAGING_SUBSCRIPTION_ID }}
+          auth-type: SERVICE_PRINCIPAL
+      - name: Verify managed identity, disabled gates, isolated Cosmos and Key Vault references
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(az account show --query id -o tsv)"
+          test "$actual" = "$STAGING_SUBSCRIPTION_ID"
+          principal="$(az functionapp identity show -g "$STAGING_RG" -n "$STAGING_APP" --query principalId -o tsv)"
+          test -n "$principal" && test "$principal" != "None"
+          settings="$(az functionapp config appsettings list -g "$STAGING_RG" -n "$STAGING_APP" -o json)"
+          SETTINGS_JSON="$settings" node <<'NODE'
+          const records=JSON.parse(process.env.SETTINGS_JSON || '[]');
+          const find = key => records.find(x=>x.name===key)?.value;
+          const error = message => { throw new Error(message); };
+          if (find('SCIM_ENABLED') !== 'false') error('Staging SCIM must be disabled before deploy');
+          if (find('SCIM_ENFORCE_PROVISIONED_USERS') !== 'false') error('Global deprovisioning gate must remain disabled');
+          for (const key of ['SCIM_TOKEN_SIGNING_KEY','SCIM_CLIENTS_JSON']) {
+            if (!String(find(key) || '').startsWith('@Microsoft.KeyVault(')) error(key + ' must use a Key Vault reference');
+          }
+          if (!String(find('LMS_COSMOS_ENDPOINT') || '').startsWith('https://')) error('Cosmos HTTPS endpoint required');
+          if (!/(stg|staging)/i.test(String(find('LMS_COSMOS_DATABASE') || ''))) error('Isolated staging Cosmos database required');
+          if (!find('LMS_COSMOS_CONTAINER')) error('Staging Cosmos container required');
+          NODE
+          echo "Staging identity and app-setting boundaries validated (no secret values logged)."
+      - name: Build staged Azure Functions ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p scim-staging-package
+          cp -R api-dist scim-staging-package/api-dist
+          cp host.json package.json package-lock.json scim-staging-package/
+          cd scim-staging-package
+          npm ci --omit=dev
+          zip -qr ../scim-staging-package.zip .
+      - name: Deploy only to approved staging Function App
+        shell: bash
+        run: |
+          set -euo pipefail
+          az functionapp deployment source config-zip \
+            -g "$STAGING_RG" -n "$STAGING_APP" \
+            --src scim-staging-package.zip --build-remote false --timeout 600 --output none
+          az functionapp restart -g "$STAGING_RG" -n "$STAGING_APP" --output none
+      - name: Confirm staged SCIM remains unavailable until pilot activation
+        shell: bash
+        run: |
+          set -euo pipefail
+          hostname="$(az functionapp show -g "$STAGING_RG" -n "$STAGING_APP" --query defaultHostName -o tsv)"
+          status="$(curl -sS --max-time 30 -o /dev/null -w '%{http_code}' "https://$hostname/api/scim/v2/Schemas")"
+          test "$status" = "503" || { echo "Unexpected unauthenticated disabled-SCIM status: $status" >&2; exit 1; }
+          echo "Staging package deployed; SCIM feature gate remains disabled; no customer lifecycle tests executed." >> "$GITHUB_STEP_SUMMARY"
