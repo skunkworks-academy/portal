@@ -130,7 +130,7 @@ This section records **source changes and outstanding gates**, not a successful 
 | Indexed uniqueness | Existing full-partition scans are not a transactionally enforced uniqueness constraint. **Blocked for production** until identity-field uniqueness is protected by index/transaction design and concurrent creation tests. |
 | Rate limit / throughput | **Blocked:** per-client token throttling, distributed tenant quotas and sustained ≥25 req/s **real Cosmos writes** have not been validated. Prevent unbounded token hashing requests with an edge-enforced rate policy before any public pilot. |
 | Global revocation | **Blocked:** optional LMS and Skunkie checks do not revoke every Portal, SharePoint and external-tenant route. Do not globally disable accounts or enable `SCIM_ENFORCE_PROVISIONED_USERS` without end-to-end evidence. |
-| Staging | **Not deployed or verified.** Requires separately provisioned Function App, managed identity Cosmos RBAC, Key Vault references, customer-specific OAuth credentials and environment approval. |
+| Staging | Gated workflow `.github/workflows/scim-staging.yml` has been committed, but **not executed**. Requires pre-provisioned isolated Function App, managed identity Cosmos RBAC, Key Vault references, customer-specific OAuth credentials and environment approval. |
 | Entra non-gallery pilot | **Not run.** Record Test Connection, Provision on Demand, create/update/deactivate/reactivate, group operations, negative filters, isolation, rotation and access-gate results without PII or credentials. |
 | Entra App Gallery | **Not submitted.** Partner One ID, self-service validations, 100-customer qualification, logos, links, support contacts and Submission ID remain open. |
 
