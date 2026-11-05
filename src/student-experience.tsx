@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import { portalApi } from "./api";
 import { LearnerDiscovery, PersonalisedLearningOverview } from "./LearnerDiscovery";
@@ -97,19 +97,35 @@ export function StudentExperience({
     new URLSearchParams(window.location.search).get("skunkiePilot") === "1"
   );
   const [view, updateView] = useState<StudentView>(() => studentViewFromLocation(Boolean(savedLearnerProfile)));
+  const openSavedAssessment = useCallback(() => {
+    if (!savedLearnerProfile || !onEditLearnerProfile) return false;
+    // The gate owns the confirmed profile. Never mount an independent editor
+    // that could save/delete it without refreshing the configured workspace.
+    const url = new URL(window.location.href);
+    url.searchParams.set("student", "dashboard");
+    window.history.replaceState(null, "", url);
+    updateView("dashboard");
+    onEditLearnerProfile();
+    return true;
+  }, [savedLearnerProfile, onEditLearnerProfile]);
   function setView(next: StudentView) {
     if (next === "profile") { window.location.assign("/?account=profile"); return; }
-    if (next === "assessment" && savedLearnerProfile && onEditLearnerProfile) { onEditLearnerProfile(); return; }
+    if (next === "assessment" && openSavedAssessment()) return;
     updateView(next);
     const url = new URL(window.location.href);
     url.searchParams.set("student", next);
     window.history.pushState(null, "", url);
   }
   useEffect(() => {
-    const onHistory = () => updateView(studentViewFromLocation(Boolean(savedLearnerProfile)));
+    const onHistory = () => {
+      const requested = studentViewFromLocation(Boolean(savedLearnerProfile));
+      if (requested === "assessment" && openSavedAssessment()) return;
+      updateView(requested);
+    };
     window.addEventListener("popstate", onHistory);
+    onHistory();
     return () => window.removeEventListener("popstate", onHistory);
-  }, [savedLearnerProfile]);
+  }, [savedLearnerProfile, openSavedAssessment]);
   const [learnerState, setLearnerState] = useState<{ accountId: string; data: LearnerPreferences } | null>(null);
   const learnerPreferences = learnerState?.accountId === accountId ? learnerState.data : null;
   // Track account-side persistence separately from browser data so a learner can revoke it.
@@ -364,7 +380,7 @@ export function StudentExperience({
             </section>
           )}
 
-          {view === "assessment" && <LearnerAssessmentWorkspace />}
+          {view === "assessment" && !(savedLearnerProfile && onEditLearnerProfile) && <LearnerAssessmentWorkspace />}
           {view === "idr" && <IndividualRoadmapWorkspace />}
           {view === "lms" && <LmsWorkspace key={"lms:" + accountId} mode="student" query={query} />}
 

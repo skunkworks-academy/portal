@@ -4,9 +4,12 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SkunkieCompanion } from "../src/SkunkieCompanion";
 import { SkunkieAvatar } from "../src/SkunkieAvatar";
+import { LearnerOnboardingGate } from "../src/LearnerOnboardingGate";
 import { readSkunkiePreferences, saveSkunkiePreferences } from "../src/skunkie-preferences";
 const auth = vi.hoisted(() => ({ accounts: [{ homeAccountId: "account-a" }], instance: { acquireTokenSilent: vi.fn() } }));
+const api = vi.hoisted(() => ({ mySkunkieAssessment: vi.fn() }));
 vi.mock("@azure/msal-react", () => ({ useMsal: () => auth }));
+vi.mock("../src/api", () => ({ portalApi: api }));
 let host: HTMLDivElement;
 let root: Root;
 function click(text: string) { const item = [...host.querySelectorAll("button")].find(b => b.textContent?.includes(text) || b.getAttribute("aria-label") === text); if (!item) throw Error(`Missing button ${text}`); act(() => item.click()); }
@@ -19,12 +22,32 @@ beforeEach(() => {
   Object.defineProperty(document, "hidden", { configurable: true, value: false });
   Element.prototype.scrollTo = vi.fn();
   localStorage.clear(); auth.accounts = [{ homeAccountId: "account-a" }]; auth.instance.acquireTokenSilent.mockResolvedValue({ accessToken: "test-only" });
+  api.mySkunkieAssessment.mockReset().mockResolvedValue(null);
+  sessionStorage.clear(); document.body.removeAttribute("data-portal-onboarding");
   document.documentElement.removeAttribute("data-portal-motion");
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("avatar-first Skunkie", () => {
+  it("observes a preceding sibling's setup on mount and restores the launcher after cleanup", async () => {
+    const page = (enabled: boolean) => <><LearnerOnboardingGate enabled={enabled}>{() => <p>Workspace</p>}</LearnerOnboardingGate><SkunkieCompanion /></>;
+    await render(page(true));
+    expect(document.body.hasAttribute("data-portal-onboarding")).toBe(true);
+    expect(host.querySelector(".learner-onboarding__avatar")).not.toBeNull();
+    expect(host.querySelector(".skunkie")).toBeNull();
+    await render(page(false));
+    expect(document.body.hasAttribute("data-portal-onboarding")).toBe(false);
+    expect(host.querySelector(".skunkie")).not.toBeNull();
+  });
+  it("carries the gate's text-only choice into the same mounted account companion", async () => {
+    const page = (enabled: boolean) => <><LearnerOnboardingGate enabled={enabled}>{() => <p>Workspace</p>}</LearnerOnboardingGate><SkunkieCompanion /></>;
+    await render(page(true)); click("Use text only");
+    expect(readSkunkiePreferences("account-a").showAvatar).toBe(false);
+    await render(page(false));
+    expect(host.querySelector(".skunkie--chat-only")).not.toBeNull();
+    expect(host.querySelector(".skunkie-avatar")).toBeNull();
+  });
   it("defaults to real avatar frames and keeps chat-only choice scoped to the account", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ available: true }))));
     await render(<SkunkieCompanion />); expect(host.querySelector(".skunkie-avatar")).not.toBeNull();

@@ -20,10 +20,12 @@ function apiBaseUrl() {
 
 export function SkunkieCompanion() {
   const { accounts } = useMsal();
-  const [onboarding, setOnboarding] = useState(false);
+  const [onboarding, setOnboarding] = useState(() => typeof document !== "undefined" && document.body.hasAttribute("data-portal-onboarding"));
   useEffect(() => {
     const update = (event: Event) => setOnboarding((event as CustomEvent<{ active: boolean }>).detail?.active === true);
     window.addEventListener("skunkworksacademy:onboarding-state", update);
+    // App's child gate may publish before this sibling's effect subscribes.
+    setOnboarding(document.body.hasAttribute("data-portal-onboarding"));
     return () => window.removeEventListener("skunkworksacademy:onboarding-state", update);
   }, []);
   const account = accounts[0];
@@ -62,7 +64,10 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
     if (change.readReplies === false) voice.stopAudio();
   }
   useEffect(() => () => { generation.current++; requestRef.current?.abort(); }, []);
-  useEffect(() => { if (suppressed) { cancelRequest(); setOpen(false); } }, [suppressed]);
+  useEffect(() => {
+    if (suppressed) { cancelRequest(); setOpen(false); }
+    else setPreferences(readSkunkiePreferences(account.homeAccountId));
+  }, [suppressed, account.homeAccountId]);
   useEffect(() => {
     if (!open) return;
     closeRef.current?.focus({ preventScroll: true }); setWave(true);
