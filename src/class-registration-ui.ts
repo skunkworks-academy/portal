@@ -13,10 +13,16 @@ export function classRegistrationAction(
   registration: ClassRegistrationRecord | undefined,
   submitting = false
 ) {
-  if (registration && registration.status !== "Cancelled") {
+  if (registration) {
+    // Cancelled rows are still returned by the current SharePoint API. It
+    // does not reactivate them on a repeat POST, so never claim re-enrolment.
     return {
       kind: "details" as const,
-      label: registration.status === "Waitlisted" ? "Waitlisted · View details" : "Registered · View details",
+      label: registration.status === "Cancelled"
+        ? "Cancelled · View details"
+        : registration.status === "Waitlisted"
+          ? "Waitlisted · View details"
+          : "Registered · View details",
       disabled: false
     };
   }
