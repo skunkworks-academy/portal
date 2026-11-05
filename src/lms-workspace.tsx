@@ -50,7 +50,7 @@ export function LmsWorkspace({ mode, scope = "catalogue", query = "", onBrowseCo
     void (async () => {
       try {
         const [nextCourses, nextEnrolments] = await Promise.all([
-          portalApi.lmsCourses(current),
+          mode === "student" ? portalApi.lmsLearnerCourses(current) : portalApi.lmsCourses(current),
           mode === "student" ? portalApi.lmsMyEnrolments(current) : Promise.resolve([])
         ]);
         if (!cancelled) { setCourses(nextCourses); setEnrolments(nextEnrolments); }
@@ -76,7 +76,7 @@ export function LmsWorkspace({ mode, scope = "catalogue", query = "", onBrowseCo
     void (async () => {
       try {
         const [items, saved] = await Promise.all([
-          portalApi.lmsLessons(selectedId, current),
+          mode === "student" ? portalApi.lmsLearnerLessons(selectedId, current) : portalApi.lmsLessons(selectedId, current),
           mode === "student" ? portalApi.lmsProgress(selectedId, current) : Promise.resolve(null)
         ]);
         if (!cancelled) { setLessons(items); setProgress(saved); }

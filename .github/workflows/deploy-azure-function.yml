@@ -35,6 +35,7 @@ on:
       - tsconfig.api.json
       - infra/**
       - scripts/bootstrap-azure-oidc.ps1
+      - scripts/verify-protected-api-route.sh
       - .github/workflows/deploy-azure-function.yml
 
 permissions:
@@ -278,35 +279,19 @@ jobs:
             sleep 10
           done
           echo "$response" | jq -e '.lmsSettings.configured == true' >/dev/null
-          for route in lms/courses lms/me/enrolments; do
-            lms_status=$(curl --silent --show-error --max-time 20 --output /tmp/lms-status.body --write-out '%{http_code}' "$API_BASE_URL/$route" || true)
-            case "$lms_status" in
-              401|403) echo "LMS route $route requires Microsoft authentication." ;;
-              *) echo "Expected HTTP 401/403 from protected LMS route; received $lms_status." >&2; exit 1 ;;
-            esac
+          for route in lms/courses lms/me/enrolments lms/me/courses lms/me/courses/registration-probe/lessons; do
+            bash scripts/verify-protected-api-route.sh "$API_BASE_URL/$route"
           done
           echo "- LMS: storage settings present; unauthenticated access denied. Signed-in database round trip still requires verification." >> "$GITHUB_STEP_SUMMARY"
           echo "$response" | jq -e '(.routes // [] | index("POST /api/skunkie/chat") != null) and (.routes // [] | index("GET /api/skunkie/status") != null)' >/dev/null
-          skunkie_status=$(curl --silent --show-error --max-time 20 --output /tmp/skunkie-status.body --write-out '%{http_code}' "$API_BASE_URL/skunkie/status" || true)
-          case "$skunkie_status" in
-            401|403) echo "Skunkie status endpoint exists and requires Microsoft authentication." ;;
-            *) echo "Expected HTTP 401/403 from protected Skunkie status; received $skunkie_status." >&2; exit 1 ;;
-          esac
+          bash scripts/verify-protected-api-route.sh "$API_BASE_URL/skunkie/status"
           if echo "$response" | jq -e '.skunkieSettings.configured == true' >/dev/null; then
             echo "- Skunkie AI: configuration present (live generation still requires authenticated functional test)." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::warning::Skunkie AI is not configured in the running Function App."
             echo "- Skunkie AI: unavailable until production Azure OpenAI settings are configured." >> "$GITHUB_STEP_SUMMARY"
           fi
-          admin_status=$(curl --silent --show-error --location --max-time 20 --output /tmp/admin-applications.body --write-out '%{http_code}' "$API_BASE_URL/staff/applications" || true)
-          case "$admin_status" in
-            401|403) echo "Staff applications endpoint resolved and correctly requires authentication (HTTP $admin_status)." ;;
-            *)
-              echo "Expected an unauthenticated 401 or 403 from $API_BASE_URL/staff/applications, received HTTP $admin_status." >&2
-              head -c 500 /tmp/admin-applications.body || true
-              exit 1
-              ;;
-          esac
+          bash scripts/verify-protected-api-route.sh "$API_BASE_URL/staff/applications" --location
           {
             echo "### Portal API validation"
             echo ""
