@@ -105,8 +105,8 @@ export const portalApi = {
   skunkieAssessNetworking: (input: { courseId: string; goal: string; answers: Record<string, number>; consentToStore: boolean }, auth: LmsAuth) =>
     request<LearningSession>("/me/skunkie/networking/assess", { method: "POST", body: JSON.stringify(input) }, auth),
   skunkieEvaluate: (sessionId: string, answer: number, auth: LmsAuth) => request<LearningOutcome>(`/me/skunkie/sessions/${encodeURIComponent(sessionId)}/evaluate`, { method: "POST", body: JSON.stringify({ answer }) }, auth),
-  mySkunkieAssessment: (auth: LmsAuth) => request<SkunkieLearnerProfile | null>("/me/skunkie/assessment", {}, auth),
-  saveSkunkieAssessment: (input: SkunkieLearnerAssessment, auth: LmsAuth) => request<SkunkieLearnerProfile>("/me/skunkie/assessment", { method: "PUT", body: JSON.stringify(input) }, auth),
+  mySkunkieAssessment: (auth: LmsAuth, signal?: AbortSignal) => request<SkunkieLearnerProfile | null>("/me/skunkie/assessment", { signal }, auth),
+  saveSkunkieAssessment: (input: SkunkieLearnerAssessment, auth: LmsAuth, signal?: AbortSignal) => request<SkunkieLearnerProfile>("/me/skunkie/assessment", { method: "PUT", body: JSON.stringify(input), signal }, auth),
   deleteSkunkieAssessment: (auth: LmsAuth) => request<void>("/me/skunkie/assessment", { method: "DELETE" }, auth),
   myIdrRoadmap: (auth: LmsAuth) => request<IdRRoadmap | null>("/me/idr/roadmap", {}, auth),
   learnerPreferences: (auth: LmsAuth) => request<LearnerPreferences | null>("/learner/preferences", {}, auth),

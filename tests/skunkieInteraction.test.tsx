@@ -1,0 +1,75 @@
+// @vitest-environment jsdom
+import React, { act } from "react";
+import { createRoot, type Root } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { SkunkieCompanion } from "../src/SkunkieCompanion";
+import { SkunkieAvatar } from "../src/SkunkieAvatar";
+import { readSkunkiePreferences, saveSkunkiePreferences } from "../src/skunkie-preferences";
+const auth = vi.hoisted(() => ({ accounts: [{ homeAccountId: "account-a" }], instance: { acquireTokenSilent: vi.fn() } }));
+vi.mock("@azure/msal-react", () => ({ useMsal: () => auth }));
+let host: HTMLDivElement;
+let root: Root;
+function click(text: string) { const item = [...host.querySelectorAll("button")].find(b => b.textContent?.includes(text) || b.getAttribute("aria-label") === text); if (!item) throw Error(`Missing button ${text}`); act(() => item.click()); }
+async function render(node: React.ReactNode) { await act(async () => { root.render(node); }); }
+function enter(text: string) { const input = host.querySelector("textarea")!; act(() => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(input, text); input.dispatchEvent(new Event("input", { bubbles: true })); }); }
+async function submit() { await act(async () => { host.querySelector("form")!.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })); }); }
+beforeEach(() => {
+  (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  Object.defineProperty(window, "matchMedia", { configurable: true, value: () => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }) });
+  Object.defineProperty(document, "hidden", { configurable: true, value: false });
+  Element.prototype.scrollTo = vi.fn();
+  localStorage.clear(); auth.accounts = [{ homeAccountId: "account-a" }]; auth.instance.acquireTokenSilent.mockResolvedValue({ accessToken: "test-only" });
+  document.documentElement.removeAttribute("data-portal-motion");
+  host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+});
+afterEach(() => { act(() => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+describe("avatar-first Skunkie", () => {
+  it("defaults to real avatar frames and keeps chat-only choice scoped to the account", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ available: true }))));
+    await render(<SkunkieCompanion />); expect(host.querySelector(".skunkie-avatar")).not.toBeNull();
+    click("Open Skunkie AI learning companion"); await act(async () => {});
+    click("Hide avatar"); expect(host.querySelector(".skunkie-avatar")).toBeNull(); expect(readSkunkiePreferences("account-a").showAvatar).toBe(false);
+    expect(readSkunkiePreferences("account-b").showAvatar).toBe(true);
+    auth.accounts = [{ homeAccountId: "account-b" }]; await render(<SkunkieCompanion />);
+    expect(host.querySelector(".skunkie-avatar")).not.toBeNull(); expect(host.querySelector("textarea")).toBeNull();
+  });
+  it("retains a failed question and never creates a fabricated server reply", async () => {
+    vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(url.endsWith("status") ? { available: true } : { error: "denied" }), { status: url.endsWith("status") ? 200 : 403 }))));
+    await render(<SkunkieCompanion />); click("Open Skunkie AI learning companion"); await act(async () => {});
+    enter("Keep this question"); await submit();
+    expect(host.querySelector("textarea")?.value).toBe("Keep this question");
+    expect(host.querySelector("[role=alert]")?.textContent).toMatch(/access/i);
+    expect(host.querySelectorAll(".skunkie__message")).toHaveLength(1);
+  });
+  it("discards a late response after account swap and aborts its request", async () => {
+    let resolveChat!: (response: Response) => void; let signal: AbortSignal | undefined;
+    vi.stubGlobal("fetch", vi.fn((url: string, options: RequestInit) => url.endsWith("status") ? Promise.resolve(new Response('{"available":true}')) : new Promise<Response>(resolve => { resolveChat = resolve; signal = options.signal as AbortSignal; })));
+    await render(<SkunkieCompanion />); click("Open Skunkie AI learning companion"); await act(async () => {}); enter("Private A question"); await submit();
+    auth.accounts = [{ homeAccountId: "account-b" }]; await render(<SkunkieCompanion />); expect(signal?.aborted).toBe(true);
+    await act(async () => resolveChat(new Response('{"reply":"Private A reply"}')));
+    click("Open Skunkie AI learning companion"); await act(async () => {});
+    expect(host.textContent).not.toContain("Private A"); expect(host.querySelector("textarea")?.value).toBe("");
+  });
+  it("retains new edits made while a successful reply is in flight", async () => {
+    let resolveChat!: (response: Response) => void;
+    vi.stubGlobal("fetch", vi.fn((url: string) => url.endsWith("status") ? Promise.resolve(new Response('{"available":true}')) : new Promise<Response>(resolve => { resolveChat = resolve; })));
+    await render(<SkunkieCompanion />); click("Open Skunkie AI learning companion"); await act(async () => {}); enter("First question"); await submit(); enter("Next question");
+    await act(async () => resolveChat(new Response('{"reply":"Actual server answer"}')));
+    expect(host.textContent).toContain("Actual server answer"); expect(host.querySelector("textarea")?.value).toBe("Next question");
+  });
+  it("stops all frame timers for reduced motion, hidden tabs and inactive avatars", async () => {
+    vi.useFakeTimers(); await render(<SkunkieAvatar activity="speaking" />);
+    const initial = host.querySelector<HTMLElement>(".skunkie-avatar__frame")!.style.backgroundPosition;
+    await act(async () => vi.advanceTimersByTime(150)); expect(host.querySelector<HTMLElement>(".skunkie-avatar__frame")!.style.backgroundPosition).not.toBe(initial);
+    await act(async () => { document.documentElement.dataset.portalMotion = "reduce"; }); expect(vi.getTimerCount()).toBe(0);
+    expect(host.querySelector(".skunkie-avatar")?.getAttribute("data-animated")).toBe("false");
+    await act(async () => { document.documentElement.dataset.portalMotion = "system"; }); expect(vi.getTimerCount()).toBe(1);
+    Object.defineProperty(document, "hidden", { configurable: true, value: true }); await act(async () => document.dispatchEvent(new Event("visibilitychange"))); expect(vi.getTimerCount()).toBe(0);
+    await render(<SkunkieAvatar active={false} />); expect(vi.getTimerCount()).toBe(0);
+  });
+  it("tolerates disabled preference storage", () => {
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw Error("blocked"); });
+    expect(saveSkunkiePreferences("a", { showAvatar: false, readReplies: false })).toBe(false);
+  });
+});

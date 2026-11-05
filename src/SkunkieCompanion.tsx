@@ -28,10 +28,10 @@ export function SkunkieCompanion() {
   }, []);
   const account = accounts[0];
   // Keying destroys all conversation/voice/request state before another account renders.
-  return account && !onboarding ? <AccountSkunkie key={account.homeAccountId} account={account} /> : null;
+  return account ? <AccountSkunkie key={account.homeAccountId} account={account} suppressed={onboarding} /> : null;
 }
 
-function AccountSkunkie({ account }: { account: AccountInfo }) {
+function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppressed: boolean }) {
   const { instance } = useMsal();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -40,6 +40,7 @@ function AccountSkunkie({ account }: { account: AccountInfo }) {
   const [statusError, setStatusError] = useState("");
   const [preferenceNotice, setPreferenceNotice] = useState("");
   const [preferences, setPreferences] = useState(() => readSkunkiePreferences(account.homeAccountId));
+  const preferenceRef = useRef(preferences); preferenceRef.current = preferences;
   const [serviceState, setServiceState] = useState<"unknown" | "configured" | "ready" | "unavailable">("unknown");
   const [messages, setMessages] = useState<ChatMessage[]>([greeting]);
   const [wave, setWave] = useState(false);
@@ -48,7 +49,7 @@ function AccountSkunkie({ account }: { account: AccountInfo }) {
   const launcherRef = useRef<HTMLButtonElement>(null);
   const requestRef = useRef<AbortController | null>(null);
   const generation = useRef(0);
-  const voice = useSkunkieVoice(account.homeAccountId, open, text => setInput(current => `${current}${current.trim() ? " " : ""}${text}`.slice(0, 4000)));
+  const voice = useSkunkieVoice(account.homeAccountId, open && !suppressed, text => setInput(current => `${current}${current.trim() ? " " : ""}${text}`.slice(0, 4000)));
   const pageContext = useMemo(() => ({ title: document.title, path: window.location.pathname, heading: document.querySelector("h1")?.textContent?.trim() || undefined }), [open]);
 
   function cancelRequest() {
@@ -61,6 +62,7 @@ function AccountSkunkie({ account }: { account: AccountInfo }) {
     if (change.readReplies === false) voice.stopAudio();
   }
   useEffect(() => () => { generation.current++; requestRef.current?.abort(); }, []);
+  useEffect(() => { if (suppressed) { cancelRequest(); setOpen(false); } }, [suppressed]);
   useEffect(() => {
     if (!open) return;
     closeRef.current?.focus({ preventScroll: true }); setWave(true);
@@ -97,7 +99,11 @@ function AccountSkunkie({ account }: { account: AccountInfo }) {
     voice.stopAudio(); setBusy(true); setChatError("");
     const current = ++generation.current;
     const controller = new AbortController(); requestRef.current = controller;
-    const timeout = window.setTimeout(() => controller.abort(), 30000);
+    const timeout = window.setTimeout(() => {
+      if (current !== generation.current) return;
+      controller.abort(); generation.current++; requestRef.current = null; setBusy(false);
+      setChatError("The learning service took too long to respond. Your question is still available to retry.");
+    }, 30000);
     try {
       const token = await instance.acquireTokenSilent({ account, scopes: [apiScope] });
       if (current !== generation.current || controller.signal.aborted) return;
@@ -118,7 +124,7 @@ function AccountSkunkie({ account }: { account: AccountInfo }) {
       setMessages(value => [...value, { role: "user", content: message }, { role: "assistant", content: reply }]);
       setInput(value => value.trim() === message ? "" : value);
       setServiceState("ready"); setStatusError("");
-      if (preferences.readReplies) voice.speak(reply);
+      if (preferenceRef.current.readReplies) voice.speak(reply);
       // Immediate scrolling also respects reduced motion and needs no pending timer.
       logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "instant" });
     } catch (error) {
@@ -132,6 +138,7 @@ function AccountSkunkie({ account }: { account: AccountInfo }) {
   }
 
   const activity = voice.listening ? "listening" : voice.speaking ? "speaking" : busy ? "thinking" : wave ? "wave" : "idle";
+  if (suppressed) return null;
   return <aside className={`skunkie ${open ? "skunkie--open" : ""} ${preferences.showAvatar ? "" : "skunkie--chat-only"}`} aria-label="Skunkie AI learning companion">
     {open && <section id="skunkie-panel" className="skunkie__panel" role="dialog" aria-modal="false" aria-labelledby="skunkie-title">
       <header className="skunkie__header"><div><strong id="skunkie-title">Skunkie</strong><span>Learning companion</span></div>
