@@ -40,3 +40,43 @@ jobs:
               az cosmosdb sql role assignment list -g "$RESOURCE_GROUP_NAME" -a "$account" --query '[].{principalId:principalId,scope:scope,roleDefinitionId:roleDefinitionId}' -o json
             done
             curl --fail --silent --show-error --max-time 30 https://api.skunkworksacademy.com/api/health
+
+      - name: Inspect LMS container and aggregate failure telemetry (read-only)
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            [ "$(az account show --query id -o tsv)" = "$AZURE_SUBSCRIPTION_ID" ]
+            accounts="$(az cosmosdb list -g "$RESOURCE_GROUP_NAME" --query '[].name' -o tsv)"
+            for account in $accounts; do
+              az cosmosdb sql container show -g "$RESOURCE_GROUP_NAME" -a "$account" -d academy -n lms \
+                --query '{name:name,partitionKey:resource.partitionKey,provisioningState:provisioningState}' -o json
+            done
+            insights_id="$(az resource show -g "$RESOURCE_GROUP_NAME" -n "${FUNCTION_APP_NAME}-insights" \
+              --resource-type Microsoft.Insights/components --query properties.AppId -o tsv)"
+            # Aggregate result codes only: no URLs, tokens, request bodies, user IDs,
+            # messages, course records or exception detail are written to the log.
+            az monitor app-insights query --app "$insights_id" --analytics-query \
+              'dependencies | where timestamp > ago(72h) | where target has "documents.azure.com" | summarize requests=count() by resultCode, success, type' -o json
+            az monitor app-insights query --app "$insights_id" --analytics-query \
+              'requests | where timestamp > ago(72h) | extend service=case(name has "/lms/" or operation_Name has "lms", "LMS", name has "/skunkie/" or operation_Name has "skunkie", "Skunkie", "Other") | where service != "Other" | summarize requests=count() by service, resultCode' -o json
+
+      - name: Inspect access configuration without tokens or account data (read-only)
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            [ "$(az account show --query id -o tsv)" = "$AZURE_SUBSCRIPTION_ID" ]
+            # Compare only known public application configuration. Do not print
+            # all settings: other entries contain server credentials.
+            az functionapp config appsettings list -g "$RESOURCE_GROUP_NAME" -n "$FUNCTION_APP_NAME" -o json |
+              jq 'map({key:.name,value:.value}) | from_entries | {
+                homeTenantIsCanonical:(.ENTRA_TENANT_ID | ascii_downcase == "338a8916-80d9-467c-a94a-7f61d04ef7d5"),
+                apiClientIsCanonical:(.API_CLIENT_ID == "e22672ae-61a6-434e-b135-3360557819ec"),
+                apiScopeIsCanonical:(.API_SCOPE == "api://e22672ae-61a6-434e-b135-3360557819ec/access_as_user")
+              }'
+            app_id="$(az functionapp show -g "$RESOURCE_GROUP_NAME" -n "$FUNCTION_APP_NAME" --query id -o tsv)"
+            az rest --method get --url "https://management.azure.com${app_id}/config/authsettingsV2?api-version=2024-04-01" \
+              --query '{enabled:properties.platform.enabled,requireAuthentication:properties.globalValidation.requireAuthentication,unauthenticatedAction:properties.globalValidation.unauthenticatedClientAction}' -o json
+            az functionapp config access-restriction show -g "$RESOURCE_GROUP_NAME" -n "$FUNCTION_APP_NAME" \
+              --query '{defaultAction:ipSecurityRestrictionsDefaultAction,rules:ipSecurityRestrictions[].{action:action,priority:priority}}' -o json

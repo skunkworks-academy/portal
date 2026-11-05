@@ -7,8 +7,8 @@ const store = () => new CosmosLmsStore("https://academy.documents.azure.com", "a
 describe("Cosmos managed-identity REST contract", () => {
   it("encodes the AAD token and follows query continuation within one organization", async () => {
     const fetch = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify({ Documents: [{ value: { id: "one" } }] }), { headers: { "x-ms-continuation": "page-2" } }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ Documents: [{ value: { id: "two" } }] })));
+      .mockResolvedValueOnce(new Response(JSON.stringify({ Documents: [{ id: "one" }] }), { headers: { "x-ms-continuation": "page-2" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ Documents: [{ id: "two" }] })));
     vi.stubGlobal("fetch", fetch);
     expect(await store().list("lmsCourses", "academy:")).toEqual([{ id: "one" }, { id: "two" }]);
     expect(fetch).toHaveBeenCalledTimes(2);
@@ -18,7 +18,21 @@ describe("Cosmos managed-identity REST contract", () => {
     expect(first.headers["x-ms-documentdb-partitionkey"]).toBe('["academy"]');
     expect(first.headers["x-ms-documentdb-query-enablecrosspartition"]).toBe("false");
     expect(JSON.parse(first.body).parameters[1].value).toBe("lmsCourses:academy:");
+    expect(JSON.parse(first.body).query).toBe('SELECT VALUE c["value"] FROM c WHERE c["collection"] = @collection AND STARTSWITH(c["id"], @prefix)');
     expect(fetch.mock.calls[1][1].headers["x-ms-continuation"]).toBe("page-2");
+  });
+
+  it("preserves record fields named value instead of unwrapping the record twice", async () => {
+    const record = { id: "course", value: "a legitimate record field", title: "Existing course" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ Documents: [record] }))));
+    expect(await store().list("lmsCourses", "academy:")).toEqual([record]);
+  });
+
+  it("distinguishes a genuine empty catalogue from an invalid provider response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ Documents: [] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ unexpected: [] }))));
+    expect(await store().list("lmsCourses", "academy:")).toEqual([]);
+    await expect(store().list("lmsCourses", "academy:")).rejects.toMatchObject({ status: 503 });
   });
 
   it("retains create-only semantics and serializes records with their partition", async () => {

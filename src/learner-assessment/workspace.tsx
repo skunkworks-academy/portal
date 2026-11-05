@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useMsal } from "@azure/msal-react";
 import { portalApi } from "../api";
+import { learningErrorMessage } from "../learning-errors";
 import type { SkunkieLearnerAssessment, SkunkieLearnerProfile } from "./model";
 import type { IdRRoadmap } from "../idr/model";
 
@@ -45,7 +46,7 @@ export function LearnerAssessmentWorkspace() {
         interests: a.interests.join(", "), supportNeeds: a.supportNeeds.join(", "),
         notes: a.notes ?? "", consentToStore: true
       });
-    }).catch(() => { if (!cancelled) setMessage("Assessment service unavailable. Your answers have not been loaded."); })
+    }).catch(error => { if (!cancelled) setMessage(`${learningErrorMessage(error, "assessment")} Your answers have not been loaded.`); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [account?.homeAccountId, instance]);
@@ -71,8 +72,8 @@ export function LearnerAssessmentWorkspace() {
     try {
       setSaved(await portalApi.saveSkunkieAssessment(assessment, auth));
       setMessage("Your learner assessment is saved to your Academy account. It is separate from your career IDR.");
-    } catch {
-      setMessage("The assessment could not be saved. Check your connection and retry.");
+    } catch (error) {
+      setMessage(`${learningErrorMessage(error, "assessment")} Your answers are still available here to retry.`);
     } finally { setBusy(false); }
   }
 
@@ -84,7 +85,7 @@ export function LearnerAssessmentWorkspace() {
       setSaved(null);
       setForm({ studyGoal: "skills", preferredApproaches: ["hands_on"], preferredSessionMinutes: 30, selfRatedConfidence: 3, interests: "", supportNeeds: "", notes: "", consentToStore: false });
       setMessage("Assessment deleted.");
-    } catch { setMessage("Deletion could not be confirmed. Please retry."); }
+    } catch (error) { setMessage(`${learningErrorMessage(error, "assessment")} Deletion could not be confirmed.`); }
     finally { setBusy(false); }
   }
 
@@ -149,7 +150,7 @@ export function IndividualRoadmapWorkspace() {
     setRoadmap(null); setError(""); setLoading(true);
     if (!account) { setLoading(false); return; }
     void portalApi.myIdrRoadmap({ instance, account }).then(record => { if (!cancelled) setRoadmap(record); })
-      .catch(() => { if (!cancelled) setError("Private IDR service is unavailable."); })
+      .catch(error => { if (!cancelled) setError(learningErrorMessage(error, "idr")); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [account?.homeAccountId, instance]);

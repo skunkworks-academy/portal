@@ -1,5 +1,6 @@
 import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser";
 import { apiScope } from "./authConfig";
+import { PortalApiError } from "./api-error";
 import type { LearnerPreferences } from "./learner-adaptation";
 import type { SkunkieLearnerAssessment, SkunkieLearnerProfile } from "./learner-assessment/model";
 import type { IdRRoadmap } from "./idr/model";
@@ -58,7 +59,7 @@ async function request<T>(
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(message || `Portal API request failed with ${response.status} at ${requestUrl}`);
+    throw new PortalApiError(response.status, message || `Portal API request failed with ${response.status}`);
   }
 
   if (response.status === 204) {
