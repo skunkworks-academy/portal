@@ -38,13 +38,13 @@ function clients(): ProvisioningClient[] {
     if (!c || typeof c.clientId !== "string" || !slug.test(c.clientId) || !slug.test(c.organizationId)
       || !guid.test(c.entraTenantId) || typeof c.enabled !== "boolean"
       || !Array.isArray(c.secretHashes) || c.secretHashes.length < 1 || c.secretHashes.length > 3
-      || known.has(c.clientId)) throw new ScimError(503, "SCIM client registry is invalid.");
+      || known.has(c.clientId)) throw new ScimError(503, "SCIM client registry invalid: tenant/client configuration.");
     known.add(c.clientId);
     for (const s of c.secretHashes) {
       if (!s || typeof s.salt !== "string" || s.salt.length !== 32 || !hex.test(s.salt)
         || typeof s.hash !== "string" || s.hash.length !== 128 || !hex.test(s.hash)
         || typeof s.expiresAt !== "string" || !Number.isFinite(Date.parse(s.expiresAt))) {
-        throw new ScimError(503, "SCIM client registry is invalid.");
+        throw new ScimError(503, "SCIM client registry invalid: secret hash or expiry metadata.");
       }
     }
   }
