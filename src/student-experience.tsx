@@ -401,7 +401,7 @@ export function StudentExperience({
                       )}
                       {registration && expanded && (
                         <div id={detailId} className="student-registration-details">
-                          <strong>{registration.status === "Waitlisted" ? "You are on the waitlist" : "Your place is registered"}</strong>
+                          <strong>{registration.status === "Cancelled" ? "Registration cancelled — contact the Academy to request another place." : registration.status === "Waitlisted" ? "You are on the waitlist" : "Your place is registered"}</strong>
                           <p>{registration.classTitle} · {registration.courseTitle}</p>
                           <small>Recorded: {registration.registeredAt || "Date unavailable"}</small>
                         </div>
