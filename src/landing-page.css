@@ -2,7 +2,7 @@
 .academy-login{--login-navy:#03033a;--login-blue:#1e6bd0;--login-orange:#f24208;--login-surface:#fff;--login-ink:#111e35;--login-muted:#4b5870;--login-line:#dce3ed;display:flex;flex-direction:column;min-height:100svh;min-width:320px;color:var(--login-ink);background:radial-gradient(circle at 7% 23%,rgba(30,107,208,.08),transparent 31rem),radial-gradient(circle at 92% 95%,rgba(242,66,8,.05),transparent 25rem),#f5f7fb;font-family:"IBM Plex Sans",Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 .academy-login *{box-sizing:border-box}
 .academy-login a{text-decoration:none}
-.academy-login-header{display:flex;justify-content:space-between;align-items:center;gap:20px;width:100%;padding:17px clamp(20px,5vw,76px);background:var(--login-navy);color:#fff;min-height:79px}
+.academy-login-header{display:flex;justify-content:space-between;align-items:center;gap:20px;width:100%;padding:17px clamp(20px,5vw,76px);background:#000;color:#fff;min-height:79px}
 .academy-login-brand{display:inline-flex;align-items:center;gap:12px;color:#fff}
 .academy-login-brand img{display:block;width:42px;height:42px;object-fit:contain;flex:none}
 .academy-login-brand strong,.academy-login-brand small{display:block}
@@ -12,7 +12,8 @@
 .academy-login-stage{display:grid;align-items:center;grid-template-columns:minmax(0,1.1fr) minmax(340px,.84fr);gap:clamp(35px,7vw,130px);width:min(1240px,calc(100% - 44px));flex:1;margin:0 auto;padding:clamp(52px,8vw,110px) 0}
 .academy-login-intro{min-width:0}
 .academy-login-kicker{display:inline-flex;align-items:center;gap:10px;color:#265c9a;font-size:11px;letter-spacing:.15em;font-weight:900}
-.academy-login-kicker span{display:block;width:9px;height:9px;border-radius:2px;background:var(--login-orange)}
+/* Use the approved favicon's alpha silhouette; 170% compensates for its transparent canvas padding. */
+.academy-login-kicker > span{display:block;flex:none;width:20px;height:20px;background:var(--login-orange);-webkit-mask:url("./assets/skunkworks-emblem-white.png") center / 170% no-repeat;mask:url("./assets/skunkworks-emblem-white.png") center / 170% no-repeat}
 .academy-login-intro h1{margin:21px 0 24px;color:#081b38;font-size:clamp(39px,5.2vw,72px);line-height:1.06;letter-spacing:-.065em;font-weight:850}
 .academy-login-intro h1 em{color:var(--login-blue);font-style:normal}
 .academy-login-intro>p{max-width:580px;color:var(--login-muted);font-size:clamp(15px,1.25vw,18px);line-height:1.75}
