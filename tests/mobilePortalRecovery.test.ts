@@ -17,7 +17,7 @@ const student: UserProfile = {
 };
 
 describe("Portal mobile sign-in and student data integrity", () => {
-  it("keeps signed-in dashboard values grounded in actual records", () => {
+  it("opens Skunkie first and waits for actual learning records", () => {
     const html = renderToStaticMarkup(createElement(StudentExperience, {
       profile: student,
       portalProfile: { displayName: "Real Learner", portalRole: "Student", phone: "", location: "", bio: "", cvFileName: "" },
@@ -28,9 +28,10 @@ describe("Portal mobile sign-in and student data integrity", () => {
       onSignOut: () => undefined,
       onRegister: async () => undefined
     }));
-    expect(html).toContain("0");
-    expect(html).toContain("class registrations");
-    expect(html).toContain("Learning progress appears after verified course activity");
+    expect(html).toContain("Start with Skunkie");
+    expect(html).toContain("Loading your Academy enrolments and learning evidence");
+    expect(html).toContain('class="student-nav-item active" aria-current="page"><span aria-hidden="true">✺</span>Skunkie');
+    expect(html).not.toContain("Your study plan");
     expect(html).not.toContain("42%");
     expect(html).not.toContain("5 days");
     expect(html).not.toContain("Cloud foundations study group");

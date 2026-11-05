@@ -37,6 +37,7 @@ type StudentExperienceProps = {
 };
 
 const navItems: Array<{ id: StudentView; label: string; icon: string }> = [
+  { id: "companion", label: "Skunkie", icon: "✺" },
   { id: "dashboard", label: "Dashboard", icon: "⌂" },
   { id: "assessment", label: "My learner assessment", icon: "◈" },
   { id: "idr", label: "My development roadmap", icon: "◇" },
@@ -46,7 +47,6 @@ const navItems: Array<{ id: StudentView; label: string; icon: string }> = [
   { id: "achievements", label: "Achievements", icon: "✦" },
   { id: "resources", label: "Resources", icon: "▤" },
   { id: "messages", label: "Messages", icon: "✉" },
-  { id: "companion", label: "AI Companion", icon: "✺" },
   { id: "profile", label: "Profile & settings", icon: "◌" }
 ];
 
@@ -78,7 +78,7 @@ export function StudentExperience({
     import.meta.env.VITE_ENABLE_SKUNKIE_ADAPTIVE === "true" ||
     new URLSearchParams(window.location.search).get("skunkiePilot") === "1"
   );
-  const [view, setView] = useState<StudentView>("dashboard");
+  const [view, setView] = useState<StudentView>("companion");
   const [learnerState, setLearnerState] = useState<{ accountId: string; data: LearnerPreferences } | null>(null);
   const learnerPreferences = learnerState?.accountId === accountId ? learnerState.data : null;
   // Track account-side persistence separately from browser data so a learner can revoke it.
@@ -91,7 +91,7 @@ export function StudentExperience({
 
   useEffect(() => {
     let cancelled = false;
-    setView("dashboard");
+    setView("companion");
     setLearnerEditing(false);
     setLearnerSkipped(false);
     setLearnerReady(false);
@@ -368,7 +368,7 @@ export function StudentExperience({
           {view === "achievements" && <Achievements courseCount={courses.length} registrationCount={registrations.length} onViewLearning={() => setView("learning")} />}
           {view === "resources" && <Resources />}
           {view === "messages" && <Messages />}
-          {view === "companion" && <SkunkieOrchestrationPanel onAssess={() => setView("assessment")} onCourses={() => setView("learning")} />}
+          {view === "companion" && <SkunkieOrchestrationPanel key={accountId} onAssess={() => setView("assessment")} onCourses={() => setView("lms")} />}
           {view === "profile" && <ProfileSettings displayName={displayName} portalProfile={portalProfile} courseCount={courses.length} registrations={registrations.length} />}
         </main>
       </section>

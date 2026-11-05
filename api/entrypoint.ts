@@ -8,3 +8,4 @@ import "./lmsFunctions.js";
 
 // Authenticated, per-learner Skunkie assessment and IDR records.
 import "./skunkieAssessmentFunctions.js";
+import "./skunkieOrchestrationFunctions.js";

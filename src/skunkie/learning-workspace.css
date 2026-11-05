@@ -1,0 +1,16 @@
+.skunkie-learning { max-width: 960px; }
+.skunkie-learning form, .skunkie-learning .student-panel { margin-block: 1.5rem; }
+.skunkie-learning fieldset { min-width: 0; border: 1px solid var(--student-border, #737373); border-radius: 8px; padding: 1rem; }
+.skunkie-learning legend { font-weight: 650; padding-inline: .25rem; }
+.skunkie-learning label:not(.skunkie-choice) { display: block; margin-top: 1rem; }
+.skunkie-learning textarea, .skunkie-learning select { display: block; width: 100%; max-width: 100%; box-sizing: border-box; margin-block: .5rem 1rem; padding: .75rem; font: inherit; color: inherit; background: var(--academy-surface, #fff); border: 1px solid #737373; border-radius: 6px; }
+.skunkie-learning .skunkie-question { margin-block: 1rem; }
+.skunkie-choice { display: flex; align-items: baseline; gap: .6rem; margin-block: .65rem; }
+.skunkie-choice input { flex-shrink: 0; }
+.skunkie-flow { display: flex; flex-wrap: wrap; gap: .75rem 2rem; padding-inline-start: 1.5rem; }
+.skunkie-learning li { margin-block: .6rem; }
+.skunkie-learning code { overflow-wrap: anywhere; }
+.skunkie-learning .skunkie-choice { font: inherit; font-weight: 400; text-transform: none; letter-spacing: normal; color: var(--academy-text); }
+.skunkie-learning .skunkie-choice input { width: 1.15rem; height: 1.15rem; min-height: 1.15rem; flex: 0 0 1.15rem; padding: 0; margin: 0; }
+.skunkie-learning .student-skunkie-avatar { flex-shrink: 0; }
+@media (max-width: 520px) { .skunkie-learning .student-companion-header { align-items: flex-start; flex-direction: column; } }

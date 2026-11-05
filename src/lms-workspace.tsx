@@ -187,6 +187,20 @@ export function LmsWorkspace({ mode }: { mode: Mode }) {
                     <button type="submit" disabled={busy || !lessonTitle.trim() || !lessonBlobKey.trim()}>Save lesson metadata</button>
                   </form>}
                   <h4>Lessons ({lessons.length})</h4>
+                  {mode === "staff" && selected.status === "published" && lessons.length > 0 && <form key={selected.id} className="lms-create" onSubmit={event => {
+                    event.preventDefault();
+                    if (!auth) return;
+                    const data = new FormData(event.currentTarget);
+                    void execute(() => portalApi.skunkieBindCurriculum(selected.id, {
+                      companionId: "networking", catalogueTitle: "Networking Basics", version: 1,
+                      lessonIds: { addressing: String(data.get("addressing")), switching: String(data.get("switching")), troubleshooting: String(data.get("troubleshooting")) }
+                    }, auth), "Networking Basics lessons connected to Skunkie. Enrolled students can now use the diagnostic path.");
+                  }}>
+                    <h4>Connect Networking Basics to Skunkie</h4>
+                    <p>Choose reviewed lessons for each skill. Saving replaces the Skunkie mapping for this course; it does not publish content or enrol students.</p>
+                    {(["addressing", "switching", "troubleshooting"] as const).map(skill => <label key={skill}>{skill[0].toUpperCase() + skill.slice(1)} lesson<select name={skill} required defaultValue=""><option value="" disabled>Choose an existing lesson</option>{lessons.map(lesson => <option key={lesson.id} value={lesson.id}>{lesson.title}</option>)}</select></label>)}
+                    <button type="submit" disabled={busy}>Save Networking curriculum mapping</button>
+                  </form>}
                   {isStudent && <p className="lms-progress-note">{lessons.length
                     ? `${completed} of ${lessons.length} recorded lessons completed`
                     : "No lessons published for this course. Progress is not calculated."}</p>}
