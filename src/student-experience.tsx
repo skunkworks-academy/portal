@@ -229,7 +229,7 @@ export function StudentExperience({
   const displayName = portalProfile.displayName || profile?.name || "Learner";
   const activeRegistrations = useMemo(() => registrations.filter((registration) => registration.status !== "Cancelled"), [registrations]);
   const registeredClassIds = useMemo(() => new Set(activeRegistrations.map((registration) => registration.classId)), [activeRegistrations]);
-  const registrationByClass = useMemo(() => new Map(activeRegistrations.map((registration) => [registration.classId, registration])), [activeRegistrations]);
+  const registrationByClass = useMemo(() => new Map(registrations.map((registration) => [registration.classId, registration])), [registrations]);
   const nextClass = classes.find((classItem) => registeredClassIds.has(classItem.id));
   const firstLoginSkunkie = shouldShowSkunkieWelcome(adaptivePilot, learnerReady, Boolean(learnerPreferences), learnerSkipped);
 
