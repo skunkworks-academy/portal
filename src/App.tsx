@@ -14,7 +14,7 @@ import {
   skunkworksTenantId
 } from "./authConfig";
 import { portalApi } from "./api";
-import { classRegistrationFailureMessage, type ClassRegistrationFeedback } from "./class-registration-ui";
+import { classRegistrationFailureMessage, classRegistrationResultFeedback, type ClassRegistrationFeedback } from "./class-registration-ui";
 import { loadingServices, resolveAvailability, type PortalServiceAvailability } from "./service-availability";
 import { StudentExperience } from "./student-experience";
 import { CertificateWallet } from "./CertificateWallet";
