@@ -45,16 +45,24 @@ describe("own Academy profile persistence", () => {
     const controller = new AccountProfileController("A", "Name", "Instructor", api, storage());
     controller.start(); await tick(); controller.edit("phone", "555"); await controller.save();
     expect(api.save).not.toHaveBeenCalled(); expect(controller.getSnapshot().ready).toBe(false);
+    expect(controller.getSnapshot().error).toContain("could not be loaded");
     await controller.load();
     expect(controller.getSnapshot().fields.phone).toBe("555");
+    expect(controller.getSnapshot().fields.bio).toBe(saved.bio);
+    expect(controller.getSnapshot().fields.location).toBe(saved.location);
     expect(controller.getSnapshot().ready).toBe(true);
   });
 
   it("does not overwrite newer edits with a late profile load", async () => {
     let resolve!: (profile: PortalProfile) => void;
-    const controller = new AccountProfileController("A", "Name", "Staff", service({ load: () => new Promise(done => { resolve = done; }) }), storage());
+    const api = service({ load: () => new Promise(done => { resolve = done; }) });
+    const controller = new AccountProfileController("A", "Name", "Staff", api, storage());
     controller.start(); controller.edit("location", "New location"); resolve(saved); await tick();
     expect(controller.getSnapshot().fields.location).toBe("New location");
+    expect(controller.getSnapshot().fields.phone).toBe(saved.phone);
+    expect(controller.getSnapshot().fields.bio).toBe(saved.bio);
+    await controller.save();
+    expect(api.save).toHaveBeenCalledWith(expect.objectContaining({ location: "New location", phone: saved.phone, bio: saved.bio }));
   });
 
   it("keeps accounts isolated and ignores a previous account's late save", async () => {

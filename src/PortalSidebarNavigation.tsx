@@ -62,7 +62,7 @@ export function usePortalSidebar() {
     notify();
     window.addEventListener("skunkworksacademy:navigation-ready", notify);
     const escape = (event: KeyboardEvent) => {
-      if (open && event.key === "Escape" && !event.defaultPrevented) { event.preventDefault(); close(); }
+      if (open && event.key === "Escape" && !event.defaultPrevented && !window.matchMedia("(min-width: 921px)").matches) { event.preventDefault(); close(); }
     };
     window.addEventListener("keydown", escape);
     if (open && !window.matchMedia("(min-width: 921px)").matches) {

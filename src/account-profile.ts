@@ -16,7 +16,7 @@ export type ProfileState = {
   draftStored: boolean;
 };
 
-export const profileDraftKey = (accountId: string) => "academy:profile-draft:v1:" + encodeURIComponent(accountId);
+export const profileDraftKey = (accountId: string) => "academy:profile-draft:v2:" + encodeURIComponent(accountId);
 const roles: PortalRole[] = ["Student", "Instructor", "Staff"];
 
 function fieldsFrom(value: unknown): EditableProfile | null {
@@ -39,13 +39,18 @@ export class AccountProfileController {
   private generation = 0;
   private revision = 0;
   private serverRole: PortalRole;
+  private edited = new Set<keyof EditableProfile>();
 
   constructor(private accountId: string, name: string, role: PortalRole, private service: ProfileService, private storage?: Storage) {
     this.serverRole = role;
     let draft: EditableProfile | null = null;
     try {
       const raw = storage?.getItem(profileDraftKey(accountId));
-      draft = raw ? fieldsFrom(JSON.parse(raw)) : null;
+      const stored = raw ? JSON.parse(raw) : null;
+      if (stored && Array.isArray(stored.edited) && stored.edited.every((key: unknown) => typeof key === "string" && ["displayName", "phone", "location", "bio"].includes(key))) {
+        draft = fieldsFrom(stored.fields);
+        if (draft) this.edited = new Set(stored.edited);
+      }
     } catch { /* An unavailable draft store must not block account access. */ }
     this.state = {
       fields: draft ?? { displayName: name, phone: "", location: "", bio: "" },
@@ -64,7 +69,7 @@ export class AccountProfileController {
   private rememberDraft(fields: EditableProfile): boolean {
     try {
       if (!this.storage) return false;
-      this.storage.setItem(profileDraftKey(this.accountId), JSON.stringify(fields));
+      this.storage.setItem(profileDraftKey(this.accountId), JSON.stringify({ fields, edited: [...this.edited] }));
       return true;
     } catch { return false; }
   }
@@ -72,9 +77,10 @@ export class AccountProfileController {
   dispose() { this.active = false; this.generation++; }
 
   edit(field: keyof EditableProfile, value: string) {
+    this.edited.add(field);
     const fields = { ...this.state.fields, [field]: value };
     this.revision++;
-    this.update({ fields, dirty: true, error: "", notice: "", draftStored: this.rememberDraft(fields) });
+    this.update({ fields, dirty: true, error: this.state.ready ? "" : this.state.error, notice: "", draftStored: this.rememberDraft(fields) });
   }
 
   async load() {
@@ -85,7 +91,9 @@ export class AccountProfileController {
       if (!this.active || generation !== this.generation) return;
       if (saved !== null && !confirmedProfile(saved)) throw new Error("Invalid profile response");
       if (saved) this.serverRole = saved.portalRole;
-      this.update({ ready: true, fields: this.state.dirty ? this.state.fields : saved ? fieldsFrom(saved)! : this.state.fields });
+      const fields = saved ? fieldsFrom(saved)! : { ...this.state.fields };
+      for (const field of this.edited) fields[field] = this.state.fields[field];
+      this.update({ ready: true, fields });
     } catch {
       if (!this.active || generation !== this.generation) return;
       this.update({ ready: false, error: "Your saved profile could not be loaded. You can keep editing a draft; retry loading before saving to your Academy account." });
@@ -113,6 +121,7 @@ export class AccountProfileController {
         return;
       }
       let draftStored = false;
+      this.edited.clear();
       try { this.storage?.removeItem(profileDraftKey(this.accountId)); } catch { draftStored = true; }
       this.update({ fields: fieldsFrom(saved)!, dirty: false, draftStored, notice: draftStored
         ? "Your profile was saved to your Academy account. This browser could not remove the older local draft."

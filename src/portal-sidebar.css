@@ -29,3 +29,7 @@ body[data-portal-workspace] :is(.aw-sidebar,.student-sidebar){width:264px;overfl
   body:not(.swa-has-global-nav) .portal-sidebar-fallback-toggle{display:block;min-height:44px;margin:12px}
 }
 @media(prefers-reduced-motion:reduce){.portal-canonical-navigation *{animation:none!important;transition:none!important}}
+@media print{
+  .portal-account-sidebar,.portal-sidebar-overlay,.portal-sidebar-fallback-toggle{display:none!important}
+  .portal-account-layout{display:block!important;min-height:0!important}
+}
