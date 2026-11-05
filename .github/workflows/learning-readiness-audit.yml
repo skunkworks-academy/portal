@@ -40,3 +40,23 @@ jobs:
               az cosmosdb sql role assignment list -g "$RESOURCE_GROUP_NAME" -a "$account" --query '[].{principalId:principalId,scope:scope,roleDefinitionId:roleDefinitionId}' -o json
             done
             curl --fail --silent --show-error --max-time 30 https://api.skunkworksacademy.com/api/health
+
+      - name: Inspect LMS container and aggregate failure telemetry (read-only)
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            set -euo pipefail
+            [ "$(az account show --query id -o tsv)" = "$AZURE_SUBSCRIPTION_ID" ]
+            accounts="$(az cosmosdb list -g "$RESOURCE_GROUP_NAME" --query '[].name' -o tsv)"
+            for account in $accounts; do
+              az cosmosdb sql container show -g "$RESOURCE_GROUP_NAME" -a "$account" -d academy -n lms \
+                --query '{name:name,partitionKey:resource.partitionKey,provisioningState:provisioningState}' -o json
+            done
+            insights_id="$(az resource show -g "$RESOURCE_GROUP_NAME" -n "${FUNCTION_APP_NAME}-insights" \
+              --resource-type Microsoft.Insights/components --query properties.AppId -o tsv)"
+            # Aggregate result codes only: no URLs, tokens, request bodies, user IDs,
+            # messages, course records or exception detail are written to the log.
+            az monitor app-insights query --app "$insights_id" --analytics-query \
+              'dependencies | where timestamp > ago(72h) | where target has "documents.azure.com" | summarize requests=count() by resultCode, success, type' -o json
+            az monitor app-insights query --app "$insights_id" --analytics-query \
+              'requests | where timestamp > ago(72h) | extend service=case(name has "/lms/" or operation_Name has "lms", "LMS", name has "/skunkie/" or operation_Name has "skunkie", "Skunkie", "Other") | where service != "Other" | summarize requests=count() by service, resultCode' -o json

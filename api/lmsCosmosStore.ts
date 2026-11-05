@@ -49,7 +49,9 @@ export class CosmosLmsStore implements LmsStore {
     let continuation: string | null = null;
     do {
       const result = await this.call(this.docs, "POST", {
-      query: "SELECT c.value FROM c WHERE c.collection = @collection AND STARTSWITH(c.id, @prefix)",
+      // VALUE is a Cosmos SQL keyword. Bracket notation addresses the stored
+      // property; SELECT VALUE returns the original record without a wrapper.
+      query: 'SELECT VALUE c["value"] FROM c WHERE c["collection"] = @collection AND STARTSWITH(c["id"], @prefix)',
       parameters: [{ name: "@collection", value: collection }, { name: "@prefix", value: collection + ":" + prefix }]
     }, {
       "content-type": "application/query+json",
@@ -58,7 +60,8 @@ export class CosmosLmsStore implements LmsStore {
       "x-ms-documentdb-partitionkey": JSON.stringify([partition]),
       ...(continuation ? { "x-ms-continuation": continuation } : {})
     });
-      records.push(...((result?.data.Documents ?? []) as Array<{ value: T }>).map(d => d.value));
+      if (!Array.isArray(result?.data.Documents)) throw new HttpError(503, "LMS database unavailable.");
+      records.push(...(result.data.Documents as T[]));
       continuation = result?.continuation ?? null;
     } while (continuation);
     return records;
