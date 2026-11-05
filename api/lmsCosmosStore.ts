@@ -21,7 +21,7 @@ export class CosmosLmsStore implements LmsStore {
     if (response.status === 404 && (method === "GET" || method === "DELETE")) return null;
     if ([409,412].includes(response.status)) throw new HttpError(409, "LMS write conflict.");
     if (!response.ok) throw new HttpError(503, "LMS database unavailable.");
-    if (response.status === 204) return { data: {}, continuation: null };
+    if (response.status === 204) return { data: {}, continuation: null, etag: null };
     return { data: await response.json() as Record<string, unknown>, continuation: response.headers.get("x-ms-continuation"), etag: response.headers.get("etag") };
   }
   async get<T>(collection: string, key: string): Promise<T | null> {
