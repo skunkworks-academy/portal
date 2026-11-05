@@ -10,7 +10,9 @@ describe("Phase 2 Academy LMS integration contract", () => {
     expect(getVisibleAcademyNavigation(true).some(x => x.id === "lms")).toBe(true);
     const staff = read("../src/academy-workspace.tsx");
     expect(staff).toContain('<LmsWorkspace mode={isStaff ? "staff" : "instructor"} />');
-    expect(read("../src/student-experience.tsx")).toContain('<LmsWorkspace mode="student" />');
+    const learner = read("../src/student-experience.tsx");
+    expect(learner).toMatch(/<LmsWorkspace\s[^>]*mode="student"/);
+    expect(learner).toMatch(/<LmsWorkspace\s[^>]*scope="enrolled"/);
   });
 
   it("uses authenticated endpoints and never exposes sample progress", () => {

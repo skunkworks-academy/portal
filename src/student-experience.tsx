@@ -5,7 +5,6 @@ import { LearnerDiscovery, PersonalisedLearningOverview } from "./LearnerDiscove
 import {
   deleteBrowserLearnerPreferences,
   readBrowserLearnerPreferences,
-  recommendCourses,
   shouldShowSkunkieWelcome,
   saveBrowserLearnerPreferences,
   validateLearnerPreferences,
@@ -15,6 +14,8 @@ import { SKUNKIE_AVATAR_SRC } from "./skunkie-assets";
 import { SkunkieOrchestrationPanel } from "./skunkie/SkunkieOrchestrationPanel";
 import { skunkworksTenantId } from "./authConfig";
 import { LmsWorkspace } from "./lms-workspace";
+import { CourseDiscovery } from "./CourseDiscovery";
+import { CareerResources } from "./CareerResources";
 import { PortalSidebarNavigation, usePortalSidebar } from "./PortalSidebarNavigation";
 import { LearnerAssessmentWorkspace, IndividualRoadmapWorkspace } from "./learner-assessment/workspace";
 import { linkedAcademyServices } from "./academy-service-registry";
@@ -22,7 +23,7 @@ import { availableServices, PortalServiceNotice, type PortalServiceAvailability 
 import type { ClassRegistrationRecord, ClassSession, CourseRecord, PortalProfileInput, UserProfile } from "./types";
 import "./student-experience.css";
 
-type StudentView = "dashboard" | "assessment" | "idr" | "lms" | "learning" | "classes" | "achievements" | "resources" | "messages" | "companion" | "profile";
+type StudentView = "dashboard" | "assessment" | "idr" | "lms" | "learning" | "browse" | "classes" | "achievements" | "resources" | "messages" | "companion" | "profile" | "career";
 
 type StudentExperienceProps = {
   profile: UserProfile | null;
@@ -44,12 +45,21 @@ const navItems: Array<{ id: StudentView; label: string; icon: string }> = [
   { id: "idr", label: "My development roadmap", icon: "◇" },
   { id: "lms", label: "Academy LMS", icon: "▤" },
   { id: "learning", label: "My learning", icon: "◈" },
+  { id: "browse", label: "Browse courses", icon: "⌕" },
+  { id: "career", label: "Career & jobs", icon: "↗" },
   { id: "classes", label: "Classes", icon: "◫" },
   { id: "achievements", label: "Achievements", icon: "✦" },
   { id: "resources", label: "Resources", icon: "▤" },
   { id: "messages", label: "Messages", icon: "✉" },
   { id: "profile", label: "Profile & settings", icon: "◌" }
 ];
+
+function studentViewFromLocation(): StudentView {
+  if (typeof window === "undefined") return "companion";
+  const requested = new URLSearchParams(window.location.search).get("student");
+  if (requested === "profile") { window.location.replace("/?account=profile"); return "dashboard"; }
+  return navItems.find(item => item.id === requested)?.id ?? "companion";
+}
 
 const resources = [
   { title: "Azure overview", type: "Microsoft Learn", detail: "A concise entry point for cloud concepts and services.", href: "https://learn.microsoft.com/training/azure/" },
@@ -61,7 +71,6 @@ const resources = [
 export function StudentExperience({
   profile,
   portalProfile,
-  courses,
   classes,
   registrations,
   onSignIn,
@@ -80,7 +89,19 @@ export function StudentExperience({
     import.meta.env.VITE_ENABLE_SKUNKIE_ADAPTIVE === "true" ||
     new URLSearchParams(window.location.search).get("skunkiePilot") === "1"
   );
-  const [view, setView] = useState<StudentView>("companion");
+  const [view, updateView] = useState<StudentView>(studentViewFromLocation);
+  function setView(next: StudentView) {
+    if (next === "profile") { window.location.assign("/?account=profile"); return; }
+    updateView(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set("student", next);
+    window.history.pushState(null, "", url);
+  }
+  useEffect(() => {
+    const onHistory = () => updateView(studentViewFromLocation());
+    window.addEventListener("popstate", onHistory);
+    return () => window.removeEventListener("popstate", onHistory);
+  }, []);
   const [learnerState, setLearnerState] = useState<{ accountId: string; data: LearnerPreferences } | null>(null);
   const learnerPreferences = learnerState?.accountId === accountId ? learnerState.data : null;
   // Track account-side persistence separately from browser data so a learner can revoke it.
@@ -93,7 +114,6 @@ export function StudentExperience({
 
   useEffect(() => {
     let cancelled = false;
-    setView("companion");
     setLearnerEditing(false);
     setLearnerSkipped(false);
     setLearnerReady(false);
@@ -199,14 +219,9 @@ export function StudentExperience({
     } finally { setLearnerBusy(false); }
   }
   const [query, setQuery] = useState("");
+  useEffect(() => { setQuery(""); }, [accountId]);
   const displayName = portalProfile.displayName || profile?.name || "Learner";
   const registeredClassIds = useMemo(() => new Set(registrations.map((registration) => registration.classId)), [registrations]);
-  const filteredCourses = useMemo(
-    () => (adaptivePilot && learnerPreferences ? recommendCourses(courses, learnerPreferences) : courses)
-      .filter((course) => `${course.title} ${course.description} ${course.level}`.toLowerCase().includes(query.trim().toLowerCase())),
-    [courses, query, adaptivePilot, learnerPreferences]
-  );
-  const firstCourse = courses[0];
   const nextClass = classes.find((classItem) => registeredClassIds.has(classItem.id));
   const firstLoginSkunkie = shouldShowSkunkieWelcome(adaptivePilot, learnerReady, Boolean(learnerPreferences), learnerSkipped);
 
@@ -253,12 +268,12 @@ export function StudentExperience({
       <section className="student-workspace">
         <header className="student-topbar">
           <div>
-            <p className="student-kicker">Student Portal</p>
+            <p className="student-kicker">Learner portal</p>
             <h1>{view === "dashboard" ? `Welcome back, ${displayName.split(" ")[0]}` : navItems.find((item) => item.id === view)?.label}</h1>
           </div>
           <label className="student-search">
             <span aria-hidden="true">⌕</span>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search courses and resources" aria-label="Search courses and resources" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={event => { if (event.key === "Enter" && !["learning", "lms", "resources"].includes(view)) setView("browse"); }} placeholder="Search courses and resources" aria-label="Search courses and resources; press Enter to browse courses" />
           </label>
         </header>
 
@@ -295,11 +310,11 @@ export function StudentExperience({
             !learnerEditing && !learnerSkipped && (
             <PersonalisedLearningOverview
               preferences={learnerPreferences}
-              courses={courses}
+              courses={[]}
               syncNotice={learnerNotice}
               onEdit={() => setLearnerEditing(true)}
               onReset={() => void resetLearnerPreferences()}
-              onNavigate={setView} />
+              onNavigate={next => setView(next === "learning" ? "browse" : next)} />
           )}
           {view === "dashboard" && (!adaptivePilot || learnerSkipped) && (
             <section className="student-view student-dashboard-view" aria-label="Student dashboard">
@@ -309,7 +324,7 @@ export function StudentExperience({
                   <h2>Small, consistent sessions build real confidence.</h2>
                   <p>Continue where you left off, reserve a class, or ask Skunkie to make today’s study plan.</p>
                   <div className="student-action-row">
-                    <button type="button" onClick={() => setView("lms")}>My LMS courses</button>
+                    <button type="button" onClick={() => setView("learning")}>My learning</button>
                     <button type="button" className="student-secondary-action" onClick={() => setView("companion")}>Ask Skunkie</button>
                   </div>
                 </div>
@@ -318,15 +333,14 @@ export function StudentExperience({
                 </div>
               </div>
               <div className="student-stat-grid">
-                <Stat value={services.courses === "available" ? courses.length : "—"} label="Available courses" />
                 <Stat value={registrations.length} label="Class registrations" />
 
               </div>
               <div className="student-two-column">
                 <article className="student-panel">
-                  <div className="student-panel-heading"><div><p className="student-kicker">Course discovery</p><h2>{services.courses !== "available" ? "Course catalogue unavailable" : firstCourse?.title ?? "Choose a course"}</h2></div><button type="button" className="student-text-button" onClick={() => setView("learning")}>View learning</button></div>
-                  <p>{services.courses !== "available" ? "Course data could not be retrieved. Use Retry services above." : firstCourse?.description ?? "Explore the Academy catalogue to begin your learning pathway."}</p>
-                  <span className="student-muted">Learning progress appears after verified course activity is available.</span>
+                  <div className="student-panel-heading"><div><p className="student-kicker">Course discovery</p><h2>Find a course by subject and level</h2></div><button type="button" className="student-text-button" onClick={() => setView("browse")}>Browse courses</button></div>
+                  <p>Explore the published Academy catalogue and review registration options on each course overview.</p>
+                  <span className="student-muted">Your enrolled courses and recorded progress appear in My learning.</span>
                 </article>
                 <article className="student-panel student-next-class">
                   <div className="student-panel-heading"><div><p className="student-kicker">Classes</p><h2>{services.classes !== "available" ? "Class schedule unavailable" : nextClass?.title ?? "No class scheduled"}</h2></div><button type="button" className="student-text-button" onClick={() => setView("classes")}>View classes</button></div>
@@ -339,20 +353,10 @@ export function StudentExperience({
 
           {view === "assessment" && <LearnerAssessmentWorkspace />}
           {view === "idr" && <IndividualRoadmapWorkspace />}
-          {view === "lms" && <LmsWorkspace mode="student" />}
+          {view === "lms" && <LmsWorkspace key={"lms:" + accountId} mode="student" query={query} />}
 
-          {view === "learning" && (
-            <section className="student-view" aria-label="My learning">
-              <div className="student-section-heading"><div><p className="student-kicker">Learning library</p><h2>Choose your next learning step</h2><p>Courses are tailored to practical skills, labs, and certification preparation.</p></div><span className="student-count">{filteredCourses.length} courses</span></div>
-              <div className="student-course-grid">
-                {filteredCourses.map((course) => <CourseCard key={course.id} course={course} onContinue={() => setView("companion")} />)}
-                {filteredCourses.length === 0 && <div className="student-empty-state"><div>
-                  <h2>{services.courses === "available" ? "No courses available" : "Course catalogue unavailable"}</h2>
-                  <p>{services.courses === "available" ? "No matching Academy courses have been published yet." : "The course catalogue could not be loaded. Try again when the service is available."}</p>
-                </div></div>}
-              </div>
-            </section>
-          )}
+          {view === "learning" && <LmsWorkspace key={"learning:" + accountId} mode="student" scope="enrolled" query={query} onBrowseCourses={() => setView("browse")} />}
+          {view === "browse" && <CourseDiscovery key={accountId} accountId={accountId} query={query} onQueryChange={setQuery} onMyLearning={() => setView("learning")} onLms={() => setView("lms")} />}
 
           {view === "classes" && (
             <section className="student-view" aria-label="Classes">
@@ -370,11 +374,12 @@ export function StudentExperience({
             </section>
           )}
 
-          {view === "achievements" && <Achievements courseCount={courses.length} registrationCount={registrations.length} onViewLearning={() => setView("learning")} />}
-          {view === "resources" && <Resources />}
+          {view === "achievements" && <Achievements registrationCount={registrations.length} onViewLearning={() => setView("learning")} />}
+          {view === "resources" && <Resources query={query} />}
           {view === "messages" && <Messages />}
-          {view === "companion" && <SkunkieOrchestrationPanel key={accountId} onAssess={() => setView("assessment")} onCourses={() => setView("lms")} />}
-          {view === "profile" && <ProfileSettings displayName={displayName} portalProfile={portalProfile} courseCount={courses.length} registrations={registrations.length} />}
+          {view === "career" && <CareerResources profileHref="/?account=profile" />}
+          {view === "companion" && <SkunkieOrchestrationPanel key={accountId} onAssess={() => setView("assessment")} onCourses={() => setView("browse")} />}
+          {view === "profile" && <ProfileSettings displayName={displayName} portalProfile={portalProfile} registrations={registrations.length} />}
         </main>
       </section>
     </div>
@@ -385,25 +390,23 @@ function Stat({ value, label }: { value: number | string; label: string }) {
   return <article className="student-stat"><strong>{value}</strong><span>{label}</span></article>;
 }
 
-function CourseCard({ course, onContinue }: { course: CourseRecord; onContinue: () => void }) {
-  return <article className="student-course-card">
-    <div className="student-course-art" aria-hidden="true"><span>{course.level}</span></div>
-    <div className="student-course-copy"><span className="student-status">{course.status}</span><h2>{course.title}</h2><p>{course.description}</p><small>{course.duration}</small><button type="button" className="student-text-button" onClick={onContinue}>Explore course →</button></div>
-  </article>;
-}
-
-function Achievements({ courseCount, registrationCount, onViewLearning }: { courseCount: number; registrationCount: number; onViewLearning: () => void }) {
-  return <section className="student-view" aria-label="Achievements"><div className="student-section-heading"><div><p className="student-kicker">Your milestones</p><h2>Achievements and credentials</h2><p>Verified certificates and badges will appear here as you complete Academy learning.</p></div></div><div className="student-achievement-grid"><Achievement icon="✦" title="Learning journey" detail={`${courseCount} course options ready for you.`} /><Achievement icon="◫" title="Class commitment" detail={registrationCount ? `${registrationCount} registered session${registrationCount === 1 ? "" : "s"}.` : "Register for a study session to get started."} /><Achievement icon="◌" title="Credential pathway" detail="Complete a pathway to unlock shareable evidence of learning." /></div><article className="student-empty-state"><span>✦</span><div><h2>Your next achievement is close</h2><p>Complete a course module and return here to see your learning milestones grow.</p></div><button type="button" onClick={onViewLearning}>View learning</button></article></section>;
+function Achievements({ registrationCount, onViewLearning }: { registrationCount: number; onViewLearning: () => void }) {
+  return <section className="student-view" aria-label="Achievements"><div className="student-section-heading"><div><p className="student-kicker">Your milestones</p><h2>Achievements and credentials</h2><p>Verified certificates and badges will appear here as you complete Academy learning.</p></div></div><div className="student-achievement-grid"><Achievement icon="✦" title="Learning journey" detail="View your enrolled courses and recorded lesson activity in My learning." /><Achievement icon="◫" title="Class commitment" detail={registrationCount ? `${registrationCount} registered session${registrationCount === 1 ? "" : "s"}.` : "Register for a study session to get started."} /><Achievement icon="◌" title="Credential pathway" detail="Complete a pathway to unlock shareable evidence of learning." /></div><article className="student-empty-state"><span>✦</span><div><h2>Your next achievement is close</h2><p>Complete a course module and return here to see your learning milestones grow.</p></div><button type="button" onClick={onViewLearning}>View learning</button></article></section>;
 }
 
 function Achievement({ icon, title, detail }: { icon: string; title: string; detail: string }) { return <article className="student-achievement"><span aria-hidden="true">{icon}</span><h2>{title}</h2><p>{detail}</p></article>; }
 
-function Resources() {
+function Resources({ query }: { query: string }) {
+  const matches = (value: string) => value.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase());
+  const matchingResources = resources.filter(resource => matches(`${resource.title} ${resource.type} ${resource.detail}`));
+  const matchingServices = linkedAcademyServices().filter(service => matches(`${service.name} ${service.area} ${service.summary}`));
   return <section className="student-view" aria-label="Resources">
     <div className="student-section-heading"><div><p className="student-kicker">Study support</p><h2>Resources worth saving</h2><p>Labs, notes and learning links that support your active courses.</p></div></div>
-    <div className="student-resource-list">{resources.map((resource) => <a key={resource.title} href={resource.href} className="student-resource-card"><span>{resource.type}</span><div><h2>{resource.title}</h2><p>{resource.detail}</p></div><strong aria-hidden="true">→</strong></a>)}</div>
+    <p role="status">{matchingResources.length + matchingServices.length} matching resources</p>
+    <div className="student-resource-list">{matchingResources.map((resource) => <a key={resource.title} href={resource.href} className="student-resource-card"><span>{resource.type}</span><div><h2>{resource.title}</h2><p>{resource.detail}</p></div><strong aria-hidden="true">→</strong></a>)}</div>
     <div className="student-section-heading"><div><p className="student-kicker">Connected Academy ecosystem</p><h2>Continue across Academy services</h2><p>These links open dedicated services. Account permissions, enrolments and product licences govern access.</p></div></div>
-    <div className="student-resource-list">{linkedAcademyServices().map((service) => <a key={service.id} href={service.href!} className="student-resource-card" target="_blank" rel="noopener noreferrer"><span>{service.area}</span><div><h2>{service.name}</h2><p>{service.summary}</p></div><strong aria-hidden="true">↗</strong></a>)}</div>
+    <div className="student-resource-list">{matchingServices.map((service) => <a key={service.id} href={service.href!} className="student-resource-card" target="_blank" rel="noopener noreferrer"><span>{service.area}</span><div><h2>{service.name}</h2><p>{service.summary}</p></div><strong aria-hidden="true">↗</strong></a>)}</div>
+    {matchingResources.length + matchingServices.length === 0 && <p>No resources match your search.</p>}
     <div className="student-empty-state"><div><h2>Academy community integration</h2><p>Peer discussion, mentorship and study groups are planned. Community access will appear after an authenticated service is connected.</p></div></div>
   </section>;
 }
@@ -422,10 +425,10 @@ function Companion() {
   </section>;
 }
 
-function ProfileSettings({ displayName, portalProfile, courseCount, registrations }: { displayName: string; portalProfile: PortalProfileInput; courseCount: number; registrations: number }) {
+function ProfileSettings({ displayName, portalProfile, registrations }: { displayName: string; portalProfile: PortalProfileInput; registrations: number }) {
   return <section className="student-view" aria-label="Profile and settings">
     <div className="student-section-heading"><div><p className="student-kicker">Your account</p><h2>Profile and settings</h2><p>Your saved Academy profile and active registrations.</p></div></div>
-    <div className="student-profile-grid"><article className="student-profile-card"><span className="student-avatar large" aria-hidden="true">{displayName.slice(0, 1).toUpperCase()}</span><h2>{displayName}</h2><p>{portalProfile.location || "Location not provided"} · Student</p><dl><div><dt>Published courses</dt><dd>{courseCount}</dd></div><div><dt>Registrations</dt><dd>{registrations}</dd></div></dl></article>
+    <div className="student-profile-grid"><article className="student-profile-card"><span className="student-avatar large" aria-hidden="true">{displayName.slice(0, 1).toUpperCase()}</span><h2>{displayName}</h2><p>{portalProfile.location || "Location not provided"} · Student</p><dl><div><dt>Registrations</dt><dd>{registrations}</dd></div></dl></article>
       <article className="student-settings-card"><h2>Account privacy</h2><p>Microsoft manages sign-in and authentication. Personal learning preferences will appear here when supported by the Academy account service.</p><a href="https://www.skunkworksacademy.com/privacystatement" target="_blank" rel="noopener noreferrer">Read privacy statement</a></article>
     </div>
   </section>;

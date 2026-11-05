@@ -3,6 +3,7 @@ import { useMsal } from "@azure/msal-react";
 import { portalApi, type LmsCourseRecord, type LmsEnrolmentRecord, type LmsLessonRecord, type LmsProgressRecord } from "./api";
 import "./lms-workspace.css";
 import { learningErrorMessage } from "./learning-errors";
+import { enrolledLearning } from "./my-learning";
 
 type Mode = "student" | "instructor" | "staff";
 
@@ -10,7 +11,9 @@ function friendlyError(error: unknown) {
   return learningErrorMessage(error, "lms");
 }
 
-export function LmsWorkspace({ mode }: { mode: Mode }) {
+export function LmsWorkspace({ mode, scope = "catalogue", query = "", onBrowseCourses }: {
+  mode: Mode; scope?: "catalogue" | "enrolled"; query?: string; onBrowseCourses?: () => void;
+}) {
   const { instance, accounts } = useMsal();
   const account = accounts[0];
   const auth = account ? { instance, account } : undefined;
@@ -59,7 +62,8 @@ export function LmsWorkspace({ mode }: { mode: Mode }) {
   // Authenticated account is the stable identity boundary, not MSAL render state.
   }, [account?.homeAccountId, mode, refresh]);
 
-  const enrolledIds = useMemo(() => new Set(enrolments.map(e => e.courseId)), [enrolments]);
+  const learning = useMemo(() => enrolledLearning(courses, enrolments), [courses, enrolments]);
+  const enrolledIds = useMemo(() => new Set(learning.courses.map(course => course.id)), [learning]);
   const selected = courses.find(c => c.id === selectedId);
   const canReadLessons = Boolean(selected) && (mode !== "student" || enrolledIds.has(selectedId));
 
@@ -119,26 +123,29 @@ export function LmsWorkspace({ mode }: { mode: Mode }) {
   }
 
   const isStudent = mode === "student";
+  const personal = isStudent && scope === "enrolled";
   const published = courses.filter(c => c.status === "published").length;
-  const myCourses = isStudent ? courses.filter(c => enrolledIds.has(c.id)) : courses;
+  const listedCourses = (personal ? learning.courses : courses).filter(course =>
+    `${course.title} ${course.description}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const completed = progress?.completedLessonIds.length ?? 0;
 
   return (
     <section className="lms-workspace" aria-label="Academy learning management">
       <div className="lms-heading">
         <div><p className="lms-eyebrow">SKUNKWORKS ACADEMY · MICROSOFT-SECURED</p>
-          <h2>{isStudent ? "My Academy learning" : mode === "staff" ? "Academy course governance" : "Instructor course studio"}</h2>
-          <p>{isStudent ? "Published Academy courses and your verified enrolments. Progress comes from recorded lesson activity." : "Manage genuine Academy course records. Drafts require review and staff approval before publication."}</p>
+          <h2>{personal ? "My learning" : isStudent ? "Academy LMS" : mode === "staff" ? "Academy course governance" : "Instructor course studio"}</h2>
+          <p>{personal ? "Your recorded Academy enrolments. Progress comes from recorded lesson activity." : isStudent ? "Published courses available to your Academy organisation. Review a course and choose Enrol to register." : "Manage genuine Academy course records. Drafts require review and staff approval before publication."}</p>
         </div>
         <button type="button" className="lms-secondary" disabled={loading || busy} onClick={() => setRefresh(x => x + 1)}>Refresh records</button>
       </div>
 
       {notice && <p className="lms-notice" role="status">{notice}</p>}
       {error && <div className="lms-error" role="alert"><strong>Learning service requires attention</strong><p>{error}</p><a href="mailto:training@skunkworks.africa">Contact Academy support</a></div>}
+      {personal && onBrowseCourses && <button type="button" className="lms-secondary" onClick={onBrowseCourses}>Browse courses</button>}
       {loading ? <p role="status" className="lms-pending">Loading authenticated Academy records…</p> : !error && <>
         <div className="lms-metrics" aria-label="Recorded Academy information">
-          <article><strong>{courses.length}</strong><span>{isStudent ? "Published courses" : "Visible courses"}</span></article>
-          <article><strong>{isStudent ? enrolments.length : published}</strong><span>{isStudent ? "My enrolments" : "Published courses"}</span></article>
+          {!personal && <article><strong>{courses.length}</strong><span>{isStudent ? "Published courses" : "Visible courses"}</span></article>}
+          <article><strong>{isStudent ? learning.enrolments.length : published}</strong><span>{isStudent ? "My enrolments" : "Published courses"}</span></article>
         </div>
 
         {!isStudent && <form className="lms-create" onSubmit={createCourse}>
@@ -151,18 +158,21 @@ export function LmsWorkspace({ mode }: { mode: Mode }) {
 
         <div className="lms-layout">
           <div className="lms-list" aria-label="LMS course list">
-            <h3>{isStudent ? "Published course catalogue" : "Course records"}</h3>
-            {courses.map(course => <article className={selectedId === course.id ? "lms-course is-selected" : "lms-course"} key={course.id}>
+            <h3>{personal ? "My enrolled courses" : isStudent ? "Published LMS courses" : "Course records"}</h3>
+            {query.trim() && <p role="status">{listedCourses.length} matching course{listedCourses.length === 1 ? "" : "s"}</p>}
+            {listedCourses.map(course => <article className={selectedId === course.id ? "lms-course is-selected" : "lms-course"} key={course.id}>
               <div><span className="lms-tag">{course.status}</span><h4>{course.title}</h4><p>{course.description || "No course description provided."}</p></div>
               <div className="lms-actions">
                 <button type="button" disabled={busy} onClick={() => setSelectedId(course.id)}>{selectedId === course.id ? "Selected" : "View details"}</button>
-                {isStudent && !enrolledIds.has(course.id) && <button type="button" disabled={busy || !auth} onClick={() => auth && void execute(() => portalApi.lmsEnrol(course.id, auth), "Course enrolment recorded.")}>Enrol</button>}
+                {isStudent && !personal && !enrolledIds.has(course.id) && <button type="button" disabled={busy || !auth} onClick={() => auth && void execute(() => portalApi.lmsEnrol(course.id, auth), "Course enrolment recorded.")}>Enrol</button>}
                 {isStudent && enrolledIds.has(course.id) && <span className="lms-enrolled">Enrolled</span>}
                 {!isStudent && course.status === "draft" && <button type="button" disabled={busy || !auth} onClick={() => auth && void execute(() => portalApi.lmsReviewCourse(course.id, auth), "Course submitted for review.")}>Submit for review</button>}
                 {mode === "staff" && course.status === "review" && <button type="button" disabled={busy || !auth} onClick={() => auth && void execute(() => portalApi.lmsPublishCourse(course.id, auth), "Course published.")}>Approve and publish</button>}
               </div>
             </article>)}
-            {courses.length === 0 && <p className="lms-empty">No {isStudent ? "published" : "visible"} courses are recorded in your Academy organisation.</p>}
+            {personal && learning.enrolments.length === 0 && <div className="lms-empty"><h4>No enrolled courses yet</h4><p>No course enrolments are recorded for this Microsoft account. Browse the Academy catalogue to find a course.</p></div>}
+            {personal && learning.unavailable.length > 0 && <p className="lms-empty" role="status">{learning.unavailable.length} recorded enrolment{learning.unavailable.length === 1 ? " has" : "s have"} course details that are not currently available to this account. Contact Academy support for access.</p>}
+            {listedCourses.length === 0 && (!personal || learning.courses.length > 0) && <p className="lms-empty">{query.trim() ? "No courses match your search." : `No ${isStudent ? "published" : "visible"} courses are recorded in your Academy organisation.`}</p>}
           </div>
 
           <section className="lms-details" aria-label="Selected course details">
@@ -214,7 +224,6 @@ export function LmsWorkspace({ mode }: { mode: Mode }) {
             </>}
           </section>
         </div>
-        {isStudent && myCourses.length === 0 && <p className="lms-footnote">You have no recorded LMS course enrolments yet. Browse the published catalogue to enrol.</p>}
       </>}
     </section>
   );
