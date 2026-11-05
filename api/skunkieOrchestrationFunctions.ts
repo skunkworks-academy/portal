@@ -2,6 +2,7 @@ import { DefaultAzureCredential } from "@azure/identity";
 import { app, type HttpRequest } from "@azure/functions";
 import { requireUser, hasPortalRole } from "./auth.js";
 import { CosmosLmsStore } from "./lmsCosmosStore.js";
+import { requireActiveScimUser } from "./scimAccess.js";
 import type { LmsContext } from "./lmsDomain.js";
 import { SkunkieOrchestrationService } from "./skunkieOrchestration.js";
 import { failure, HttpError, json, readJson } from "./http.js";
@@ -17,6 +18,7 @@ export async function skunkieRequestContext(request: HttpRequest) {
   const container = process.env.LMS_COSMOS_CONTAINER;
   if (!organizationId || !endpoint || !database || !container) throw new HttpError(503, "Skunkie learner storage is not configured.");
   const store = new CosmosLmsStore(endpoint, database, container, async () => (await credential.getToken("https://cosmos.azure.com/.default")).token);
+  await requireActiveScimUser(store, organizationId, principal.subject);
   const role = hasPortalRole(principal, ["Portal.Staff", "Portal.Admin"]) ? "staff" : hasPortalRole(principal, ["Portal.Instructor"]) ? "instructor" : "student";
   const ctx: LmsContext = { principal, organizationId, role };
   return { service: new SkunkieOrchestrationService(store), ctx };
