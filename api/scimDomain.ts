@@ -192,7 +192,7 @@ export class ScimService {
     const duplicate = records.some(r => r.id !== candidate.id && (
       (candidate.externalId && r.externalId?.toLowerCase() === candidate.externalId.toLowerCase()) ||
       ("userName" in r && "userName" in candidate && r.userName.toLowerCase() === candidate.userName.toLowerCase()) ||
-      ("displayName" in r && "displayName" in candidate && r.displayName.toLowerCase() === candidate.displayName.toLowerCase())
+      ("displayName" in r && "displayName" in candidate && typeof r.displayName === "string" && typeof candidate.displayName === "string" && r.displayName.toLowerCase() === candidate.displayName.toLowerCase())
     ));
     if (duplicate) throw new ScimError(409, "SCIM resource already exists.", "uniqueness");
   }
