@@ -2,6 +2,8 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import { apiScope } from "./authConfig";
 import { SKUNKIE_AVATAR_SRC } from "./skunkie-assets";
+import { PortalApiError } from "./api-error";
+import { learningErrorMessage } from "./learning-errors";
 import "./skunkie-companion.css";
 
 type ChatMessage = { role: "user" | "assistant"; content: string };
@@ -26,6 +28,7 @@ export function SkunkieCompanion() {
   const [input, setInput] = useState("");
   const [imageFailed, setImageFailed] = useState(false);
   const [chatError, setChatError] = useState("");
+  const [statusError, setStatusError] = useState("");
   const [serviceState, setServiceState] = useState<"unknown" | "configured" | "ready" | "unavailable">("unknown");
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "assistant", content: "Hi, I’m Skunkie. Ask me to explain a concept, quiz you, or help you work through a learning problem." }
@@ -46,6 +49,7 @@ export function SkunkieCompanion() {
     setOpen(false);
     setInput("");
     setChatError("");
+    setStatusError("");
     setServiceState("unknown");
     setMessages([{ role: "assistant", content: "Hi, I’m Skunkie. Ask me to explain a concept, quiz you, or help you work through a learning problem." }]);
   }, [account?.homeAccountId]);
@@ -72,6 +76,7 @@ export function SkunkieCompanion() {
     if (!open || !account) return;
     let cancelled = false;
     const controller = new AbortController();
+    setStatusError("");
     void (async () => {
       try {
         const token = await instance.acquireTokenSilent({ account, scopes: [apiScope] });
@@ -79,11 +84,14 @@ export function SkunkieCompanion() {
           headers: { Authorization: `Bearer ${token.accessToken}` },
           signal: controller.signal
         });
-        if (!response.ok) throw new Error("Service status unavailable");
+        if (!response.ok) throw new PortalApiError(response.status, "Service status request failed");
         const result = await response.json() as { available?: boolean };
         if (!cancelled) setServiceState(result.available ? "configured" : "unavailable");
-      } catch {
-        if (!cancelled) setServiceState("unknown");
+      } catch (error) {
+        if (!cancelled) {
+          setServiceState("unknown");
+          setStatusError(learningErrorMessage(error, "skunkie"));
+        }
       }
     })();
     return () => { cancelled = true; controller.abort(); };
@@ -119,16 +127,10 @@ export function SkunkieCompanion() {
       });
 
       if (!response.ok) {
-        setServiceState("unavailable");
+        setServiceState(response.status === 401 || response.status === 403 ? "unknown" : "unavailable");
         const reason = response.status === 404
           ? "The Academy chat endpoint is unavailable. The service deployment needs attention."
-          : response.status === 401 || response.status === 403
-            ? "Your Microsoft session is not authorised for Skunkie. Sign out and sign in again."
-            : response.status === 503
-              ? "Skunkie is not ready on the Academy server. An administrator needs to check its Azure AI configuration."
-              : response.status === 429
-                ? "Skunkie is receiving too many requests. Try again shortly."
-                : "The Academy learning service could not respond. Try again shortly.";
+          : learningErrorMessage(new PortalApiError(response.status, "Chat request failed"), "skunkie");
         setChatError(reason);
         return;
       }
@@ -142,6 +144,7 @@ export function SkunkieCompanion() {
       ]);
       setInput("");
       setServiceState("ready");
+      setStatusError("");
       requestAnimationFrame(() => logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "smooth" }));
     } catch (error) {
       setServiceState("unavailable");
@@ -180,6 +183,7 @@ export function SkunkieCompanion() {
 
           {chatError && <div className="skunkie__error" role="alert"><strong>Skunkie needs attention</strong><p>{chatError}</p><button type="button" onClick={() => setChatError("")}>Dismiss</button></div>}
           {serviceState === "unavailable" && !chatError && <p className="skunkie__service-notice" role="status">The learning service is currently unavailable. Your question will be retained if sending fails.</p>}
+          {statusError && !chatError && <p className="skunkie__service-notice" role="status">{statusError}</p>}
           <div className="skunkie__quick-actions" aria-label="Suggested prompts">
             {["Explain this page", "Quiz me", "Give me a hint"].map((prompt) => (
               <button key={prompt} type="button" onClick={() => setInput(prompt)}>{prompt}</button>

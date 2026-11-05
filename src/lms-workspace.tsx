@@ -2,15 +2,12 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useMsal } from "@azure/msal-react";
 import { portalApi, type LmsCourseRecord, type LmsEnrolmentRecord, type LmsLessonRecord, type LmsProgressRecord } from "./api";
 import "./lms-workspace.css";
+import { learningErrorMessage } from "./learning-errors";
 
 type Mode = "student" | "instructor" | "staff";
 
 function friendlyError(error: unknown) {
-  const value = error instanceof Error ? error.message : "";
-  if (/membership not provisioned|403/.test(value)) return "Your Microsoft account is signed in, but your LMS organisation membership is not yet provisioned. Contact Academy support to request access.";
-  if (/storage is not configured|database unavailable|503/.test(value)) return "The Academy learning database is unavailable. Your existing learning records have not been changed.";
-  if (/401|token|interaction_required/i.test(value)) return "Your Microsoft session needs attention. Sign in again to continue.";
-  return "The Academy learning service could not complete this request. Try again or contact Academy support.";
+  return learningErrorMessage(error, "lms");
 }
 
 export function LmsWorkspace({ mode }: { mode: Mode }) {
