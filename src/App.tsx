@@ -461,7 +461,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
       <>
       {roleSelector}
       <PortalRequestStatus notice={notice} error={error} loading={loading} />
-      <LearnerOnboardingGate enabled={profile.tenantId.toLowerCase() === skunkworksTenantId.toLowerCase()}>
+      <LearnerOnboardingGate enabled={profile.tenantId?.toLowerCase() === skunkworksTenantId.toLowerCase()}>
       {(savedLearnerProfile, editSetup) => <StudentExperience
         savedLearnerProfile={savedLearnerProfile}
         onEditLearnerProfile={editSetup}
