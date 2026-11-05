@@ -318,13 +318,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
         ...previous.filter((item) => item.classId !== classId),
         savedRegistration
       ]);
-      setRegistrationFeedback({
-        classId,
-        type: "success",
-        message: savedRegistration.status === "Waitlisted"
-          ? "You have been added to the class waitlist."
-          : "Class registration confirmed."
-      });
+      setRegistrationFeedback(classRegistrationResultFeedback(savedRegistration));
 
       const [registrationsResult, classesResult] = await Promise.allSettled([
         portalApi.myClasses(auth),
