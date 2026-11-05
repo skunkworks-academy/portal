@@ -114,8 +114,9 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
     return () => { generation.current++; window.clearTimeout(timeout); abort.abort(); saveRequest.current?.abort(); };
   }, [account.homeAccountId, instance, retry]);
   useEffect(() => {
+    document.body.toggleAttribute("data-portal-onboarding", !ready);
     window.dispatchEvent(new CustomEvent("skunkworksacademy:onboarding-state", { detail: { active: !ready } }));
-    return () => { window.dispatchEvent(new CustomEvent("skunkworksacademy:onboarding-state", { detail: { active: false } })); };
+    return () => { document.body.removeAttribute("data-portal-onboarding"); window.dispatchEvent(new CustomEvent("skunkworksacademy:onboarding-state", { detail: { active: false } })); };
   }, [ready]);
   useEffect(() => {
     if (!loaded || ready) return;

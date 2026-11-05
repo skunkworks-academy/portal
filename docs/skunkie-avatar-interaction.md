@@ -24,7 +24,7 @@ This change uses portal-owned rendering and browser voice, not the Codex pet run
 </LearnerOnboardingGate>
 ```
 
-The host supplies the authoritative workspace role. Keep account/help navigation available outside this gate. Staff and Instructor workspaces pass `enabled={false}`. The gate emits `skunkworksacademy:onboarding-state` with `{active:boolean}` so the existing floating companion yields to the central avatar.
+The App now mounts this gate for the Student workspace only; Staff and Instructor workspaces and the account pages remain directly accessible. Account/help navigation stays available during setup. The gate emits `skunkworksacademy:onboarding-state` with `{active:boolean}` so the floating companion yields to the central avatar. While setup is active the body also carries `data-portal-onboarding`, hiding the sidebar toggle until a sidebar exists and removing the footer inset.
 
 The gate reads `/me/skunkie/assessment` and only releases a learner after a successful saved profile includes a valid versioned journey with both brief example answers. Existing questionnaire-only profiles complete the new setup. A browser draft can restore unfinished choices but cannot mark setup complete. Drafts use account-specific session storage, do not save a chat transcript, and clear after confirmed persistence. Consent is requested again on reload. A failed account read prevents a defaults-only overwrite. New journey persistence requires the accompanying service/schema change (`a15de60`, cherry-picked as `bed45ab`); an older server that strips the journey cannot unlock the dashboard.
 
@@ -38,4 +38,6 @@ The Networking loop merged in PR151 remains the sole course-bound diagnostic/act
 
 ## Checks
 
-Behavior fixtures use jsdom with mocked authentication, requests, microphone and speech APIs. They never write real learner records or send chat messages. They cover late account responses, retained failed drafts, new edits while a request is pending, saved-server confirmation, legacy-server rejection, hidden/reduced-motion cleanup, account preferences and real metadata selection. All runtime role, permission and course access checks remain server owned.
+Behavior fixtures use jsdom with mocked authentication, requests, microphone and speech APIs. They never write real learner records or send chat messages. They cover late account responses, retained failed drafts, new edits while a request is pending, saved-server confirmation, legacy-server rejection, hidden/reduced-motion cleanup, account preferences and real metadata selection. The integrated App resets all private workspace state at the Microsoft account boundary and reports parent request failures in every workspace. A delayed previous-account profile read cannot create a registration after unmount. All runtime role, permission and course access checks remain server owned.
+
+Integration validation: 194 tests in 37 files pass with two workers; frontend and Azure Functions TypeScript builds pass. First-run and returning-account visual acceptance is tracked separately from these fixtures. Live AI replies still require the existing provider configuration; browser voice features never synthesize a successful provider response.
