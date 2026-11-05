@@ -1,5 +1,7 @@
 .skunkie{--sk-bg:#fff;--sk-text:#172333;--sk-line:#d5dde5;--sk-soft:#f1f5f8;position:fixed;right:max(18px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));z-index:1000;display:flex;align-items:flex-end;gap:12px;color:var(--sk-text);font:14px/1.45 system-ui,sans-serif;max-width:calc(100vw - 24px)}
 .skunkie button,.skunkie textarea{font:inherit}.skunkie button{cursor:pointer}.skunkie button:disabled{cursor:default;opacity:.6}.skunkie button:focus-visible,.skunkie textarea:focus-visible,.skunkie input:focus-visible{outline:3px solid #1684ad;outline-offset:3px}
+.skunkie .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.skunkie__voice-controls input[type=checkbox]{width:16px;height:16px;min-height:16px;padding:0;margin:0;box-sizing:border-box;flex:none}
 .skunkie-avatar{display:block;position:relative;width:100%;aspect-ratio:192/256;flex:none}.skunkie-avatar__frame{display:block;position:absolute;left:0;width:100%;background-repeat:no-repeat}
 .skunkie__launcher{position:relative;width:132px;flex:none;display:flex;align-items:center;flex-direction:column;padding:0;border:0;background:transparent;color:inherit;min-height:44px}
 .skunkie__launcher .skunkie-avatar{height:156px;width:auto;max-width:152px;filter:drop-shadow(0 5px 5px #0003)}

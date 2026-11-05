@@ -81,6 +81,17 @@ describe("avatar-first Skunkie", () => {
     await act(async () => resolveChat(new Response('{"reply":"Actual server answer"}')));
     expect(host.textContent).toContain("Actual server answer"); expect(host.querySelector("textarea")?.value).toBe("Next question");
   });
+  it("scrolls instantly to the committed reply height, including with reduced motion", async () => {
+    document.documentElement.dataset.portalMotion = "reduce";
+    vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(url.endsWith("status") ? { available: true } : { reply: "A newly rendered answer" })))));
+    await render(<SkunkieCompanion />); click("Open Skunkie AI learning companion"); await act(async () => {});
+    const log = host.querySelector<HTMLElement>(".skunkie__messages")!;
+    Object.defineProperty(log, "scrollHeight", { configurable: true, get: () => log.querySelectorAll(".skunkie__message").length * 120 });
+    vi.mocked(Element.prototype.scrollTo).mockClear();
+    enter("A new question"); await submit();
+    expect(log.textContent).toContain("A newly rendered answer");
+    expect(log.scrollTo).toHaveBeenLastCalledWith({ top: 360, behavior: "instant" });
+  });
   it("stops all frame timers for reduced motion, hidden tabs and inactive avatars", async () => {
     vi.useFakeTimers(); await render(<SkunkieAvatar activity="speaking" />);
     const initial = host.querySelector<HTMLElement>(".skunkie-avatar__frame")!.style.backgroundPosition;

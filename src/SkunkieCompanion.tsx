@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { apiScope } from "./authConfig";
@@ -77,6 +77,13 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
     return () => { window.clearTimeout(timer); window.removeEventListener("keydown", onEscape); };
   }, [open]);
 
+  useLayoutEffect(() => {
+    if (!open || suppressed) return;
+    // Measure after React commits the new reply; instant scrolling respects reduced motion.
+    const log = logRef.current;
+    log?.scrollTo({ top: log.scrollHeight, behavior: "instant" });
+  }, [messages, open, suppressed]);
+
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
@@ -130,8 +137,6 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
       setInput(value => value.trim() === message ? "" : value);
       setServiceState("ready"); setStatusError("");
       if (preferenceRef.current.readReplies) voice.speak(reply);
-      // Immediate scrolling also respects reduced motion and needs no pending timer.
-      logRef.current?.scrollTo({ top: logRef.current.scrollHeight, behavior: "instant" });
     } catch (error) {
       if (current !== generation.current) return;
       setServiceState("unavailable");
