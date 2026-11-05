@@ -43,7 +43,7 @@ describe("student class registration actions", () => {
   it("makes existing registrations and waitlists navigable without posting again", () => {
     expect(classRegistrationAction(classSession, registration)).toEqual({ kind: "details", label: "Registered · View details", disabled: false });
     expect(classRegistrationAction(classSession, { ...registration, status: "Waitlisted" }).kind).toBe("details");
-    expect(classRegistrationAction(classSession, { ...registration, status: "Cancelled" }).kind).toBe("register");
+    expect(classRegistrationAction(classSession, { ...registration, status: "Cancelled" })).toEqual({ kind: "details", label: "Cancelled · View details", disabled: false });
   });
 
   it("does not falsely offer an unavailable backend waitlist", () => {
