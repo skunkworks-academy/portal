@@ -17,14 +17,14 @@ afterEach(() => {
 function probe(statuses: string[], followRedirects = false) {
   const fixture = mkdtempSync(resolve(repo, ".route-probe-test-")); fixtures.push(fixture);
   const counts = resolve(fixture, "count"); const environment = resolve(fixture, "fixture.sh");
-  writeFileSync(counts, "0");
+  writeFileSync(counts, "0\n");
   writeFileSync(environment, [
     'curl() {',
-    '  local count; count="$(cat "$PROBE_FIXTURE_COUNT")"',
+    '  local count; read -r count < "$PROBE_FIXTURE_COUNT"',
     '  local statuses; read -r -a statuses <<< "$PROBE_FIXTURE_STATUSES"',
     '  local index=$count',
     '  if ((index >= ${#statuses[@]})); then index=$((${#statuses[@]} - 1)); fi',
-    '  printf "%s" "$((count + 1))" > "$PROBE_FIXTURE_COUNT"',
+    '  printf "%s\\n" "$((count + 1))" > "$PROBE_FIXTURE_COUNT"',
     '  printf "%s" "${statuses[$index]}"',
     '}',
     'sleep() { :; }',
@@ -48,7 +48,7 @@ describe("protected API deployment probes", () => {
   });
   it("fails after the fixed retry limit if a route never registers", () => {
     expect(probe(["404"])).toMatchObject({ status: 1, calls: 12 });
-  });
+  }, 20_000); // Keep the 15-second subprocess deadline authoritative on Windows.
   it.each(["200", "301", "500", "000"])("rejects unexpected status %s without accepting a later response", status => {
     expect(probe([status, "401"])).toMatchObject({ status: 1, calls: 1 });
   });

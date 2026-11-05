@@ -7,6 +7,8 @@ import { skunkworksTenantId } from "../src/authConfig";
 const auth = vi.hoisted(() => ({ accounts: [] as any[], instance: {} }));
 vi.mock("@azure/msal-react", () => ({ useMsal: () => auth }));
 vi.mock("../src/AccountPages", () => ({ AccountPreferences: () => null, AccountPages: () => null }));
+// These fixtures isolate role selection; the saved-setup gate has its own DOM tests.
+vi.mock("../src/LearnerOnboardingGate", () => ({ LearnerOnboardingGate: ({ children }: { children: (profile: null, edit: () => void) => React.ReactNode }) => children(null, () => {}) }));
 vi.mock("../src/student-experience", () => ({ StudentExperience: () => <main>Student workspace</main> }));
 vi.mock("../src/academy-workspace", () => ({ AcademyWorkspace: ({ role }: { role: string }) => <main>{role} workspace</main> }));
 afterEach(() => vi.unstubAllGlobals());

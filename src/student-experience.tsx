@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import { portalApi } from "./api";
 import { classRegistrationAction, type ClassRegistrationFeedback } from "./class-registration-ui";
@@ -16,6 +16,9 @@ import { SkunkieOrchestrationPanel } from "./skunkie/SkunkieOrchestrationPanel";
 import { skunkworksTenantId } from "./authConfig";
 import { LmsWorkspace } from "./lms-workspace";
 import { CourseDiscovery } from "./CourseDiscovery";
+import { loadAcademyCatalogue } from "./course-discovery";
+import { LearnerWorkspacePlan } from "./LearnerWorkspacePlan";
+import type { SkunkieLearnerProfile } from "./learner-assessment/model";
 import { CareerResources } from "./CareerResources";
 import { PortalSidebarNavigation, usePortalSidebar } from "./PortalSidebarNavigation";
 import { LearnerAssessmentWorkspace, IndividualRoadmapWorkspace } from "./learner-assessment/workspace";
@@ -39,6 +42,8 @@ type StudentExperienceProps = {
   registrationFeedback?: ClassRegistrationFeedback | null;
   services?: PortalServiceAvailability;
   onRetryServices?: () => void;
+  savedLearnerProfile?: SkunkieLearnerProfile | null;
+  onEditLearnerProfile?: () => void;
 };
 
 const navItems: Array<{ id: StudentView; label: string; icon: string }> = [
@@ -57,17 +62,17 @@ const navItems: Array<{ id: StudentView; label: string; icon: string }> = [
   { id: "profile", label: "Profile & settings", icon: "◌" }
 ];
 
-function studentViewFromLocation(): StudentView {
-  if (typeof window === "undefined") return "companion";
+function studentViewFromLocation(hasSavedSetup = false): StudentView {
+  if (typeof window === "undefined") return hasSavedSetup ? "dashboard" : "companion";
   const requested = new URLSearchParams(window.location.search).get("student");
   if (requested === "profile") { window.location.replace("/?account=profile"); return "dashboard"; }
-  return navItems.find(item => item.id === requested)?.id ?? "companion";
+  return navItems.find(item => item.id === requested)?.id ?? (hasSavedSetup ? "dashboard" : "companion");
 }
 
 const resources = [
   { title: "Azure overview", type: "Microsoft Learn", detail: "A concise entry point for cloud concepts and services.", href: "https://learn.microsoft.com/training/azure/" },
-  { title: "Virtual machines lab", type: "Hands-on lab", detail: "Practise provisioning and managing an Azure virtual machine.", href: "https://learn.microsoft.com/training/" },
-  { title: "Exam revision checklist", type: "Download", detail: "Use this checklist to structure your revision time.", href: "https://skunkworksacademy.com/self-paced/" }
+  { title: "Microsoft Learn training", type: "Training catalogue", detail: "Find Microsoft modules, learning paths and practice resources.", href: "https://learn.microsoft.com/training/" },
+  { title: "Academy self-paced catalogue", type: "Course catalogue", detail: "Review available self-paced courses and their published overviews.", href: "https://skunkworksacademy.com/self-paced/" }
 ];
 
 
@@ -82,7 +87,9 @@ export function StudentExperience({
   registrationBusyClassId = null,
   registrationFeedback = null,
   services = availableServices,
-  onRetryServices
+  onRetryServices,
+  savedLearnerProfile = null,
+  onEditLearnerProfile
 }: StudentExperienceProps) {
   const { instance, accounts } = useMsal();
   const account = accounts[0];
@@ -90,23 +97,40 @@ export function StudentExperience({
   const accountId = account?.homeAccountId ?? "";
   const canSyncAcademyAccount = profile?.tenantId?.toLowerCase() === skunkworksTenantId.toLowerCase();
   // Private pilot is opt-in until real authenticated browser acceptance testing is complete.
-  const adaptivePilot = Boolean(account && profile) && (
+  const adaptivePilot = !savedLearnerProfile && Boolean(account && profile) && (
     import.meta.env.VITE_ENABLE_SKUNKIE_ADAPTIVE === "true" ||
     new URLSearchParams(window.location.search).get("skunkiePilot") === "1"
   );
-  const [view, updateView] = useState<StudentView>(studentViewFromLocation);
+  const [view, updateView] = useState<StudentView>(() => studentViewFromLocation(Boolean(savedLearnerProfile)));
+  const openSavedAssessment = useCallback(() => {
+    if (!savedLearnerProfile || !onEditLearnerProfile) return false;
+    // The gate owns the confirmed profile. Never mount an independent editor
+    // that could save/delete it without refreshing the configured workspace.
+    const url = new URL(window.location.href);
+    url.searchParams.set("student", "dashboard");
+    window.history.replaceState(null, "", url);
+    updateView("dashboard");
+    onEditLearnerProfile();
+    return true;
+  }, [savedLearnerProfile, onEditLearnerProfile]);
   function setView(next: StudentView) {
     if (next === "profile") { window.location.assign("/?account=profile"); return; }
+    if (next === "assessment" && openSavedAssessment()) return;
     updateView(next);
     const url = new URL(window.location.href);
     url.searchParams.set("student", next);
     window.history.pushState(null, "", url);
   }
   useEffect(() => {
-    const onHistory = () => updateView(studentViewFromLocation());
+    const onHistory = () => {
+      const requested = studentViewFromLocation(Boolean(savedLearnerProfile));
+      if (requested === "assessment" && openSavedAssessment()) return;
+      updateView(requested);
+    };
     window.addEventListener("popstate", onHistory);
+    onHistory();
     return () => window.removeEventListener("popstate", onHistory);
-  }, []);
+  }, [savedLearnerProfile, openSavedAssessment]);
   const [learnerState, setLearnerState] = useState<{ accountId: string; data: LearnerPreferences } | null>(null);
   const learnerPreferences = learnerState?.accountId === accountId ? learnerState.data : null;
   // Track account-side persistence separately from browser data so a learner can revoke it.
@@ -324,7 +348,12 @@ export function StudentExperience({
               onReset={() => void resetLearnerPreferences()}
               onNavigate={next => setView(next === "learning" ? "browse" : next)} />
           )}
-          {view === "dashboard" && (!adaptivePilot || learnerSkipped) && (
+          {view === "dashboard" && savedLearnerProfile && <LearnerWorkspacePlan
+            profile={savedLearnerProfile} loadCatalogue={loadAcademyCatalogue}
+            onEdit={onEditLearnerProfile ?? (() => setView("assessment"))}
+            onOpenPractice={() => setView("companion")} onOpenLearning={() => setView("learning")}
+            onBrowse={() => setView("browse")} />}
+          {view === "dashboard" && !savedLearnerProfile && (!adaptivePilot || learnerSkipped) && (
             <section className="student-view student-dashboard-view" aria-label="Student dashboard">
               <div className="student-hero-card">
                 <div>
@@ -359,7 +388,7 @@ export function StudentExperience({
             </section>
           )}
 
-          {view === "assessment" && <LearnerAssessmentWorkspace />}
+          {view === "assessment" && !(savedLearnerProfile && onEditLearnerProfile) && <LearnerAssessmentWorkspace />}
           {view === "idr" && <IndividualRoadmapWorkspace />}
           {view === "lms" && <LmsWorkspace key={"lms:" + accountId} mode="student" query={query} />}
 
@@ -472,7 +501,7 @@ function ProfileSettings({ displayName, portalProfile, registrations }: { displa
   return <section className="student-view" aria-label="Profile and settings">
     <div className="student-section-heading"><div><p className="student-kicker">Your account</p><h2>Profile and settings</h2><p>Your saved Academy profile and active registrations.</p></div></div>
     <div className="student-profile-grid"><article className="student-profile-card"><span className="student-avatar large" aria-hidden="true">{displayName.slice(0, 1).toUpperCase()}</span><h2>{displayName}</h2><p>{portalProfile.location || "Location not provided"} · Student</p><dl><div><dt>Registrations</dt><dd>{registrations}</dd></div></dl></article>
-      <article className="student-settings-card"><h2>Account privacy</h2><p>Microsoft manages sign-in and authentication. Personal learning preferences will appear here when supported by the Academy account service.</p><a href="https://www.skunkworksacademy.com/privacystatement" target="_blank" rel="noopener noreferrer">Read privacy statement</a></article>
+      <article className="student-settings-card"><h2>Your account controls</h2><p>Edit your Academy details, appearance and motion settings on your account pages. Your learning setup can be changed through My learner assessment.</p><p><a href="/?account=profile">Edit profile</a> · <a href="/?account=settings">Account settings</a></p><a href="https://www.skunkworksacademy.com/privacy.html" target="_blank" rel="noopener noreferrer">Read privacy statement</a></article>
     </div>
   </section>;
 }
