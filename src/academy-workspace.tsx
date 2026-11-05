@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ApplicationRecord, ClassSession, CourseRecord, JobPosting, PortalProfile, PortalRole, UserProfile } from "./types";
 import { linkedAcademyServices } from "./academy-service-registry";
 import { LmsWorkspace } from "./lms-workspace";
+import { PortalSidebarNavigation, usePortalSidebar } from "./PortalSidebarNavigation";
 import { availableServices, PortalServiceNotice, type PortalServiceAvailability } from "./service-availability";
 import "./academy-workspace.css";
 
@@ -57,7 +58,8 @@ export function AcademyWorkspace({ profile, role, courses, classes, jobs, applic
   const nav = useMemo(() => getVisibleAcademyNavigation(isStaff), [isStaff]);
   const [view, setView] = useState<View>("overview");
   const [search, setSearch] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
+  const sidebar = usePortalSidebar();
+  const menuOpen = sidebar.open;
   const searchRef = useRef<HTMLInputElement>(null);
   const visible = nav.filter((item) => `${item.label} ${item.detail} ${item.group}`.toLowerCase().includes(search.trim().toLowerCase()));
   const current = nav.find((item) => item.id === view) ?? nav[0];
@@ -68,13 +70,13 @@ export function AcademyWorkspace({ profile, role, courses, classes, jobs, applic
         event.preventDefault();
         searchRef.current?.focus();
       }
-      if (event.key === "Escape") { setMenuOpen(false); searchRef.current?.blur(); }
+      if (event.key === "Escape" && !event.defaultPrevented) { searchRef.current?.blur(); }
     };
     document.addEventListener("keydown", shortcut);
     return () => document.removeEventListener("keydown", shortcut);
   }, []);
 
-  const openView = (next: View) => { setView(next); setMenuOpen(false); setSearch(""); };
+  const openView = (next: View) => { setView(next); if (!window.matchMedia("(min-width: 921px)").matches) sidebar.close(); setSearch(""); };
   const shownCourses = courses.filter((item) => `${item.title} ${item.level}`.toLowerCase().includes(search.toLowerCase()));
   const shownClasses = classes.filter((item) => `${item.title} ${item.courseTitle}`.toLowerCase().includes(search.toLowerCase()));
   const shownJobs = jobs.filter((item) => `${item.title} ${item.programme}`.toLowerCase().includes(search.toLowerCase()));
@@ -83,8 +85,8 @@ export function AcademyWorkspace({ profile, role, courses, classes, jobs, applic
   return (
     <div className="aw-shell">
       <a href="#aw-main" className="skip-link">Skip to workspace</a>
-      {menuOpen && <button className="aw-overlay" onClick={() => setMenuOpen(false)} type="button" aria-label="Close navigation" />}
-      <aside className={menuOpen ? "aw-sidebar is-open" : "aw-sidebar"} aria-label="Academy workspace navigation">
+      {menuOpen && <button className="aw-overlay" onClick={sidebar.close} type="button" aria-label="Close navigation" />}
+      <aside id="academy-portal-sidebar" className={menuOpen ? "aw-sidebar is-open" : "aw-sidebar"} aria-label="Academy workspace navigation">
         <a href="https://www.skunkworksacademy.com/" className="aw-brand">
           <img src="https://www.skunkworksacademy.com/images/favicon-white.png" alt="" width="42" height="42" />
           <span><strong>SKUNKWORKS</strong><small>ACADEMY / PORTAL</small></span>
@@ -100,8 +102,9 @@ export function AcademyWorkspace({ profile, role, courses, classes, jobs, applic
             </div>;
           })}
         </nav>
+        <PortalSidebarNavigation onNavigate={sidebar.close} />
         <div className="aw-sidebar-end">
-          <button type="button" className="aw-account" onClick={() => openView("settings")}>
+          <button type="button" className="aw-account" onClick={() => window.location.assign("/?account=profile")}>
             <span className="aw-avatar">{initials(profile.name)}</span>
             <span><strong>{profile.name}</strong><small>{role} · Microsoft Entra</small></span>
           </button>
@@ -112,12 +115,12 @@ export function AcademyWorkspace({ profile, role, courses, classes, jobs, applic
       <div className="aw-content">
         <header className="aw-topbar">
           <div className="aw-topbar-leading">
-            <button className="aw-menu-button" type="button" onClick={() => setMenuOpen((v) => !v)} aria-expanded={menuOpen} aria-label="Toggle workspace navigation">☰</button>
+            <button className="aw-menu-button" type="button" onClick={sidebar.toggle} aria-expanded={menuOpen} aria-controls="academy-portal-sidebar" aria-label="Toggle workspace navigation">☰</button>
             <div><p className="aw-overline">SKUNKWORKS ACADEMY / {role.toUpperCase()}</p><h1>{current.label}</h1></div>
           </div>
           <div className="aw-topbar-actions">
             <label className="aw-search"><span aria-hidden="true">⌕</span><input ref={searchRef} aria-label="Search workspace navigation and records" placeholder="Search workspace…" value={search} onChange={(event) => setSearch(event.target.value)} /><kbd>⌘K</kbd></label>
-            <button className="aw-topbar-avatar" type="button" onClick={() => openView("settings")} aria-label="Account and access">{initials(profile.name)}</button>
+            <button className="aw-topbar-avatar" type="button" onClick={() => window.location.assign("/?account=profile")} aria-label="Account and access">{initials(profile.name)}</button>
           </div>
         </header>
 
@@ -160,9 +163,8 @@ export function AcademyWorkspace({ profile, role, courses, classes, jobs, applic
 
           {view === "finance" && isStaff && <section className="aw-panel"><p className="aw-overline">ACADEMY OPERATIONS</p><h2>Finance and reporting</h2><EmptyState title="Financial data source not connected" detail="This module intentionally has no sample invoices, payments or revenue figures. Connect and authorise a finance service through the backend before enabling financial transactions or reports." /><p className="aw-muted-note">Recommended foundation: a server-side integration with role-based authorisation, reconciliation, approval workflow and audit logs.</p></section>}
 
-          {view === "settings" && <section className="aw-panel"><p className="aw-overline">IDENTITY AND ACCESS</p><h2>My Microsoft account</h2><dl className="aw-details"><div><dt>Name</dt><dd>{profile.name}</dd></div><div><dt>Microsoft sign-in</dt><dd>{profile.username}</dd></div><div><dt>Workspace role</dt><dd>{role}</dd></div><div><dt>Tenant</dt><dd>{profile.tenantId ?? "Unknown"}</dd></div><div><dt>Role claims</dt><dd>{profile.roles.length ? profile.roles.join(", ") : "No app role returned"}</dd></div></dl><p className="aw-muted-note">Authentication is provided by Microsoft Entra ID. Staff-only modules require a verified tenant and the relevant application-role claim; interface controls do not grant backend permissions.</p><div className="aw-button-row"><button type="button" className="aw-action" onClick={onManage}>Open existing account tools</button><button type="button" className="aw-action secondary" onClick={onSignOut}>Sign out of Microsoft</button><ExternalLink href="mailto:training@skunkworks.africa">Contact support</ExternalLink></div></section>}
+          {view === "settings" && <section className="aw-panel"><p className="aw-overline">IDENTITY AND ACCESS</p><h2>My Microsoft account</h2><dl className="aw-details"><div><dt>Name</dt><dd>{profile.name}</dd></div><div><dt>Microsoft sign-in</dt><dd>{profile.username}</dd></div><div><dt>Workspace role</dt><dd>{role}</dd></div><div><dt>Tenant</dt><dd>{profile.tenantId ?? "Unknown"}</dd></div><div><dt>Role claims</dt><dd>{profile.roles.length ? profile.roles.join(", ") : "No app role returned"}</dd></div></dl><p className="aw-muted-note">Authentication is provided by Microsoft Entra ID. Staff-only modules require a verified tenant and the relevant application-role claim; interface controls do not grant backend permissions.</p><div className="aw-button-row"><a className="aw-action" href="/?account=profile">Edit Academy profile</a><a className="aw-action secondary" href="/?account=settings">Portal settings</a><button type="button" className="aw-action secondary" onClick={onSignOut}>Sign out of Microsoft</button><ExternalLink href="mailto:training@skunkworks.africa">Contact support</ExternalLink></div></section>}
 
-          <footer className="aw-footer"><span>© Skunkworks Academy · Secure operational workspace</span><span>Microsoft Entra ID · SharePoint · Role-based access</span><a href="https://www.skunkworksacademy.com/">Academy website</a></footer>
         </main>
       </div>
     </div>

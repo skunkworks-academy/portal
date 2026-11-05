@@ -16,7 +16,7 @@ import "./form-field-metadata";
 
 // Load the Academy-wide menu only after Microsoft Entra has returned a valid account.
 // This prevents a pre-auth navigation leak or flash of workspace links.
-const academyNavigationUrl = "https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.08.14.2";
+const academyNavigationUrl = "https://skunkworksacademy.com/assets/academy-navigation.js?v=2026.08.14.2&nav=2026.11.05.1";
 const msalInstance = new PublicClientApplication(msalConfig);
 const rootElement = document.getElementById("root");
 

@@ -19,6 +19,8 @@ import { StudentExperience } from "./student-experience";
 import { CertificateWallet } from "./CertificateWallet";
 import { PortalLanding } from "./landing-page";
 import { AcademyWorkspace } from "./academy-workspace";
+import { AccountPages, AccountPreferences } from "./AccountPages";
+import { PortalAccountLayout } from "./PortalSidebarNavigation";
 import { hasStaffRole, landingRoles, roleDefinitions, roleFromClaims } from "./roles";
 import type {
   ApplicationRecord,
@@ -124,9 +126,16 @@ function formatRole(profile: UserProfile | null, selectedRole: PortalRole) {
 }
 
 export function App({ startupNotice = "" }: { startupNotice?: string }) {
+  const { accounts } = useMsal();
+  return <><AccountPreferences accountId={accounts[0]?.homeAccountId ?? null} /><PortalContent startupNotice={startupNotice} /></>;
+}
+
+function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
   const { instance, accounts } = useMsal();
   const account = accounts[0];
   const profile = useMemo(() => getProfile(account), [account]);
+  const requestedAccountPage = new URLSearchParams(window.location.search).get("account");
+  const accountPage = requestedAccountPage === "profile" || requestedAccountPage === "settings" ? requestedAccountPage : null;
   const [selectedRole, setSelectedRole] = useState<PortalRole>(() => {
     const stored = localStorage.getItem("portalRoleOverride");
     return stored === "Instructor" || stored === "Staff" || stored === "Student" ? stored : "Student";
@@ -196,7 +205,7 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
 
   useEffect(() => {
     // Do not request workspace records before a Microsoft session exists.
-    if (!account) {
+    if (!account || accountPage) {
       setServices(loadingServices);
       return;
     }
@@ -231,10 +240,11 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
     return () => {
       cancelled = true;
     };
-  }, [account?.homeAccountId, refreshServices]);
+  }, [account?.homeAccountId, refreshServices, accountPage]);
 
   useEffect(() => {
-    if (!auth || !profile) return;
+    // Account pages load their own profile and write only on explicit Save.
+    if (!auth || !profile || accountPage) return;
     void run(async () => {
       const existingProfile = await portalApi.myProfile(auth);
       // The first verified Microsoft sign-in is also learner registration.
@@ -262,30 +272,30 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
             }
       );
     });
-  }, [account?.homeAccountId]);
+  }, [account?.homeAccountId, accountPage]);
 
   useEffect(() => {
-    if (!auth || activeRole !== "Student") return;
+    if (!auth || accountPage || activeRole !== "Student") return;
     void run(async () => {
       setRegistrations(await portalApi.myClasses(auth));
     });
-  }, [account?.homeAccountId, activeRole]);
+  }, [account?.homeAccountId, activeRole, accountPage]);
 
   useEffect(() => {
-    if (!auth || activeRole !== "Instructor") return;
+    if (!auth || accountPage || activeRole !== "Instructor") return;
     void run(async () => {
       setApplications(await portalApi.myApplications(auth));
     });
-  }, [account?.homeAccountId, activeRole]);
+  }, [account?.homeAccountId, activeRole, accountPage]);
 
   useEffect(() => {
-    if (!auth || !profile?.isAdmin) return;
+    if (!auth || accountPage || !profile?.isAdmin) return;
     void run(async () => {
       const [nextApplications, nextProfiles] = await Promise.all([portalApi.adminApplications(auth), portalApi.adminProfiles(auth)]);
       setAdminApplications(nextApplications);
       setAdminProfiles(nextProfiles);
     });
-  }, [account?.homeAccountId, profile?.isAdmin]);
+  }, [account?.homeAccountId, profile?.isAdmin, accountPage]);
 
   async function registerForClass(classId: string) {
     if (!auth) {
@@ -343,26 +353,6 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
     }, "Instructor application submitted.");
   }
 
-  async function saveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!auth) {
-      await signIn(activeRole);
-      return;
-    }
-
-    await run(async () => {
-      const saved = await portalApi.updateProfile({ ...portalProfile, portalRole: activeRole }, auth);
-      setPortalProfile({
-        displayName: saved.displayName,
-        portalRole: saved.portalRole,
-        phone: saved.phone,
-        location: saved.location,
-        bio: saved.bio,
-        cvFileName: saved.cvFileName
-      });
-    }, "Profile saved.");
-  }
-
   async function createJob(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!auth || !profile?.isAdmin) return;
@@ -397,6 +387,10 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
         source: "portal";
         authenticated: boolean;
         userName?: string;
+        workspaceRole?: PortalRole;
+        workspaceNavigation?: "sidebar";
+        profileUrl?: string;
+        settingsUrl?: string;
         signInLabel: string;
         signOutLabel: string;
         signIn: () => void;
@@ -408,6 +402,10 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
       source: "portal",
       authenticated: Boolean(profile),
       userName: profile?.name,
+      workspaceRole: profile ? activeRole : undefined,
+      workspaceNavigation: profile ? "sidebar" : undefined,
+      profileUrl: profile ? new URL("/?account=profile", window.location.origin).href : undefined,
+      settingsUrl: profile ? new URL("/?account=settings", window.location.origin).href : undefined,
       signInLabel: "Sign in",
       signOutLabel: "Sign out",
       signIn: () => { void signIn(activeRole); },
@@ -421,14 +419,16 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
         window.dispatchEvent(new Event("skunkworksacademy:account-change"));
       }
     };
-  }, [activeRole, profile?.name]);
+  }, [activeRole, profile?.name, account?.homeAccountId, instance]);
 
   if (!profile) {
     return <PortalLanding startupNotice={startupNotice} onSignIn={() => signIn("Student")} />;
   }
 
+  if (accountPage && auth) return <PortalAccountLayout><AccountPages page={accountPage} auth={auth} profile={profile} activeRole={activeRole} /></PortalAccountLayout>;
+
   const requestedAward = new URLSearchParams(window.location.search).get("certificate");
-  if(requestedAward)return <CertificateWallet courseId={requestedAward} auth={auth} isStaff={Boolean(profile.isAdmin)} onSignOut={()=>void signOut()}/>;
+  if(requestedAward)return <PortalAccountLayout><CertificateWallet courseId={requestedAward} auth={auth} isStaff={Boolean(profile.isAdmin)} onSignOut={()=>void signOut()}/></PortalAccountLayout>;
 
   const roleSelector = availableRoles.length > 1 ? (
     <nav aria-label="Switch Academy workspace" style={{
@@ -487,7 +487,7 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
   }
 
   return (
-    <div className="portal-page">
+    <PortalAccountLayout><div className="portal-page">
       {roleSelector}
       <main id="main" className="portal-main">
         <div className="legacy-portal-toolbar"><button type="button" className="primary-action" onClick={() => setShowLegacyManagement(false)}>← Back to Academy workspace</button><span>Existing management tools · Microsoft Entra secured</span></div>
@@ -563,7 +563,7 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
 
         <section className="content-grid" aria-label="Instructor jobs and profile">
           <JobSection jobs={visibleJobs} profile={profile} submitApplication={submitApplication} />
-          <ProfilePanel profile={profile} activeRole={activeRole} portalProfile={portalProfile} setPortalProfile={setPortalProfile} saveProfile={saveProfile} />
+          <ProfilePanel profile={profile} activeRole={activeRole} />
         </section>
 
         <section className="content-grid" aria-label="Role-specific operations">
@@ -583,7 +583,7 @@ export function App({ startupNotice = "" }: { startupNotice?: string }) {
           )}
         </section>
       </main>
-    </div>
+    </div></PortalAccountLayout>
   );
 }
 
@@ -730,19 +730,7 @@ function JobSection({ jobs, profile, submitApplication }: { jobs: JobPosting[]; 
   );
 }
 
-function ProfilePanel({
-  profile,
-  activeRole,
-  portalProfile,
-  setPortalProfile,
-  saveProfile
-}: {
-  profile: UserProfile | null;
-  activeRole: PortalRole;
-  portalProfile: PortalProfileInput;
-  setPortalProfile: React.Dispatch<React.SetStateAction<PortalProfileInput>>;
-  saveProfile: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-}) {
+function ProfilePanel({ profile, activeRole }: { profile: UserProfile | null; activeRole: PortalRole }) {
   return (
     <section className="command-panel">
       <p className="eyebrow">Identity and profile</p>
@@ -753,20 +741,8 @@ function ProfilePanel({
         <div><dt>Tenant</dt><dd>{profile?.tenantId ?? skunkworksTenantId}</dd></div>
         <div><dt>Role</dt><dd>{formatRole(profile, activeRole)}</dd></div>
       </dl>
-      <form className="form-panel" onSubmit={(event) => void saveProfile(event)}>
-        <label>Display name<input value={portalProfile.displayName} onChange={(event) => setPortalProfile((current) => ({ ...current, displayName: event.target.value }))} /></label>
-        <label>Phone<input value={portalProfile.phone} onChange={(event) => setPortalProfile((current) => ({ ...current, phone: event.target.value }))} /></label>
-        <label>Location<input value={portalProfile.location} onChange={(event) => setPortalProfile((current) => ({ ...current, location: event.target.value }))} /></label>
-        <label>Role
-          <select value={portalProfile.portalRole} onChange={(event) => setPortalProfile((current) => ({ ...current, portalRole: event.target.value as PortalRole }))}>
-            <option value="Student">Student</option>
-            <option value="Instructor">Instructor</option>
-            <option value="Staff">Staff</option>
-          </select>
-        </label>
-        <label className="full">Bio<textarea value={portalProfile.bio} onChange={(event) => setPortalProfile((current) => ({ ...current, bio: event.target.value }))} /></label>
-        <button type="submit">Save profile</button>
-      </form>
+      <p>Manage your Academy details on your account pages. Microsoft sign-in and permissions are administered separately.</p>
+      <div className="landing-actions"><a className="primary-action" href="/?account=profile">Edit profile</a><a className="ghost-action" href="/?account=settings">Settings</a></div>
     </section>
   );
 }

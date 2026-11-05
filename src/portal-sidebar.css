@@ -1,0 +1,31 @@
+body[data-portal-workspace]{--swa-portal-footer-inset-inline-start:264px}
+body[data-portal-sidebar-open=false]{--swa-portal-footer-inset-inline-start:0px}
+.portal-canonical-navigation{margin-top:20px;padding-top:16px;border-top:1px solid currentColor;font-size:14px}
+.portal-canonical-navigation>p{font-size:11px;letter-spacing:.1em;font-weight:800;opacity:.8}
+.portal-canonical-navigation details{margin:4px 0}.portal-canonical-navigation summary{cursor:pointer;min-height:44px;padding:12px 8px;font-weight:700}
+.portal-canonical-navigation ul{list-style:none;margin:0;padding:0 0 10px 8px}.portal-canonical-navigation a{display:block;min-height:40px;padding:10px 8px;color:inherit;text-decoration:none;overflow-wrap:anywhere}
+.portal-canonical-navigation :is(a,summary):focus-visible,.portal-account-sidebar>a:focus-visible{outline:3px solid #f24208;outline-offset:2px}
+.portal-canonical-navigation :is(a,summary):hover{background:rgba(128,128,128,.18);border-radius:6px}
+.portal-account-layout{display:grid;grid-template-columns:264px minmax(0,1fr);min-height:80vh}
+.portal-account-sidebar{display:flex;flex-direction:column;padding:24px 18px;background:#0b1425;color:#f8fafc;position:sticky;top:var(--swa-nav-height,80px);height:calc(100dvh - var(--swa-nav-height,80px));overflow:auto;z-index:100}
+.portal-account-sidebar>a{padding:12px 8px;min-height:44px;color:inherit;text-decoration:none;font-weight:700}
+.portal-account-layout>.account-page{width:100%;min-width:0}
+.portal-sidebar-overlay{display:none}.portal-sidebar-fallback-toggle{display:none}
+body[data-portal-workspace] :is(.aw-shell,.student-shell){grid-template-columns:264px minmax(0,1fr)}
+body[data-portal-workspace] :is(.aw-sidebar,.student-sidebar){width:264px;overflow-y:auto}
+@media(min-width:921px){
+  body[data-portal-sidebar-open=false] :is(.aw-sidebar,.student-sidebar,.portal-account-sidebar){display:none}
+  body[data-portal-sidebar-open=false] :is(.aw-shell,.student-shell,.portal-account-layout){grid-template-columns:minmax(0,1fr)}
+  body[data-portal-workspace] .aw-shell .aw-sidebar{transform:none!important}
+}
+@media(max-width:920px){
+  body[data-portal-workspace]{--swa-portal-footer-inset-inline-start:0px}
+  body[data-portal-workspace] :is(.student-shell,.portal-account-layout){display:block}
+  body[data-portal-workspace] :is(.aw-sidebar,.student-sidebar,.portal-account-sidebar){position:fixed;inset:0 auto 0 0;width:min(290px,87vw);height:100dvh;z-index:1001;transform:translateX(-103%);visibility:hidden;overflow:auto}
+  body[data-portal-workspace] :is(.aw-sidebar,.student-sidebar,.portal-account-sidebar).is-open{transform:translateX(0);visibility:visible}
+  body[data-portal-workspace] .student-nav{display:grid;overflow:visible}
+  body[data-portal-workspace] .student-sidebar-footer{display:grid}
+  body[data-portal-workspace] :is(.portal-sidebar-overlay,.aw-shell .aw-overlay){display:block;position:fixed;inset:0;z-index:1000;border:0;border-radius:0;background:rgba(5,12,23,.6);padding:0}
+  body:not(.swa-has-global-nav) .portal-sidebar-fallback-toggle{display:block;min-height:44px;margin:12px}
+}
+@media(prefers-reduced-motion:reduce){.portal-canonical-navigation *{animation:none!important;transition:none!important}}
