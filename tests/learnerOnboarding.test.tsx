@@ -26,6 +26,7 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); host.remove(); });
 describe("durable first-run learner setup", () => {
   it("opens only a confirmed saved journey, never browser-only or old preference records", async () => {
+    expect(hasSavedLearnerJourney({} as SkunkieLearnerProfile)).toBe(false);
     expect(hasSavedLearnerJourney({ ...saved, assessment })).toBe(false);
     sessionStorage.setItem(onboardingDraftKey("a"), JSON.stringify({ step: 3, assessment, journey, consent: true }));
     await render(); expect(host.querySelector('[data-testid="workspace"]')).toBeNull();
@@ -48,6 +49,7 @@ describe("durable first-run learner setup", () => {
   it("does not save defaults if the existing account profile failed to load", async () => {
     api.mySkunkieAssessment.mockRejectedValue(Error("blocked")); await render();
     expect(host.textContent).toContain("Retry account check"); expect(api.saveSkunkieAssessment).not.toHaveBeenCalled(); expect(host.querySelector('[data-testid="workspace"]')).toBeNull();
+    expect(host.querySelector<HTMLFieldSetElement>("form > fieldset")?.disabled).toBe(true);
   });
   it("does not let a late account-A result open the account-B workspace", async () => {
     let resolveA!: (profile: SkunkieLearnerProfile) => void;

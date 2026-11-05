@@ -22,8 +22,10 @@ export function LearnerOnboardingGate({ enabled, children }: GateProps) {
 type Draft = { step: number; assessment: SkunkieLearnerAssessment; journey: JourneyInput; consent: boolean };
 export const onboardingDraftKey = (accountId: string) => `academy:learner-setup-draft:v1:${encodeURIComponent(accountId)}`;
 export function hasSavedLearnerJourney(profile: SkunkieLearnerProfile | null): boolean {
-  if (!profile?.assessment.consentToStore || !profile.assessment.journey) return false;
-  try { return createLearnerJourney(profile.assessment.journey).checkAnswers.length === journeyQuestions.length; } catch { return false; }
+  try {
+    if (!profile?.assessment?.consentToStore || !profile.assessment.journey) return false;
+    return createLearnerJourney(profile.assessment.journey).checkAnswers.length === journeyQuestions.length;
+  } catch { return false; }
 }
 function initialDraft(profile: SkunkieLearnerProfile | null): Draft {
   const assessment: SkunkieLearnerAssessment = profile?.assessment ?? {
@@ -128,7 +130,7 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
       {error && <div role="alert"><p>{error}</p>{!loaded && <button type="button" disabled={loading} onClick={() => setRetry(value => value + 1)}>Retry account check</button>}</div>}
       {draftNotice && <p role="status">{draftNotice}</p>}
       {!loading && <form onSubmit={event => { event.preventDefault(); if (draft.step === 3) void save(); else { voice.stopAudio(); setDraft(value => ({ ...value, step: value.step + 1 })); } }}>
-        <fieldset disabled={busy}>
+        <fieldset disabled={busy || !loaded}>
           {draft.step === 0 && <>
             <label>Your goal<select value={draft.assessment.studyGoal} onChange={event => patchAssessment({ studyGoal: event.target.value as SkunkieLearnerAssessment["studyGoal"] })}><option value="skills">Develop practical skills</option><option value="career">Explore a career direction</option><option value="certification">Prepare for a certification</option><option value="explore">Find a starting point</option></select></label>
             <label>Tell Skunkie what you want to work on<textarea rows={2} maxLength={1000} value={draft.assessment.notes || ""} onChange={event => patchAssessment({ notes: event.target.value })} placeholder="A task, subject or question you want help with" /></label>
