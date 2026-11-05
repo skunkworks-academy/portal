@@ -15,6 +15,9 @@ export class ScimError extends Error {
 }
 export interface ScimStore extends Pick<LmsStore, "get" | "put" | "list"> {
   delete(collection: string, key: string): Promise<void>;
+  /** Optional in-memory test adapters can omit versioning; Cosmos implements both methods. */
+  getWithEtag?<T>(collection: string, key: string): Promise<{ value: T; etag: string } | null>;
+  putIfMatch?<T>(collection: string, key: string, value: T, etag: string): Promise<void>;
 }
 export type ScimUser = {
   id: string; organizationId: string; userName: string; externalId?: string;
@@ -162,6 +165,31 @@ export class ScimService {
     if (!safeOrg.test(org) || !base.startsWith("https://")) throw new ScimError(503, "SCIM service configuration invalid.");
   }
   private collection(kind: ResourceKind) { return kind === "Users" ? "scimUsers" : "scimGroups"; }
+  private async loadForWrite(kind: ResourceKind, id: string): Promise<{ record: ScimResource; etag: string | null } | null> {
+    const collection = this.collection(kind);
+    const recordKey = key(this.org, id);
+    if (this.store.getWithEtag && this.store.putIfMatch) {
+      const current = await this.store.getWithEtag<ScimResource>(collection, recordKey);
+      if (!current || current.value.organizationId !== this.org) return null;
+      return { record: current.value, etag: current.etag };
+    }
+    const record = await this.store.get<ScimResource>(collection, recordKey);
+    return record?.organizationId === this.org ? { record, etag: null } : null;
+  }
+  private async saveExisting(kind: ResourceKind, id: string, resource: ScimResource, etag: string | null) {
+    try {
+      if (etag !== null && this.store.putIfMatch) {
+        await this.store.putIfMatch(this.collection(kind), key(this.org, id), resource, etag);
+      } else {
+        await this.store.put(this.collection(kind), key(this.org, id), resource);
+      }
+    } catch (error) {
+      if (error instanceof Error && /conflict|precondition/i.test(error.message)) {
+        throw new ScimError(409, "Concurrent SCIM resource modification; retry using the latest state.");
+      }
+      throw error;
+    }
+  }
   async get(kind: ResourceKind, id: string, excludeMembers = false) {
     const record = await this.store.get<ScimResource>(this.collection(kind), key(this.org, id));
     if (!record || record.organizationId !== this.org) throw new ScimError(404, "Resource not found.");
@@ -208,17 +236,19 @@ export class ScimService {
     return scimResponse(record, this.base);
   }
   async replace(kind: ResourceKind, id: string, body: unknown) {
-    const existing = await this.store.get<ScimResource>(this.collection(kind), key(this.org, id));
-    if (!existing || existing.organizationId !== this.org) throw new ScimError(404, "Resource not found.");
+    const stored = await this.loadForWrite(kind, id);
+    if (!stored) throw new ScimError(404, "Resource not found.");
+    const existing = stored.record;
     const next = kind === "Users" ? userInput(body, this.org, existing as ScimUser) : groupInput(body, this.org, existing as ScimGroup);
     await this.assertUnique(kind, next);
     if ("members" in next) await this.assertMembers(next.members);
-    await this.store.put(this.collection(kind), key(this.org, id), next);
+    await this.saveExisting(kind, id, next, stored.etag);
     return scimResponse(next, this.base);
   }
   async patch(kind: ResourceKind, id: string, body: unknown) {
-    const existing = await this.store.get<ScimResource>(this.collection(kind), key(this.org, id));
-    if (!existing || existing.organizationId !== this.org) throw new ScimError(404, "Resource not found.");
+    const stored = await this.loadForWrite(kind, id);
+    if (!stored) throw new ScimError(404, "Resource not found.");
+    const existing = stored.record;
     const patch = object(body);
     if (!Array.isArray(patch.Operations) || patch.Operations.length < 1 || patch.Operations.length > 50) throw new ScimError(400, "Invalid PATCH operations.", "invalidSyntax");
     const draft = structuredClone(existing) as ScimResource;
@@ -233,7 +263,7 @@ export class ScimService {
     draft.modifiedAt = timestamp();
     await this.assertUnique(kind, draft);
     if ("members" in draft) await this.assertMembers(draft.members);
-    await this.store.put(this.collection(kind), key(this.org, id), draft);
+    await this.saveExisting(kind, id, draft, stored.etag);
     return scimResponse(draft, this.base);
   }
   private patchUser(user: ScimUser, action: string, path: string | undefined, value: unknown) {
@@ -291,11 +321,11 @@ export class ScimService {
     }
   }
   async remove(kind: ResourceKind, id: string) {
-    const existing = await this.store.get<ScimResource>(this.collection(kind), key(this.org, id));
-    if (!existing || existing.organizationId !== this.org) return; // idempotent deletion
+    const stored = await this.loadForWrite(kind, id);
+    if (!stored) return; // idempotent deletion
     if (kind === "Users") {
-      const next = { ...(existing as ScimUser), active: false, modifiedAt: timestamp() };
-      await this.store.put("scimUsers", key(this.org, id), next);
+      const next = { ...(stored.record as ScimUser), active: false, modifiedAt: timestamp() };
+      await this.saveExisting(kind, id, next, stored.etag);
     } else {
       await this.store.delete("scimGroups", key(this.org, id));
     }
