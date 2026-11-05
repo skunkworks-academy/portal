@@ -5,6 +5,7 @@ import { CosmosLmsStore } from "./lmsCosmosStore.js";
 import type { LmsContext } from "./lmsDomain.js";
 import { SkunkieOrchestrationService } from "./skunkieOrchestration.js";
 import { failure, HttpError, json, readJson } from "./http.js";
+import { ownLearnerContext } from "./learnerCapability.js";
 
 const credential = new DefaultAzureCredential();
 export async function skunkieRequestContext(request: HttpRequest) {
@@ -21,17 +22,18 @@ export async function skunkieRequestContext(request: HttpRequest) {
   const ctx: LmsContext = { principal, organizationId, role };
   return { service: new SkunkieOrchestrationService(store), ctx };
 }
-async function handle(request: HttpRequest, run: (service: SkunkieOrchestrationService, ctx: LmsContext) => Promise<unknown>) {
+async function handle(request: HttpRequest, run: (service: SkunkieOrchestrationService, ctx: LmsContext) => Promise<unknown>, purpose: "management" | "learner" = "management") {
   try {
     const { service, ctx } = await skunkieRequestContext(request);
-    return { ...json(request, await run(service, ctx)), headers: { ...json(request, {}).headers, "Cache-Control": "no-store" } };
+    const scoped = purpose === "learner" ? ownLearnerContext(ctx) : ctx;
+    return { ...json(request, await run(service, scoped)), headers: { ...json(request, {}).headers, "Cache-Control": "no-store" } };
   } catch (error) { return failure(request, error instanceof HttpError ? error : new HttpError(503, "Skunkie learning service is temporarily unavailable.")); }
 }
 app.http("skunkieLearningContext", { methods: ["GET"], authLevel: "anonymous", route: "me/skunkie/context",
-  handler: request => handle(request, (service, ctx) => service.context(ctx)) });
+  handler: request => handle(request, (service, ctx) => service.context(ctx), "learner") });
 app.http("skunkieNetworkingAssess", { methods: ["POST"], authLevel: "anonymous", route: "me/skunkie/networking/assess",
-  handler: request => handle(request, async (service, ctx) => service.assess(ctx, await readJson(request))) });
+  handler: request => handle(request, async (service, ctx) => service.assess(ctx, await readJson(request)), "learner") });
 app.http("skunkieActivityEvaluate", { methods: ["POST"], authLevel: "anonymous", route: "me/skunkie/sessions/{sessionId}/evaluate",
-  handler: request => handle(request, async (service, ctx) => service.evaluate(ctx, request.params.sessionId, await readJson(request))) });
+  handler: request => handle(request, async (service, ctx) => service.evaluate(ctx, request.params.sessionId, await readJson(request)), "learner") });
 app.http("skunkieCurriculumBind", { methods: ["PUT"], authLevel: "anonymous", route: "staff/skunkie/curriculum/{courseId}",
   handler: request => handle(request, async (service, ctx) => service.bindCurriculum(ctx, request.params.courseId, await readJson(request))) });
