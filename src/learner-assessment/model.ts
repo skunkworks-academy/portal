@@ -1,3 +1,5 @@
+import type { LearnerJourney } from "./journey.js";
+
 /** Skunkie learner assessment: distinct from career-development/IDR assessment. */
 export interface SkunkieLearnerAssessment {
   schemaVersion: 1;
@@ -12,6 +14,8 @@ export interface SkunkieLearnerAssessment {
   supportNeeds: string[];
   language?: string;
   notes?: string;
+  /** Optional v1 workspace choices and authored practice-check evidence. */
+  journey?: LearnerJourney;
 }
 export interface SkunkieLearnerProfile {
   schemaVersion: 1;

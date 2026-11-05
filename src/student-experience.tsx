@@ -16,6 +16,7 @@ import { skunkworksTenantId } from "./authConfig";
 import { LmsWorkspace } from "./lms-workspace";
 import { CourseDiscovery } from "./CourseDiscovery";
 import { CareerResources } from "./CareerResources";
+import { PortalSidebarNavigation, usePortalSidebar } from "./PortalSidebarNavigation";
 import { LearnerAssessmentWorkspace, IndividualRoadmapWorkspace } from "./learner-assessment/workspace";
 import { linkedAcademyServices } from "./academy-service-registry";
 import { availableServices, PortalServiceNotice, type PortalServiceAvailability } from "./service-availability";
@@ -80,6 +81,7 @@ export function StudentExperience({
 }: StudentExperienceProps) {
   const { instance, accounts } = useMsal();
   const account = accounts[0];
+  const sidebar = usePortalSidebar();
   const accountId = account?.homeAccountId ?? "";
   const canSyncAcademyAccount = profile?.tenantId?.toLowerCase() === skunkworksTenantId.toLowerCase();
   // Private pilot is opt-in until real authenticated browser acceptance testing is complete.
@@ -230,7 +232,9 @@ export function StudentExperience({
       data-learner-text={adaptivePilot ? learnerPreferences?.textSize : undefined}
       data-reduce-motion={adaptivePilot && learnerPreferences?.reduceMotion ? "true" : undefined}>
       <a className="skip-link" href="#student-main">Skip to student content</a>
-      <aside className="student-sidebar" aria-label="Student navigation">
+      <button className="portal-sidebar-fallback-toggle" type="button" onClick={sidebar.toggle} aria-expanded={sidebar.open} aria-controls="academy-portal-sidebar">Workspace navigation</button>
+      {sidebar.open && <button className="portal-sidebar-overlay" type="button" onClick={sidebar.close} aria-label="Close workspace navigation" />}
+      <aside id="academy-portal-sidebar" className={sidebar.open ? "student-sidebar is-open" : "student-sidebar"} aria-label="Student navigation">
         <a className="student-brand" href="https://skunkworksacademy.com/" aria-label="Skunkworks Academy home">
           <span className="student-brand-mark" aria-hidden="true">
             <img className="academy-menu-icon academy-menu-icon--dark" src="https://raw.githubusercontent.com/skunkworks-academy/www/refs/heads/main/images/favicon-white.png" alt="" />
@@ -245,14 +249,15 @@ export function StudentExperience({
               key={item.id}
               className={view === item.id ? "student-nav-item active" : "student-nav-item"}
               aria-current={view === item.id ? "page" : undefined}
-              onClick={() => setView(item.id)}
+              onClick={() => { if (item.id === "profile") { window.location.assign("/?account=profile"); return; } setView(item.id); if (!window.matchMedia("(min-width: 921px)").matches) sidebar.close(); }}
             >
               <span aria-hidden="true">{item.icon}</span>{item.label}
             </button>
           ))}
         </nav>
+        <PortalSidebarNavigation onNavigate={sidebar.close} />
         <div className="student-sidebar-footer">
-          <button type="button" className="student-profile-link" onClick={() => setView("profile")}>
+          <button type="button" className="student-profile-link" onClick={() => window.location.assign("/?account=profile")}>
             <span className="student-avatar" aria-hidden="true">{displayName.slice(0, 1).toUpperCase()}</span>
             <span><strong>{displayName}</strong><small>Student account</small></span>
           </button>

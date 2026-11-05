@@ -5,6 +5,7 @@ import { CosmosLmsStore } from "./lmsCosmosStore.js";
 import { empty, failure, HttpError, json, readJson } from "./http.js";
 import type { SkunkieLearnerAssessment, SkunkieLearnerProfile } from "../src/learner-assessment/model.js";
 import type { IdRRoadmap } from "../src/idr/model.js";
+import { createLearnerJourney } from "../src/learner-assessment/journey.js";
 
 const credential = new DefaultAzureCredential();
 const assessmentCollection = "skunkie-assessment-v1";
@@ -46,6 +47,11 @@ export function validateSkunkieAssessment(input: unknown): SkunkieLearnerAssessm
   const supportNeeds = strings(p.supportNeeds, 8, 120);
   if (p.notes !== undefined && (typeof p.notes !== "string" || p.notes.length > 1000)) throw new HttpError(400, "Invalid notes.");
   if (p.language !== undefined && (typeof p.language !== "string" || p.language.length > 32)) throw new HttpError(400, "Invalid language.");
+  let journey: SkunkieLearnerAssessment["journey"];
+  if (p.journey !== undefined) {
+    try { journey = createLearnerJourney(p.journey); }
+    catch { throw new HttpError(400, "Invalid learner journey configuration or practice answers."); }
+  }
   // Timestamps are server authoritative. Questionnaire does not assess aptitude or diagnose disability.
   return {
     schemaVersion: 1, assessmentId: p.assessmentId, updatedAt: new Date().toISOString(),
@@ -56,7 +62,8 @@ export function validateSkunkieAssessment(input: unknown): SkunkieLearnerAssessm
     selfRatedConfidence: p.selfRatedConfidence as 1 | 2 | 3 | 4 | 5,
     interests, supportNeeds,
     ...(p.language ? { language: p.language as string } : {}),
-    ...(p.notes ? { notes: p.notes as string } : {})
+    ...(p.notes ? { notes: p.notes as string } : {}),
+    ...(journey ? { journey } : {})
   };
 }
 
@@ -75,6 +82,12 @@ app.http("skunkieLearnerAssessmentSave", {
     try {
       const { user, store, key } = await context(request);
       const input = validateSkunkieAssessment(await readJson<unknown>(request));
+      // Older assessment editors do not submit journey fields. Preserve the
+      // saved configuration when those editors update the original questionnaire.
+      if (!input.journey) {
+        const existing = await store.get<SkunkieLearnerProfile>(assessmentCollection, key);
+        if (existing?.assessment.journey) input.journey = existing.assessment.journey;
+      }
       const record: SkunkieLearnerProfile = {
         schemaVersion: 1, learnerSubject: user.subject, assessment: input,
         updatedAt: input.updatedAt, aptitudeEvidence: []
