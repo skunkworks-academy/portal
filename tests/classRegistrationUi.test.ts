@@ -46,6 +46,15 @@ describe("student class registration actions", () => {
     expect(classRegistrationAction(classSession, { ...registration, status: "Cancelled" })).toEqual({ kind: "details", label: "Cancelled · View details", disabled: false });
   });
 
+  it("never confirms an existing cancelled registration after the API responds", () => {
+    expect(classRegistrationResultFeedback({ ...registration, status: "Cancelled" })).toMatchObject({
+      type: "error",
+      message: expect.stringContaining("cannot be reactivated")
+    });
+    expect(classRegistrationResultFeedback(registration).type).toBe("success");
+    expect(classRegistrationResultFeedback({ ...registration, status: "Waitlisted" }).message).toContain("waitlist");
+  });
+
   it("does not falsely offer an unavailable backend waitlist", () => {
     expect(classRegistrationAction({ ...classSession, status: "Full" }, undefined)).toEqual({ kind: "unavailable", label: "Class full", disabled: true });
     for (const status of ["InProgress", "Complete", "Cancelled"] as const) {
