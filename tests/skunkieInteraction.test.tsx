@@ -30,6 +30,21 @@ beforeEach(() => {
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe("avatar-first Skunkie", () => {
+  it.each(["companion", "onboarding"])("shows cancellable microphone startup in %s without sending or losing a draft", async surface => {
+    const abort = vi.fn(); const start = vi.fn();
+    vi.stubGlobal("SpeechRecognition", class { start = start; abort = abort; stop = vi.fn(); });
+    const fetch = vi.fn().mockResolvedValue(new Response('{"available":true}')); vi.stubGlobal("fetch", fetch);
+    await render(surface === "companion" ? <SkunkieCompanion /> : <LearnerOnboardingGate enabled>{() => <p>Workspace</p>}</LearnerOnboardingGate>);
+    if (surface === "companion") { click("Open Skunkie AI learning companion"); await act(async () => {}); }
+    enter("Keep my typed words");
+    click(surface === "companion" ? "Use microphone" : "Speak my goal");
+    expect(start).toHaveBeenCalledTimes(1); expect(host.textContent).toContain("Starting microphone");
+    expect(host.textContent).not.toContain("Listening.");
+    click("Cancel microphone startup");
+    expect(abort).toHaveBeenCalledTimes(1); expect(host.textContent).toContain("Voice input was cancelled");
+    expect(host.querySelector("textarea")?.value).toBe("Keep my typed words");
+    expect(fetch.mock.calls.some(([url]) => String(url).endsWith("/chat"))).toBe(false);
+  });
   it("observes a preceding sibling's setup on mount and restores the launcher after cleanup", async () => {
     const page = (enabled: boolean) => <><LearnerOnboardingGate enabled={enabled}>{() => <p>Workspace</p>}</LearnerOnboardingGate><SkunkieCompanion /></>;
     await render(page(true));

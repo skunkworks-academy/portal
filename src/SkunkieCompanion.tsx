@@ -165,10 +165,11 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
         <textarea id="skunkie-input" value={input} onChange={event => setInput(event.target.value)} maxLength={4000} rows={2} placeholder="Ask Skunkie…" />
         <button type="submit" disabled={busy || !input.trim()}>Send</button></form>
       <div className="skunkie__voice-controls">
-        {voice.canListen ? <button type="button" onClick={voice.listening ? voice.stopListening : voice.startListening} disabled={busy}>{voice.listening ? "Stop microphone" : "Use microphone"}</button> : <span>Voice input is unavailable in this browser. You can type below.</span>}
+        {voice.canListen ? <button type="button" onClick={voice.starting || voice.listening ? voice.stopListening : voice.startListening} disabled={busy}>{voice.starting ? "Cancel microphone startup" : voice.listening ? "Stop microphone" : "Use microphone"}</button> : <span>{voice.unavailableReason}</span>}
         {voice.canSpeak && <label><input type="checkbox" checked={preferences.readReplies} onChange={event => changePreference({ readReplies: event.target.checked })} /> Read replies aloud</label>}
         {voice.speaking && <button type="button" onClick={voice.stopAudio}>Stop reading</button>}
       </div>
+      {voice.starting && <p role="status" className="skunkie__notice">Starting microphone… Check your browser for a permission prompt. You can cancel while it starts.</p>}
       <p className="skunkie__notice">{voice.listening ? "Listening. Your words fill the message box; review them before sending. " : ""}Voice is provided by your browser and may use its online speech service. The microphone starts only when you choose it.</p>
       {(voice.notice || preferenceNotice) && <p role="status" className="skunkie__notice">{voice.notice || preferenceNotice}</p>}
       <div className="skunkie__preferences"><button type="button" onClick={() => changePreference({ showAvatar: !preferences.showAvatar })}>{preferences.showAvatar ? "Hide avatar · chat only" : "Show Skunkie avatar"}</button><small>AI can make mistakes. Verify important information.</small></div>

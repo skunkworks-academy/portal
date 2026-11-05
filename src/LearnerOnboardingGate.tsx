@@ -194,7 +194,10 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
             <label>Topics you’re interested in <small>(separate with commas)</small><input value={draft.assessment.interests.join(",")} maxLength={240} onChange={event => patchAssessment({ interests: event.target.value.split(",").slice(0, 12).map(s => s.slice(0, 80)) })} /></label>
             <label>How confident do you feel about getting started?<select value={draft.assessment.selfRatedConfidence} onChange={event => patchAssessment({ selfRatedConfidence: Number(event.target.value) as 1 | 2 | 3 | 4 | 5 })}>{[1,2,3,4,5].map(n => <option key={n} value={n}>{n} — {n === 1 ? "New to this" : n === 5 ? "Very confident" : "Some confidence"}</option>)}</select></label>
             <p className="learner-onboarding__hint">This is your own confidence rating. It does not measure ability or assign a learning style.</p>
-            {voice.canListen && <button type="button" onClick={voice.listening ? voice.stopListening : voice.startListening}>{voice.listening ? "Stop microphone" : "Speak my goal"}</button>}
+            {voice.canListen ? <button type="button" onClick={voice.starting || voice.listening ? voice.stopListening : voice.startListening}>{voice.starting ? "Cancel microphone startup" : voice.listening ? "Stop microphone" : "Speak my goal"}</button> : <p>{voice.unavailableReason}</p>}
+            {voice.starting && <p role="status">Starting microphone… Check your browser for a permission prompt. You can cancel while it starts.</p>}
+            {voice.listening && <p role="status">Listening. Your words fill the goal field; review them before saving.</p>}
+            <p className="learner-onboarding__hint">Voice is provided by your browser and may use its online speech service. The microphone starts only when you choose it.</p>
           </>}
           {draft.step === 1 && <>{journeyQuestions.map(question => {
             const answer = draft.journey.checkAnswers.find(a => a.questionId === question.id);
