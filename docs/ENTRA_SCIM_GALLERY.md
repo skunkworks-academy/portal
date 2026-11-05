@@ -117,3 +117,35 @@ Run: npm ci && npm test && npm run build && npm run build:api
 - SCIM gallery provisioning requirements: https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/app-gallery-user-provisioning-requirements
 - RFC 7643 SCIM resource schema: https://www.rfc-editor.org/rfc/rfc7643
 - RFC 7644 SCIM protocol: https://www.rfc-editor.org/rfc/rfc7644
+
+## Validation and release evidence — 6 November 2026
+
+This section records **source changes and outstanding gates**, not a successful Azure deployment or Microsoft validation.
+
+| Gate | Evidence / current status |
+|---|---|
+| OAuth registry test | Root cause found: the Entra tenant GUID regex rejected canonical 8-4-4-4-12 values. Fixed in source; **new-head CI pass not yet recorded**. |
+| TypeScript strict-null check | The previous optional group-name narrowing fix exists on the PR branch; **new-head build not yet proven**. |
+| Concurrent SCIM PATCH | Cosmos adapter now supports ETag-backed conditional PUT; SCIM user writes and group PATCH reject stale versions with 409. New regression test added; **live Cosmos race test pending**. |
+| Indexed uniqueness | Existing full-partition scans are not a transactionally enforced uniqueness constraint. **Blocked for production** until identity-field uniqueness is protected by index/transaction design and concurrent creation tests. |
+| Rate limit / throughput | **Blocked:** per-client token throttling, distributed tenant quotas and sustained ≥25 req/s **real Cosmos writes** have not been validated. Prevent unbounded token hashing requests with an edge-enforced rate policy before any public pilot. |
+| Global revocation | **Blocked:** optional LMS and Skunkie checks do not revoke every Portal, SharePoint and external-tenant route. Do not globally disable accounts or enable `SCIM_ENFORCE_PROVISIONED_USERS` without end-to-end evidence. |
+| Staging | **Not deployed or verified.** Requires separately provisioned Function App, managed identity Cosmos RBAC, Key Vault references, customer-specific OAuth credentials and environment approval. |
+| Entra non-gallery pilot | **Not run.** Record Test Connection, Provision on Demand, create/update/deactivate/reactivate, group operations, negative filters, isolation, rotation and access-gate results without PII or credentials. |
+| Entra App Gallery | **Not submitted.** Partner One ID, self-service validations, 100-customer qualification, logos, links, support contacts and Submission ID remain open. |
+
+### Microsoft validator compatibility
+
+Microsoft's [self-service SCIM gallery validator](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/validate-user-provisioning-app-gallery) uses an Azure Logic Apps template with **25 tests**, generally running for 60–90 minutes, and currently requires a **SCIM bearer token valid for at least 24 hours**. The deployed application's normal OAuth client-credentials flow deliberately issues **300-second access tokens**. Do **not** silently increase normal production token lifetime.
+
+Before running Microsoft's validator, design and approve an **isolated validation-only credential mechanism**: dedicated staging tenant and organization, restricted test identities, explicit 24-hour-or-greater validation lifetime, secure Key Vault-backed issuance, network and rate restrictions, auditable expiry and immediate revocation after validation. This is not implemented in the current PR and must pass security review. A customer or production token must never be used as a workaround. Record the **passing Logic App run ID** and Microsoft submission of results. Consider Microsoft's recommended workload identity federation model separately for customer provisioning.
+
+### Confirmed Microsoft publishing requirements, pending account eligibility
+
+Microsoft's [published gallery SCIM requirements](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/app-gallery-user-provisioning-requirements) currently specify **100 mutual customers using non-gallery provisioning** before SCIM gallery onboarding, with published documentation and engineering/support contacts. This is a documented requirement, **not evidence that Skunkworks meets it**; directly confirm qualifying deployments and exceptions with Microsoft before submission. Microsoft also specifies at least **25 requests/second/tenant** for SCIM throughput (see [validation troubleshooting](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/troubleshoot-user-provisioning-validation)).
+
+The [self-service publishing guide](https://learn.microsoft.com/en-us/entra/identity/enterprise-apps/publish-app-gallery) calls for Partner One ID, completed validation for **each** selected identity capability, publisher/privacy/terms/support details and **transparent PNG logos of 215×215 and 150×122 pixels**. Record a Submission ID **only after a genuine draft is saved** in the Microsoft Entra publishing experience. SSO + provisioning must not be selected until both OIDC and SCIM validations pass.
+
+### Minimum promotion evidence
+
+For each run capture UTC timestamp, Git commit SHA, isolated environment and masked tenant alias, API version/route, correlation ID, expected/actual status, test tool and CI/Logic App run link. Exclude access tokens, OAuth client secrets, private user data and raw Key Vault material. Required promotion gates: exact-head CI and frontend/API builds green; isolated staging SCIM secrets/RBAC audited; no foreign-tenant access; resilient conflict behavior; tested rate controls; ≥25 req/s/tenant with persisted Cosmos writes; all-route revocation proven; owner-approved rollback. **No automatic merge, production provisioning enablement or gallery submission.**
