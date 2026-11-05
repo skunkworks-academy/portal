@@ -17,6 +17,7 @@ import { portalApi } from "./api";
 import { classRegistrationFailureMessage, classRegistrationResultFeedback, type ClassRegistrationFeedback } from "./class-registration-ui";
 import { loadingServices, resolveAvailability, type PortalServiceAvailability } from "./service-availability";
 import { StudentExperience } from "./student-experience";
+import { LearnerOnboardingGate } from "./LearnerOnboardingGate";
 import { CertificateWallet } from "./CertificateWallet";
 import { PortalLanding } from "./landing-page";
 import { AcademyWorkspace } from "./academy-workspace";
@@ -128,7 +129,8 @@ function formatRole(profile: UserProfile | null, selectedRole: PortalRole) {
 
 export function App({ startupNotice = "" }: { startupNotice?: string }) {
   const { accounts } = useMsal();
-  return <><AccountPreferences accountId={accounts[0]?.homeAccountId ?? null} /><PortalContent startupNotice={startupNotice} /></>;
+  const accountKey = accounts[0]?.homeAccountId ?? "signed-out";
+  return <><AccountPreferences accountId={accounts[0]?.homeAccountId ?? null} /><PortalContent key={accountKey} startupNotice={startupNotice} /></>;
 }
 
 function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
@@ -200,7 +202,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
       if (success) setNotice(success);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "The portal operation failed.";
-      setError(message.includes("Failed to fetch") ? "The Azure Functions API could not be reached. Confirm deployment, CORS, and /api/health." : message);
+      setError(message.includes("Failed to fetch") ? "The Academy service could not be reached. Please try again." : message);
     } finally {
       setLoading(false);
     }
@@ -248,8 +250,10 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
   useEffect(() => {
     // Account pages load their own profile and write only on explicit Save.
     if (!auth || !profile || accountPage) return;
+    let cancelled = false;
     void run(async () => {
       const existingProfile = await portalApi.myProfile(auth);
+      if (cancelled) return;
       // The first verified Microsoft sign-in is also learner registration.
       // Persist only genuine identity details; do not seed sample courses or
       // grant privileged roles. The API derives the role from verified claims.
@@ -258,6 +262,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
         displayName: profile.name,
         portalRole: profile.portalRole
       }, auth);
+      if (cancelled) return;
       setPortalProfile(
         saved
           ? {
@@ -275,6 +280,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
             }
       );
     });
+    return () => { cancelled = true; };
   }, [account?.homeAccountId, accountPage]);
 
   useEffect(() => {
@@ -480,7 +486,11 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
     return (
       <>
       {roleSelector}
-      <StudentExperience
+      <PortalRequestStatus notice={notice} error={error} loading={loading} />
+      <LearnerOnboardingGate enabled={profile.tenantId?.toLowerCase() === skunkworksTenantId.toLowerCase()}>
+      {(savedLearnerProfile, editSetup) => <StudentExperience
+        savedLearnerProfile={savedLearnerProfile}
+        onEditLearnerProfile={editSetup}
         profile={profile}
         portalProfile={portalProfile}
         courses={courses}
@@ -493,13 +503,14 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
         registrationFeedback={registrationFeedback}
         services={services}
         onRetryServices={() => setRefreshServices((value) => value + 1)}
-      />
+      />}
+      </LearnerOnboardingGate>
       </>
     );
   }
 
   if (!showLegacyManagement && (activeRole === "Staff" || activeRole === "Instructor")) {
-    return <>{roleSelector}<AcademyWorkspace
+    return <>{roleSelector}<PortalRequestStatus notice={notice} error={error} loading={loading} /><AcademyWorkspace
       profile={profile}
       role={activeRole}
       courses={courses}
@@ -540,8 +551,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
           </div>
         </section>
 
-        {(notice || error) && <div className={error ? "alert error" : "alert"}>{error || notice}</div>}
-        {loading && <div className="alert warning">Working on the portal request…</div>}
+        <PortalRequestStatus notice={notice} error={error} loading={loading} />
 
         <section className="workspace-grid" aria-label="Portal workspaces">
           <div className="section-head full-span">
@@ -613,6 +623,14 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
       </main>
     </div></PortalAccountLayout>
   );
+}
+
+function PortalRequestStatus({ notice, error, loading }: { notice: string; error: string; loading: boolean }) {
+  return <div className="portal-request-status">
+    {error && <div className="alert error" role="alert">{error}</div>}
+    {notice && !error && <div className="alert" role="status">{notice}</div>}
+    {loading && <div className="alert warning" role="status">Working on your Academy request…</div>}
+  </div>;
 }
 
 function Metric({ value, label }: { value: number | string; label: string }) {

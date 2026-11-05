@@ -34,17 +34,17 @@ describe("Skunkie mobile recovery and production provider readiness", () => {
     expect(widget).toContain('role="alert"');
     expect(widget).toContain('aria-label="Close Skunkie"');
     expect(widget).toContain("onEscape");
-    expect(widget).toContain("setInput(\"\")");
+    expect(widget).toContain('setInput(value => value.trim() === message ? "" : value)');
     expect(widget).not.toContain("I can’t reach the learning service right now");
     expect(widget).toContain('"configured" | "ready" | "unavailable"');
   });
 
   it("bounds the mobile chat to the visual viewport and retains composer controls", () => {
     const css = source("../src/skunkie-companion.css");
-    expect(css).toContain("calc(100dvh - 105px");
-    expect(css).toContain("height:min(470px,65dvh)");
+    expect(css).toContain("calc(100dvh - 180px");
+    expect(css).toContain("width:min(360px,calc(100vw - 24px))");
     expect(css).toContain("overflow-y:auto");
-    expect(css).toContain("grid-template-columns:minmax(0,1fr) auto!important");
+    expect(css).toContain("grid-template-columns:minmax(0,1fr) auto");
     expect(css).toContain(".skunkie__status--unavailable");
   });
 
