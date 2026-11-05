@@ -89,6 +89,7 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
   const [loaded, setLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState("");
   const [draftNotice, setDraftNotice] = useState("");
@@ -150,6 +151,23 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
       if (current === generation.current) setError(`${learningErrorMessage(e, "assessment")} Your answers are still here. The learner workspace will open after a confirmed save.`);
     } finally { window.clearTimeout(timeout); if (current === generation.current) { setBusy(false); saveRequest.current = null; } }
   }
+  async function removeSavedSetup() {
+    if (!loaded || busy || !profile || !window.confirm("Delete your saved learner setup and its answers? Your separate career roadmap and course results will remain.")) return;
+    const current = generation.current;
+    const abort = new AbortController(); saveRequest.current = abort;
+    const timeout = window.setTimeout(() => abort.abort(), 30000);
+    setBusy(true); setDeleting(true); setError(""); voice.stopAudio();
+    try {
+      await portalApi.deleteSkunkieAssessment({ instance, account }, abort.signal);
+      if (current !== generation.current) return;
+      setProfile(null); setDraft(initialDraft(null)); setEditing(false);
+      setDraftNotice("Your saved learner setup was deleted. You can create a new plan when ready.");
+      try { sessionStorage.removeItem(onboardingDraftKey(account.homeAccountId)); }
+      catch { setDraftNotice("Your saved account setup was deleted. This browser could not clear its draft; close this tab to discard it."); }
+    } catch (e) {
+      if (current === generation.current) setError(`${learningErrorMessage(e, "assessment")} Deletion could not be confirmed. Your current answers are still here; retry when the service is available.`);
+    } finally { window.clearTimeout(timeout); if (current === generation.current) { setBusy(false); setDeleting(false); saveRequest.current = null; } }
+  }
   if (ready) return <>{children(profile, edit)}</>;
   const config = draft.journey.workspaceConfiguration;
   return <main className="learner-onboarding" aria-labelledby="learner-setup-title">
@@ -195,6 +213,7 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
           <div className="learner-onboarding__actions">{draft.step > 0 && <button type="button" onClick={() => { voice.stopAudio(); setDraft(value => ({ ...value, step: value.step - 1 })); }}>Back</button>}<button type="submit" disabled={busy || (draft.step === 1 && draft.journey.checkAnswers.length !== journeyQuestions.length) || (draft.step === 2 && !draft.assessment.preferredApproaches.length) || (draft.step === 3 && (!loaded || !draft.consent))}>{busy ? "Saving to your account…" : draft.step === 3 ? "Save and open my learning space" : "Continue"}</button>{editing && <button type="button" onClick={() => { voice.stopAudio(); setEditing(false); }}>Keep my saved plan</button>}</div>
         </fieldset>
       </form>}
+      {!loading && editing && profile && <button type="button" disabled={busy} onClick={() => void removeSavedSetup()}>{deleting ? "Deleting your saved setup…" : "Delete saved learner setup"}</button>}
       {!loading && voice.canSpeak && <button className="learner-onboarding__read" type="button" onClick={() => voice.speaking ? voice.stopAudio() : voice.speak(prompts[draft.step])}>{voice.speaking ? "Stop reading" : "Read this introduction aloud"}</button>}
       {voice.notice && <p role="status">{voice.notice}</p>}
       <p className="learner-onboarding__hint">Text is always available. Voice starts only when selected and may use your browser’s online speech service. Unfinished answers stay in this tab’s account-specific draft until saved or the tab closes. No chat transcript is stored by this setup.</p>
