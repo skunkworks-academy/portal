@@ -5,3 +5,4 @@
 .learner-onboarding__choice input[type=checkbox],.learner-onboarding__choice input[type=radio]{width:18px;height:18px;min-height:18px;padding:0;box-sizing:border-box;flex:none}
 html[data-theme=dark] .learner-onboarding,html[data-swa-theme=dark] .learner-onboarding{--student-bg:#111d2b;--student-card:#1d2e40;--student-text:#edf4fa}
 @media(prefers-color-scheme:dark){html:not([data-theme=light]):not([data-swa-theme=light]) .learner-onboarding{--student-bg:#111d2b;--student-card:#1d2e40;--student-text:#edf4fa}}
+.learner-onboarding .learner-onboarding__choice{font-size:1rem;font-weight:500;line-height:1.5;letter-spacing:normal;text-transform:none}

@@ -47,11 +47,10 @@ describe("private workspace account boundary", () => {
     expect(api.updateProfile).not.toHaveBeenCalled();
   });
 
-  it("shows a failed registration in the learner workspace", async () => {
-    api.registerClass.mockRejectedValueOnce(new Error("Registration is unavailable. Please retry."));
+  it("shows a failed private-record read in the learner workspace", async () => {
+    api.myClasses.mockRejectedValueOnce(new Error("Your class records are unavailable. Please retry."));
     await render();
-    await act(async () => { (host.querySelector("button") as HTMLButtonElement).click(); });
-    expect(host.querySelector('[role="alert"]')?.textContent).toBe("Registration is unavailable. Please retry.");
+    expect(host.querySelector('[role="alert"]')?.textContent).toBe("Your class records are unavailable. Please retry.");
     expect(host.textContent).not.toContain("Class registration saved.");
   });
 });

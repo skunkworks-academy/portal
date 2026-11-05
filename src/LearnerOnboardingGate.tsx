@@ -98,6 +98,7 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
   const generation = useRef(0);
   const saveRequest = useRef<AbortController | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+  const previousStep = useRef(draft.step);
   const ready = hasSavedLearnerJourney(profile) && !editing;
   const voice = useSkunkieVoice(account.homeAccountId, !ready, text => setDraft(value => ({ ...value, assessment: { ...value.assessment, notes: `${value.assessment.notes || ""} ${text}`.trim().slice(0, 1000) } })));
   const prompts = ["Let’s build a learning space that works for your goal. What would you like to learn?", "Try two short practice examples. Choose I’m not sure whenever you need an explanation.", "Choose how to start. You can change every setting later, and your practice outcomes can guide the next activity.", "Review your choices and decide whether to save them to your Academy account."];
@@ -124,7 +125,13 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
     try { sessionStorage.setItem(onboardingDraftKey(account.homeAccountId), JSON.stringify({ ...draft, consent: false })); }
     catch { setDraftNotice("This browser cannot keep an unfinished draft after you leave. Keep this page open until saving succeeds."); }
   }, [draft, loaded, ready, account.homeAccountId]);
-  useEffect(() => { if (!ready && !loading) heading.current?.focus({ preventScroll: true }); }, [draft.step, ready, loading]);
+  useEffect(() => {
+    if (!ready && !loading) {
+      heading.current?.focus({ preventScroll: true });
+      if (previousStep.current !== draft.step) heading.current?.scrollIntoView?.({ block: "start", behavior: "instant" });
+      previousStep.current = draft.step;
+    }
+  }, [draft.step, ready, loading]);
   function patchAssessment(change: Partial<SkunkieLearnerAssessment>) { setDraft(value => ({ ...value, assessment: { ...value.assessment, ...change } })); }
   function patchConfiguration(change: Partial<JourneyWorkspaceConfiguration>) { setDraft(value => ({ ...value, journey: { ...value.journey, workspaceConfiguration: { ...value.journey.workspaceConfiguration, ...change } } })); }
   function edit() { setDraft(readDraft(account.homeAccountId, profile)); setEditing(true); setError(""); }
