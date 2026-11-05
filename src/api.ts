@@ -113,8 +113,10 @@ export const portalApi = {
   saveLearnerPreferences: (preferences: LearnerPreferences, auth: LmsAuth) => request<LearnerPreferences>("/learner/preferences", { method: "PUT", body: JSON.stringify(preferences) }, auth),
   deleteLearnerPreferences: (auth: LmsAuth) => request<void>("/learner/preferences", { method: "DELETE" }, auth),
   lmsCourses: (auth: LmsAuth) => request<LmsCourseRecord[]>("/lms/courses", {}, auth),
+  lmsLearnerCourses: (auth: LmsAuth) => request<LmsCourseRecord[]>("/lms/me/courses", {}, auth),
   lmsMyEnrolments: (auth: LmsAuth) => request<LmsEnrolmentRecord[]>("/lms/me/enrolments", {}, auth),
   lmsLessons: (courseId: string, auth: LmsAuth) => request<LmsLessonRecord[]>(`/lms/courses/${encodeURIComponent(courseId)}/lessons`, {}, auth),
+  lmsLearnerLessons: (courseId: string, auth: LmsAuth) => request<LmsLessonRecord[]>(`/lms/me/courses/${encodeURIComponent(courseId)}/lessons`, {}, auth),
   lmsProgress: (courseId: string, auth: LmsAuth) => request<LmsProgressRecord | null>(`/lms/courses/${encodeURIComponent(courseId)}/progress`, {}, auth),
   lmsAddLesson: (courseId: string, input: { title: string; mediaType: "pdf" | "video"; mimeType: string; blobKey: string }, auth: LmsAuth) =>
     request<LmsLessonRecord>(`/lms/courses/${encodeURIComponent(courseId)}/lessons`, { method: "POST", body: JSON.stringify(input) }, auth),

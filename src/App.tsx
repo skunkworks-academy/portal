@@ -142,7 +142,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
   });
   // A workspace choice is a UI preference, never a permission grant.
   const availableRoles: PortalRole[] = !profile ? ["Student"] : [
-    "Student",
+    ...(profile.portalRole === "Student" || profile.roles.some(role => role.toLowerCase() === "portal.student") ? ["Student" as const] : []),
     ...(profile.isAdmin || profile.roles.some(role => role.toLowerCase() === "portal.instructor") ? ["Instructor" as const] : []),
     ...(profile.isAdmin ? ["Staff" as const] : [])
   ];
