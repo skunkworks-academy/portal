@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { PortalApiError } from "../src/api-error";
-import { classRegistrationAction, classRegistrationFailureMessage } from "../src/class-registration-ui";
+import { classRegistrationAction, classRegistrationFailureMessage, classRegistrationResultFeedback } from "../src/class-registration-ui";
 import type { ClassSession, ClassRegistrationRecord } from "../src/types";
 
 const classSession: ClassSession = {
