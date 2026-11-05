@@ -10,7 +10,8 @@ type ChatMessage = { role: "user" | "assistant"; content: string };
 type SkunkieResponse = { reply: string };
 
 const productionApiBaseUrl = "https://api.skunkworksacademy.com/api";
-const localApiBaseUrl = "http://localhost:8080/api";
+// Use the Vite same-origin /api proxy (configured for Azure Functions on port 7071).
+const localApiBaseUrl = "/api";
 
 function apiBaseUrl() {
   const configured = import.meta.env.VITE_API_BASE_URL?.trim();
