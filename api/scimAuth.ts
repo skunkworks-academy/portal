@@ -8,7 +8,7 @@ type ProvisioningClient = {
   enabled: boolean; secretHashes: SecretHash[];
 };
 export type ScimPrincipal = { organizationId: string; entraTenantId: string; clientId: string };
-const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const guid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const slug = /^[A-Za-z0-9_-]{1,100}$/;
 const hex = /^[0-9a-f]+$/i;
 const audience = "skunkworks-academy-scim";
