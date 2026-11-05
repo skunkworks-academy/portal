@@ -43,6 +43,24 @@ export function classRegistrationAction(
   return { kind: "register" as const, label: "Register", disabled: false };
 }
 
+/** Derive feedback from the persisted POST response, including legacy cancellations. */
+export function classRegistrationResultFeedback(registration: ClassRegistrationRecord): ClassRegistrationFeedback {
+  if (registration.status === "Cancelled") {
+    return {
+      classId: registration.classId,
+      type: "error",
+      message: "This registration was previously cancelled and cannot be reactivated online. Contact the Academy to request another place."
+    };
+  }
+  return {
+    classId: registration.classId,
+    type: "success",
+    message: registration.status === "Waitlisted"
+      ? "You have been added to the class waitlist."
+      : "Class registration confirmed."
+  };
+}
+
 export function classRegistrationFailureMessage(caught: unknown) {
   if (caught instanceof PortalApiError) {
     if (caught.status === 404) return "This class is no longer available. Refresh the schedule to choose another class.";
