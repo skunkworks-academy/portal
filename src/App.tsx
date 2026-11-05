@@ -14,6 +14,7 @@ import {
   skunkworksTenantId
 } from "./authConfig";
 import { portalApi } from "./api";
+import { classRegistrationFailureMessage, type ClassRegistrationFeedback } from "./class-registration-ui";
 import { loadingServices, resolveAvailability, type PortalServiceAvailability } from "./service-availability";
 import { StudentExperience } from "./student-experience";
 import { CertificateWallet } from "./CertificateWallet";
@@ -160,6 +161,8 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
   const [courses, setCourses] = useState<CourseRecord[]>([]);
   const [classes, setClasses] = useState<ClassSession[]>([]);
   const [registrations, setRegistrations] = useState<ClassRegistrationRecord[]>([]);
+  const [registrationBusyClassId, setRegistrationBusyClassId] = useState<string | null>(null);
+  const [registrationFeedback, setRegistrationFeedback] = useState<ClassRegistrationFeedback | null>(null);
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
   const [adminApplications, setAdminApplications] = useState<ApplicationRecord[]>([]);
   const [adminProfiles, setAdminProfiles] = useState<PortalProfile[]>([]);
@@ -302,13 +305,42 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
       await signIn("Student");
       return;
     }
+    // Disable repeat submissions while the POST is pending. The API also
+    // enforces idempotency for the authenticated Microsoft subject.
+    if (registrationBusyClassId) return;
+    setRegistrationBusyClassId(classId);
+    setRegistrationFeedback(null);
+    try {
+      const savedRegistration = await portalApi.registerClass(classId, auth);
+      // The POST response is the authoritative acknowledgement. Show it even
+      // when a subsequent read-back request is temporarily unavailable.
+      setRegistrations((previous) => [
+        ...previous.filter((item) => item.classId !== classId),
+        savedRegistration
+      ]);
+      setRegistrationFeedback({
+        classId,
+        type: "success",
+        message: savedRegistration.status === "Waitlisted"
+          ? "You have been added to the class waitlist."
+          : "Class registration confirmed."
+      });
 
-    await run(async () => {
-      await portalApi.registerClass(classId, auth);
-      setRegistrations(await portalApi.myClasses(auth));
-      const nextClasses = await portalApi.classes();
-      setClasses(nextClasses);
-    }, "Class registration saved.");
+      const [registrationsResult, classesResult] = await Promise.allSettled([
+        portalApi.myClasses(auth),
+        portalApi.classes()
+      ]);
+      if (registrationsResult.status === "fulfilled") setRegistrations(registrationsResult.value);
+      if (classesResult.status === "fulfilled") setClasses(classesResult.value);
+    } catch (caught) {
+      setRegistrationFeedback({
+        classId,
+        type: "error",
+        message: classRegistrationFailureMessage(caught)
+      });
+    } finally {
+      setRegistrationBusyClassId(null);
+    }
   }
 
   async function assignClass(classId: string) {
@@ -463,6 +495,8 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
         onSignIn={() => void signIn("Student")}
         onSignOut={() => void signOut()}
         onRegister={registerForClass}
+        registrationBusyClassId={registrationBusyClassId}
+        registrationFeedback={registrationFeedback}
         services={services}
         onRetryServices={() => setRefreshServices((value) => value + 1)}
       />
