@@ -4,15 +4,16 @@ import { requireUser, hasPortalRole } from "./auth.js";
 import { failure, json, readJson, HttpError } from "./http.js";
 import { LmsService, type LmsContext, type LmsRole } from "./lmsDomain.js";
 import { CosmosLmsStore } from "./lmsCosmosStore.js";
+import { requireActiveScimUser } from "./scimAccess.js";
 
 const credential = new DefaultAzureCredential();
-function service() {
+function scopedStore() {
   const endpoint = process.env.LMS_COSMOS_ENDPOINT;
   const database = process.env.LMS_COSMOS_DATABASE;
   const container = process.env.LMS_COSMOS_CONTAINER;
   if (!endpoint || !database || !container) throw new HttpError(503, "LMS storage is not configured.");
-  return new LmsService(new CosmosLmsStore(endpoint, database, container, async () =>
-    (await credential.getToken("https://cosmos.azure.com/.default")).token));
+  return new CosmosLmsStore(endpoint, database, container, async () =>
+    (await credential.getToken("https://cosmos.azure.com/.default")).token);
 }
 async function context(request: HttpRequest): Promise<LmsContext> {
   const principal = await requireUser(request);
@@ -29,7 +30,9 @@ async function context(request: HttpRequest): Promise<LmsContext> {
 async function handle(request: HttpRequest, fn: (lms: LmsService, ctx: LmsContext) => Promise<unknown>) {
   try {
     const ctx = await context(request);
-    return json(request, await fn(service(), ctx));
+    const store = scopedStore();
+    await requireActiveScimUser(store, ctx.organizationId, ctx.principal.subject);
+    return json(request, await fn(new LmsService(store), ctx));
   }
   catch (error) { return failure(request, error); }
 }
