@@ -60,6 +60,17 @@ jobs:
                 echo "::warning::Quota inspection unavailable in $region"
               fi
             done
+            echo "### South Africa North gpt-4.1-mini capacity check" >> "$GITHUB_STEP_SUMMARY"
+            if az rest --method get \
+              --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/providers/Microsoft.CognitiveServices/modelCapacities?api-version=2024-10-01&modelFormat=OpenAI&modelName=gpt-4.1-mini&modelVersion=2025-04-14" \
+              --only-show-errors -o json > "$tmp/south-africa-capacities.json" 2>"$tmp/south-africa-capacity-error.txt"; then
+              entries="$(jq '[.value[]? | select((.location // "") == "southafricanorth")] | length' "$tmp/south-africa-capacities.json")"
+              echo "South Africa North gpt-4.1-mini (2025-04-14) capacity rows: $entries" | tee -a "$GITHUB_STEP_SUMMARY"
+              jq -r '.value[]? | select((.location // "") == "southafricanorth") | [(.properties.skuName // ""), ((.properties.availableCapacity // 0) | tostring)] | @tsv' "$tmp/south-africa-capacities.json" | tee -a "$GITHUB_STEP_SUMMARY"
+            else
+              echo "::warning::South Africa North model capacity read unavailable."
+              echo "South Africa North model capacity: could not verify" >> "$GITHUB_STEP_SUMMARY"
+            fi
             echo "### Sweden Central gpt-4o-mini capacity check" >> "$GITHUB_STEP_SUMMARY"
             if az rest --method get \
               --url "https://management.azure.com/subscriptions/$AZURE_SUBSCRIPTION_ID/providers/Microsoft.CognitiveServices/modelCapacities?api-version=2024-10-01&modelFormat=OpenAI&modelName=gpt-4o-mini&modelVersion=2024-07-18" \
