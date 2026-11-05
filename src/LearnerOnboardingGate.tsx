@@ -20,12 +20,40 @@ export function LearnerOnboardingGate({ enabled, children }: GateProps) {
 }
 
 type Draft = { step: number; assessment: SkunkieLearnerAssessment; journey: JourneyInput; consent: boolean };
+const approachOptions = [{ id: "hands_on", label: "Hands-on practice" }, { id: "examples", label: "Worked examples" }, { id: "reading", label: "Reading and notes" }, { id: "discussion", label: "Guided discussion" }, { id: "video", label: "Video demonstrations" }] as const;
 export const onboardingDraftKey = (accountId: string) => `academy:learner-setup-draft:v1:${encodeURIComponent(accountId)}`;
 export function hasSavedLearnerJourney(profile: SkunkieLearnerProfile | null): boolean {
   try {
     if (!profile?.assessment?.consentToStore || !profile.assessment.journey) return false;
     return createLearnerJourney(profile.assessment.journey).checkAnswers.length === journeyQuestions.length;
   } catch { return false; }
+}
+export function learnerSubjectForAccount(account: AccountInfo): string {
+  const objectId = account.idTokenClaims?.oid;
+  return typeof objectId === "string" && objectId ? objectId : account.localAccountId || "";
+}
+function profileMatchesAccount(profile: SkunkieLearnerProfile, account: AccountInfo) {
+  const expected = learnerSubjectForAccount(account);
+  const a = profile?.assessment;
+  const strings = (value: unknown, limit: number, length: number): value is string[] => Array.isArray(value) && value.length <= limit && value.every(item => typeof item === "string" && item.length <= length);
+  return Boolean(expected && profile?.schemaVersion === 1 && a?.schemaVersion === 1 && profile.learnerSubject === expected &&
+    typeof a.assessmentId === "string" && ["explore", "career", "certification", "skills"].includes(a.studyGoal) &&
+    [15,30,60].includes(a.preferredSessionMinutes) && [1,2,3,4,5].includes(a.selfRatedConfidence) &&
+    strings(a.preferredApproaches, 5, 20) && a.preferredApproaches.length > 0 && a.preferredApproaches.every(value => approachOptions.some(option => option.id === value)) &&
+    strings(a.interests, 12, 80) && strings(a.supportNeeds, 8, 120) && (a.notes === undefined || typeof a.notes === "string"));
+}
+function submittedValues(assessment: SkunkieLearnerAssessment) {
+  const journey = createLearnerJourney(assessment.journey);
+  const list = (values: string[]) => [...new Set(values.map(value => value.trim()).filter(Boolean))].sort();
+  return { assessmentId: assessment.assessmentId, studyGoal: assessment.studyGoal, consentToStore: assessment.consentToStore,
+    preferredApproaches: list(assessment.preferredApproaches), preferredSessionMinutes: assessment.preferredSessionMinutes,
+    selfRatedConfidence: assessment.selfRatedConfidence, interests: list(assessment.interests), supportNeeds: list(assessment.supportNeeds),
+    notes: assessment.notes || "", language: assessment.language || "", workspaceConfiguration: journey.workspaceConfiguration,
+    checkAnswers: [...journey.checkAnswers].sort((a, b) => a.questionId.localeCompare(b.questionId)) };
+}
+export function confirmsLearnerSubmission(saved: SkunkieLearnerProfile, submitted: SkunkieLearnerAssessment, account: AccountInfo) {
+  try { return profileMatchesAccount(saved, account) && hasSavedLearnerJourney(saved) && JSON.stringify(submittedValues(saved.assessment)) === JSON.stringify(submittedValues(submitted)); }
+  catch { return false; }
 }
 function initialDraft(profile: SkunkieLearnerProfile | null): Draft {
   const assessment: SkunkieLearnerAssessment = profile?.assessment ?? {
@@ -44,12 +72,13 @@ function readDraft(accountId: string, profile: SkunkieLearnerProfile | null): Dr
     const a = raw.assessment;
     if (!a || a.schemaVersion !== 1 || !["explore", "career", "certification", "skills"].includes(a.studyGoal) || ![1,2,3,4,5].includes(a.selfRatedConfidence) ||
       !Array.isArray(a.interests) || a.interests.length > 12 || !a.interests.every(v => typeof v === "string" && v.length <= 80) ||
+      !Array.isArray(a.supportNeeds) || a.supportNeeds.length > 8 || !a.supportNeeds.every(v => typeof v === "string" && v.length <= 120) ||
       !Array.isArray(a.preferredApproaches) || !a.preferredApproaches.length || !a.preferredApproaches.every(v => ["hands_on", "examples", "reading", "discussion", "video"].includes(v)) ||
       (a.notes !== undefined && (typeof a.notes !== "string" || a.notes.length > 1000))) return fallback;
     const journey = createLearnerJourney(raw.journey);
     // Keep server identity/other questionnaire fields authoritative while restoring only editable draft fields.
     return { step: raw.step, assessment: { ...fallback.assessment, studyGoal: a.studyGoal, preferredApproaches: a.preferredApproaches,
-      selfRatedConfidence: a.selfRatedConfidence, interests: a.interests, notes: a.notes }, journey, consent: false };
+      selfRatedConfidence: a.selfRatedConfidence, interests: a.interests, supportNeeds: a.supportNeeds, notes: a.notes }, journey, consent: false };
   } catch { return fallback; }
 }
 
@@ -78,6 +107,7 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
     setLoading(true); setLoaded(false); setError("");
     void portalApi.mySkunkieAssessment({ instance, account }, abort.signal).then(saved => {
       if (current !== generation.current) return;
+      if (saved && !profileMatchesAccount(saved, account)) throw new Error("The learner profile could not be matched to this Microsoft account.");
       setProfile(saved); setDraft(readDraft(account.homeAccountId, saved)); setLoaded(true);
     }).catch(e => { if (current === generation.current) { setDraft(readDraft(account.homeAccountId, null)); setError(`${learningErrorMessage(e, "assessment")} Your saved profile could not be checked. Retry before saving a new setup.`); } })
       .finally(() => { window.clearTimeout(timeout); if (current === generation.current) setLoading(false); });
@@ -101,17 +131,18 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
     if (!saveSkunkiePreferences(account.homeAccountId, next)) setDraftNotice("Avatar choice applies to this session; browser storage is unavailable.");
   }
   async function save() {
-    if (!loaded || busy || !draft.consent || draft.journey.checkAnswers.length !== journeyQuestions.length) return;
+    if (!loaded || busy || !draft.consent || !draft.assessment.preferredApproaches.length || draft.journey.checkAnswers.length !== journeyQuestions.length) return;
     const current = generation.current;
     const abort = new AbortController(); saveRequest.current = abort;
     const timeout = window.setTimeout(() => abort.abort(), 30000);
     setBusy(true); setError(""); voice.stopAudio();
     try {
       const journey = createLearnerJourney(draft.journey);
-      const saved = await portalApi.saveSkunkieAssessment({ ...draft.assessment, consentToStore: true, interests: draft.assessment.interests.map(s => s.trim()).filter(Boolean),
-        preferredSessionMinutes: journey.workspaceConfiguration.sessionMinutes, journey }, { instance, account }, abort.signal);
+      const submitted = { ...draft.assessment, consentToStore: true, interests: draft.assessment.interests.map(s => s.trim()).filter(Boolean),
+        supportNeeds: draft.assessment.supportNeeds.map(s => s.trim()).filter(Boolean), preferredSessionMinutes: journey.workspaceConfiguration.sessionMinutes, journey };
+      const saved = await portalApi.saveSkunkieAssessment(submitted, { instance, account }, abort.signal);
       if (current !== generation.current) return;
-      if (!hasSavedLearnerJourney(saved)) throw new Error("The service has not confirmed the new learning setup. Keep these answers and retry after the service is updated.");
+      if (!confirmsLearnerSubmission(saved, submitted, account)) throw new Error("The service has not confirmed this account’s submitted learning setup. Keep these answers and retry.");
       setProfile(saved); setEditing(false);
       try { sessionStorage.removeItem(onboardingDraftKey(account.homeAccountId)); } catch { /* A confirmed server save remains authoritative. */ }
     } catch (e) {
@@ -144,6 +175,9 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
             return <fieldset key={question.id} className="learner-onboarding__question"><legend>{question.prompt}</legend>{question.options.map(option => <label className="learner-onboarding__choice" key={option.id}><input type="radio" required name={question.id} checked={answer?.answerId === option.id} onChange={() => setDraft(value => ({ ...value, journey: { ...value.journey, checkAnswers: [...value.journey.checkAnswers.filter(a => a.questionId !== question.id), { questionId: question.id, questionVersion: 1, answerId: option.id }] } }))} />{option.label}</label>)}{answer && <p role="status">{question.explanation}</p>}</fieldset>;
           })}<p className="learner-onboarding__hint">These practice examples provide limited feedback. They are not an aptitude test, qualification or course completion.</p></>}
           {draft.step === 2 && <>
+            <fieldset className="learner-onboarding__question"><legend>Which approaches would you like to use?</legend>{approachOptions.map(option => <label key={option.id} className="learner-onboarding__choice"><input type="checkbox" checked={draft.assessment.preferredApproaches.includes(option.id)} onChange={event => patchAssessment({ preferredApproaches: event.target.checked ? [...draft.assessment.preferredApproaches, option.id] : draft.assessment.preferredApproaches.filter(value => value !== option.id) })} />{option.label}</label>)}<p>Choose at least one. These are flexible preferences, not a fixed learning style.</p></fieldset>
+            <label>Support and accessibility preferences <small>(optional; separate with commas)</small><textarea rows={2} maxLength={960} value={draft.assessment.supportNeeds.join(",")} onChange={event => patchAssessment({ supportNeeds: event.target.value.split(",").slice(0, 8).map(value => value.slice(0, 120)) })} placeholder="For example: captions, keyboard navigation, screen-reader-friendly text" /></label>
+            <p className="learner-onboarding__hint">Describe useful support without medical or diagnostic details. These requests are saved for planning; availability depends on the course materials.</p>
             <label>Session length<select value={config.sessionMinutes} onChange={event => patchConfiguration({ sessionMinutes: Number(event.target.value) as 15 | 30 | 60 })}>{[15,30,60].map(n => <option key={n} value={n}>{n} minutes</option>)}</select></label>
             <label>Starting difficulty<select value={config.difficulty} onChange={event => patchConfiguration({ difficulty: event.target.value as JourneyWorkspaceConfiguration["difficulty"] })}><option value="foundation">Foundation — build the basics</option><option value="standard">Standard — apply what I know</option><option value="stretch">Stretch — try a challenge</option></select></label>
             <label>Help to show first<select value={config.helpLevel} onChange={event => patchConfiguration({ helpLevel: event.target.value as JourneyWorkspaceConfiguration["helpLevel"] })}><option value="guided">Guided steps</option><option value="hints">Hints when needed</option><option value="independent">Try independently</option></select></label>
@@ -157,7 +191,7 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
             <label className="learner-onboarding__choice"><input type="checkbox" checked={draft.consent} onChange={event => setDraft(value => ({ ...value, consent: event.target.checked }))} required />I agree to save this learner profile to my Academy account.</label>
             <a href="https://skunkworksacademy.com/privacy.html">How Academy handles personal information</a>
           </>}
-          <div className="learner-onboarding__actions">{draft.step > 0 && <button type="button" onClick={() => { voice.stopAudio(); setDraft(value => ({ ...value, step: value.step - 1 })); }}>Back</button>}<button type="submit" disabled={busy || (draft.step === 1 && draft.journey.checkAnswers.length !== journeyQuestions.length) || (draft.step === 3 && (!loaded || !draft.consent))}>{busy ? "Saving to your account…" : draft.step === 3 ? "Save and open my learning space" : "Continue"}</button>{editing && <button type="button" onClick={() => { voice.stopAudio(); setEditing(false); }}>Keep my saved plan</button>}</div>
+          <div className="learner-onboarding__actions">{draft.step > 0 && <button type="button" onClick={() => { voice.stopAudio(); setDraft(value => ({ ...value, step: value.step - 1 })); }}>Back</button>}<button type="submit" disabled={busy || (draft.step === 1 && draft.journey.checkAnswers.length !== journeyQuestions.length) || (draft.step === 2 && !draft.assessment.preferredApproaches.length) || (draft.step === 3 && (!loaded || !draft.consent))}>{busy ? "Saving to your account…" : draft.step === 3 ? "Save and open my learning space" : "Continue"}</button>{editing && <button type="button" onClick={() => { voice.stopAudio(); setEditing(false); }}>Keep my saved plan</button>}</div>
         </fieldset>
       </form>}
       {!loading && voice.canSpeak && <button className="learner-onboarding__read" type="button" onClick={() => voice.speaking ? voice.stopAudio() : voice.speak(prompts[draft.step])}>{voice.speaking ? "Stop reading" : "Read this introduction aloud"}</button>}

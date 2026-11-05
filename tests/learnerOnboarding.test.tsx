@@ -2,10 +2,11 @@
 import React, { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LearnerOnboardingGate, hasSavedLearnerJourney, onboardingDraftKey } from "../src/LearnerOnboardingGate";
+import { LearnerOnboardingGate, hasSavedLearnerJourney, onboardingDraftKey, confirmsLearnerSubmission } from "../src/LearnerOnboardingGate";
+import type { AccountInfo } from "@azure/msal-browser";
 import { createLearnerJourney, journeyQuestions } from "../src/learner-assessment/journey";
 import type { SkunkieLearnerProfile, SkunkieLearnerAssessment } from "../src/learner-assessment/model";
-const auth = vi.hoisted(() => ({ accounts: [{ homeAccountId: "a" }], instance: {} }));
+const auth = vi.hoisted(() => ({ accounts: [{ homeAccountId: "a", localAccountId: "a" }], instance: {} }));
 const api = vi.hoisted(() => ({ mySkunkieAssessment: vi.fn(), saveSkunkieAssessment: vi.fn() }));
 vi.mock("@azure/msal-react", () => ({ useMsal: () => auth }));
 vi.mock("../src/api", () => ({ portalApi: api }));
@@ -20,7 +21,7 @@ beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   Object.defineProperty(window, "matchMedia", { configurable: true, value: () => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }) });
   Object.defineProperty(document, "hidden", { configurable: true, value: false });
-  auth.accounts = [{ homeAccountId: "a" }]; api.mySkunkieAssessment.mockReset().mockResolvedValue(null); api.saveSkunkieAssessment.mockReset(); sessionStorage.clear(); localStorage.clear();
+  auth.accounts = [{ homeAccountId: "a", localAccountId: "a" }]; api.mySkunkieAssessment.mockReset().mockResolvedValue(null); api.saveSkunkieAssessment.mockReset(); sessionStorage.clear(); localStorage.clear();
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(() => { act(() => root.unmount()); host.remove(); });
@@ -35,7 +36,7 @@ describe("durable first-run learner setup", () => {
   });
   it("retains draft and gate on failed save, then opens only after server confirms journey", async () => {
     sessionStorage.setItem(onboardingDraftKey("a"), JSON.stringify({ step: 3, assessment, journey, consent: false }));
-    api.saveSkunkieAssessment.mockRejectedValueOnce(Error("offline")).mockResolvedValueOnce(saved);
+    api.saveSkunkieAssessment.mockRejectedValueOnce(Error("offline")).mockImplementationOnce(async (input: SkunkieLearnerAssessment) => ({ ...saved, assessment: input }));
     await render(); act(() => host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click()); await submit();
     expect(host.querySelector('[data-testid="workspace"]')).toBeNull(); expect(host.textContent).toContain("answers are still here"); expect(sessionStorage.getItem(onboardingDraftKey("a"))).not.toBeNull();
     await submit(); expect(host.querySelector('[data-testid="workspace"]')?.textContent).toContain("Workspace a"); expect(sessionStorage.getItem(onboardingDraftKey("a"))).toBeNull();
@@ -54,10 +55,32 @@ describe("durable first-run learner setup", () => {
   it("does not let a late account-A result open the account-B workspace", async () => {
     let resolveA!: (profile: SkunkieLearnerProfile) => void;
     api.mySkunkieAssessment.mockImplementationOnce(() => new Promise(resolve => { resolveA = resolve; })).mockResolvedValueOnce(null);
-    await render(); auth.accounts = [{ homeAccountId: "b" }]; await render(); await act(async () => resolveA(saved));
+    await render(); auth.accounts = [{ homeAccountId: "b", localAccountId: "b" }]; await render(); await act(async () => resolveA(saved));
     expect(host.querySelector('[data-testid="workspace"]')).toBeNull(); expect(host.textContent).toContain("What would you like");
   });
   it("does not gate Staff/Instructor when disabled by authoritative workspace role", async () => {
     await render(false); expect(host.querySelector('[data-testid="workspace"]')).not.toBeNull(); expect(api.mySkunkieAssessment).not.toHaveBeenCalled();
+  });
+  it("retains chosen approaches and support needs through a failed save and reload", async () => {
+    sessionStorage.setItem(onboardingDraftKey("a"), JSON.stringify({ step: 2, assessment, journey, consent: false }));
+    api.saveSkunkieAssessment.mockRejectedValue(Error("offline")); await render();
+    const choice = (text: string) => [...host.querySelectorAll("label")].find(label => label.textContent?.includes(text))!.querySelector<HTMLInputElement>("input")!;
+    act(() => { choice("Hands-on practice").click(); choice("Reading and notes").click(); });
+    const support = host.querySelector<HTMLTextAreaElement>('textarea[placeholder^="For example"]')!;
+    act(() => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(support, "captions,keyboard navigation"); support.dispatchEvent(new Event("input", { bubbles: true })); });
+    await submit(); act(() => host.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click()); await submit();
+    expect(api.saveSkunkieAssessment.mock.calls[0][0].preferredApproaches).toEqual(["reading"]);
+    expect(api.saveSkunkieAssessment.mock.calls[0][0].supportNeeds).toEqual(["captions", "keyboard navigation"]);
+    act(() => root.unmount()); root = createRoot(host); await render();
+    const restored = JSON.parse(sessionStorage.getItem(onboardingDraftKey("a"))!);
+    expect(restored.assessment.preferredApproaches).toEqual(["reading"]); expect(restored.assessment.supportNeeds).toEqual(["captions", "keyboard navigation"]);
+    expect(host.querySelector('[data-testid="workspace"]')).toBeNull();
+  });
+  it("requires this account and the submitted values in the save confirmation", () => {
+    const account = { localAccountId: "a" } as AccountInfo;
+    expect(confirmsLearnerSubmission(saved, saved.assessment, account)).toBe(true);
+    expect(confirmsLearnerSubmission({ ...saved, learnerSubject: "b" }, saved.assessment, account)).toBe(false);
+    expect(confirmsLearnerSubmission({ ...saved, assessment: { ...saved.assessment, studyGoal: "career" } }, saved.assessment, account)).toBe(false);
+    expect(confirmsLearnerSubmission({} as SkunkieLearnerProfile, saved.assessment, account)).toBe(false);
   });
 });

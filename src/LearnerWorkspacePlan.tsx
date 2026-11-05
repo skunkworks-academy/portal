@@ -51,6 +51,8 @@ export function LearnerWorkspacePlan({ profile, loadCatalogue, onEdit, onOpenPra
   }
   return <section className="learner-workspace-plan" aria-label="Your saved learning plan" data-activity-order={configuration.preferredOrder} data-help-level={configuration.helpLevel}>
     <header><p className="student-kicker">Saved learner setup</p><h2>Your {configuration.sessionMinutes}-minute starting session</h2><p>{configuration.difficulty} difficulty · {configuration.helpLevel} help · {configuration.practiceProportion}% practice</p><button type="button" onClick={onEdit}>Edit my learning setup</button></header>
+    <p>Preferred approaches: {profile.assessment.preferredApproaches.map(value => value.replaceAll("_", " ")).join(", ")}.</p>
+    {profile.assessment.supportNeeds.length > 0 && <p>Support requested: {profile.assessment.supportNeeds.join(", ")}. Check course materials or contact Academy support for availability.</p>}
     <ol className="learner-workspace-plan__steps">{plan.order.map(kind => <li key={kind}><article>
       <h3>{kind === "concept" ? `Explore a concept · ${plan.conceptMinutes} min` : `Try and check · ${plan.practiceMinutes} min`}</h3>
       {help(kind, configuration.helpLevel)}
