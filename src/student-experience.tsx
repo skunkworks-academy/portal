@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useMsal } from "@azure/msal-react";
 import { portalApi } from "./api";
+import { classRegistrationAction, type ClassRegistrationFeedback } from "./class-registration-ui";
 import { LearnerDiscovery, PersonalisedLearningOverview } from "./LearnerDiscovery";
 import {
   deleteBrowserLearnerPreferences,
@@ -37,6 +38,8 @@ type StudentExperienceProps = {
   onSignIn: () => void;
   onSignOut: () => void;
   onRegister: (classId: string) => Promise<void>;
+  registrationBusyClassId?: string | null;
+  registrationFeedback?: ClassRegistrationFeedback | null;
   services?: PortalServiceAvailability;
   onRetryServices?: () => void;
   savedLearnerProfile?: SkunkieLearnerProfile | null;
@@ -81,6 +84,8 @@ export function StudentExperience({
   onSignIn,
   onSignOut,
   onRegister,
+  registrationBusyClassId = null,
+  registrationFeedback = null,
   services = availableServices,
   onRetryServices,
   savedLearnerProfile = null,
@@ -243,9 +248,12 @@ export function StudentExperience({
     } finally { setLearnerBusy(false); }
   }
   const [query, setQuery] = useState("");
+  const [expandedRegistrationClassId, setExpandedRegistrationClassId] = useState<string | null>(null);
   useEffect(() => { setQuery(""); }, [accountId]);
   const displayName = portalProfile.displayName || profile?.name || "Learner";
-  const registeredClassIds = useMemo(() => new Set(registrations.map((registration) => registration.classId)), [registrations]);
+  const activeRegistrations = useMemo(() => registrations.filter((registration) => registration.status !== "Cancelled"), [registrations]);
+  const registeredClassIds = useMemo(() => new Set(activeRegistrations.map((registration) => registration.classId)), [activeRegistrations]);
+  const registrationByClass = useMemo(() => new Map(registrations.map((registration) => [registration.classId, registration])), [registrations]);
   const nextClass = classes.find((classItem) => registeredClassIds.has(classItem.id));
   const firstLoginSkunkie = shouldShowSkunkieWelcome(adaptivePilot, learnerReady, Boolean(learnerPreferences), learnerSkipped);
 
@@ -392,8 +400,43 @@ export function StudentExperience({
               <div className="student-section-heading"><div><p className="student-kicker">Live learning</p><h2>Classes and study sessions</h2><p>Register for a session and it will appear in your personal schedule.</p></div></div>
               <div className="student-session-list">
                 {classes.map((classItem) => {
-                  const registered = registeredClassIds.has(classItem.id);
-                  return <article className="student-session-card" key={classItem.id}><div className="student-session-date"><strong>{classItem.schedule}</strong><span>{classItem.modality}</span></div><div><span className="student-status">{classItem.status}</span><h2>{classItem.title}</h2><p>{classItem.courseTitle} · {classItem.instructor}</p><small>{classItem.enrolled}/{classItem.seats} places reserved</small></div><button type="button" disabled={registered} onClick={() => void onRegister(classItem.id)}>{registered ? "Registered" : "Register"}</button></article>;
+                  const registration = registrationByClass.get(classItem.id);
+                  const action = classRegistrationAction(classItem, registration, registrationBusyClassId === classItem.id);
+                  const expanded = expandedRegistrationClassId === classItem.id;
+                  const detailId = `student-class-registration-${classItem.id}`;
+                  return (
+                    <article className="student-session-card" key={classItem.id}>
+                      <div className="student-session-date"><strong>{classItem.schedule}</strong><span>{classItem.modality}</span></div>
+                      <div><span className="student-status">{classItem.status}</span><h2>{classItem.title}</h2><p>{classItem.courseTitle} · {classItem.instructor}</p><small>{classItem.enrolled}/{classItem.seats} places reserved</small></div>
+                      <button
+                        type="button"
+                        disabled={action.disabled || Boolean(registrationBusyClassId && registrationBusyClassId !== classItem.id)}
+                        aria-busy={registrationBusyClassId === classItem.id}
+                        aria-expanded={action.kind === "details" ? expanded : undefined}
+                        aria-controls={action.kind === "details" ? detailId : undefined}
+                        onClick={() => {
+                          if (action.kind === "details") {
+                            setExpandedRegistrationClassId(expanded ? null : classItem.id);
+                          } else if (action.kind === "register") {
+                            setExpandedRegistrationClassId(null);
+                            void onRegister(classItem.id);
+                          }
+                        }}
+                      >{action.label}</button>
+                      {registrationFeedback?.classId === classItem.id && (
+                        <p role={registrationFeedback.type === "error" ? "alert" : "status"} className={`student-registration-feedback ${registrationFeedback.type}`}>
+                          {registrationFeedback.message}
+                        </p>
+                      )}
+                      {registration && expanded && (
+                        <div id={detailId} className="student-registration-details">
+                          <strong>{registration.status === "Cancelled" ? "Registration cancelled — contact the Academy to request another place." : registration.status === "Waitlisted" ? "You are on the waitlist" : "Your place is registered"}</strong>
+                          <p>{registration.classTitle} · {registration.courseTitle}</p>
+                          <small>Recorded: {registration.registeredAt || "Date unavailable"}</small>
+                        </div>
+                      )}
+                    </article>
+                  );
                 })}
                 {classes.length === 0 && <div className="student-empty-state"><div>
                   <h2>{services.classes === "available" ? "No scheduled classes" : "Class schedule unavailable"}</h2>
