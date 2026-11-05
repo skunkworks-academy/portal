@@ -7,7 +7,7 @@ export class CosmosLmsStore implements LmsStore {
     if (!endpoint.startsWith("https://")) throw Error("Cosmos HTTPS endpoint required.");
   }
   private get docs() { return "/dbs/" + encodeURIComponent(this.database) + "/colls/" + encodeURIComponent(this.container) + "/docs"; }
-  private async call(path: string, method: string, body?: unknown, headers: Record<string,string> = {}) {
+  private async call(path: string, method: string, body?: unknown, headers: Record<string,string> = {}): Promise<{ data: Record<string, unknown>; continuation: string | null; etag: string | null } | null> {
     let response: Response;
     try {
       response = await fetch(this.endpoint.replace(/\/$/, "") + path, { method, headers: {
