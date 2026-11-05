@@ -10,7 +10,8 @@ import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSessi
 // Public production origin. Azure Functions reserves the "admin" namespace, so privileged
 // operations use the non-reserved /api/staff/* route family.
 const productionApiBaseUrl = "https://api.skunkworksacademy.com/api";
-const localApiBaseUrl = "http://localhost:8080/api";
+// Use the Vite same-origin /api proxy (configured for Azure Functions on port 7071).
+const localApiBaseUrl = "/api";
 
 function defaultApiBaseUrl() {
   if (typeof window === "undefined") return productionApiBaseUrl;

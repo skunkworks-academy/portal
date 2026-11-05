@@ -27,9 +27,20 @@ beforeEach(() => {
   document.documentElement.removeAttribute("data-portal-motion");
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
-afterEach(() => { act(() => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+afterEach(() => { act(() => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers(); });
 
 describe("avatar-first Skunkie", () => {
+  it.each(["", "https://example.invalid/api/"])("routes local status and chat through the proxy or explicit override %s", async configured => {
+    vi.stubEnv("VITE_API_BASE_URL", configured);
+    expect(window.location.hostname).toBe("localhost");
+    const fetch = vi.fn((url: string) => Promise.resolve(new Response(JSON.stringify(url.endsWith("/status") ? { available: true } : { reply: "Mock response" }))));
+    vi.stubGlobal("fetch", fetch);
+    await render(<SkunkieCompanion />); click("Open Skunkie AI learning companion"); await act(async () => {});
+    enter("Explicit test question"); await submit();
+    const base = configured ? "https://example.invalid/api" : "/api";
+    expect(fetch.mock.calls.map(([url]) => url)).toEqual([`${base}/skunkie/status`, `${base}/skunkie/chat`]);
+    expect(host.textContent).toContain("Mock response");
+  });
   it.each(["companion", "onboarding"])("shows cancellable microphone startup in %s without sending or losing a draft", async surface => {
     const abort = vi.fn(); const start = vi.fn();
     vi.stubGlobal("SpeechRecognition", class { start = start; abort = abort; stop = vi.fn(); });

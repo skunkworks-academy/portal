@@ -15,7 +15,7 @@ const productionApiBaseUrl = "https://api.skunkworksacademy.com/api";
 function apiBaseUrl() {
   const configured = import.meta.env.VITE_API_BASE_URL?.trim();
   if (configured) return configured.replace(/\/$/, "");
-  return ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "http://localhost:8080/api" : productionApiBaseUrl;
+  return ["localhost", "127.0.0.1"].includes(window.location.hostname) ? "/api" : productionApiBaseUrl;
 }
 
 export function SkunkieCompanion() {
