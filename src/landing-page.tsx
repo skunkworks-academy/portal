@@ -1,60 +1,77 @@
-import { useState, type CSSProperties } from "react";
+import { useState } from "react";
 import "./landing-page.css";
 
 type PortalLandingProps = {
-  onSignIn: () => void;
+  onSignIn: () => Promise<void> | void;
+  startupNotice?: string;
 };
 
-export function PortalLanding({ onSignIn }: PortalLandingProps) {
-  const [pointer, setPointer] = useState({ x: 0, y: 0 });
+/**
+ * The anonymous portal entry deliberately renders no workspace navigation,
+ * dashboards, module previews, record counts or authenticated UI.
+ */
+export function PortalLanding({ onSignIn, startupNotice = "" }: PortalLandingProps) {
+  const [signInError, setSignInError] = useState("");
+  const [redirecting, setRedirecting] = useState(false);
 
-  function move(event: React.PointerEvent<HTMLElement>) {
-    const rect = event.currentTarget.getBoundingClientRect();
-    setPointer({
-      x: ((event.clientX - rect.left) / rect.width - .5) * 2,
-      y: ((event.clientY - rect.top) / rect.height - .5) * 2
-    });
+  async function beginSignIn() {
+    if (redirecting) return;
+    setRedirecting(true);
+    setSignInError("");
+    try {
+      await onSignIn();
+    } catch (error) {
+      console.error("Could not start Microsoft sign-in", error);
+      setSignInError("Microsoft sign-in could not start in this browser. Try again or open the portal directly in Safari or Chrome.");
+      setRedirecting(false);
+    }
   }
 
-  const motion = {
-    "--pointer-x": pointer.x.toFixed(3),
-    "--pointer-y": pointer.y.toFixed(3)
-  } as CSSProperties;
-
   return (
-    <main className="portal-landing" onPointerMove={move} onPointerLeave={() => setPointer({ x: 0, y: 0 })} style={motion}>
-      <div className="landing-noise" aria-hidden="true" />
-      <div className="landing-field" aria-hidden="true">
-        <span className="landing-orb orb-violet" />
-        <span className="landing-orb orb-cyan" />
-        <span className="landing-grid" />
-        <span className="landing-ring ring-one" />
-        <span className="landing-ring ring-two" />
+    <main className="academy-login" id="main">
+      <header className="academy-login-header">
+        <a href="https://www.skunkworksacademy.com/" className="academy-login-brand" aria-label="Skunkworks Academy main website">
+          <img src="https://www.skunkworksacademy.com/images/favicon-white.png" width="44" height="44" alt="" />
+          <span><strong>SKUNKWORKS</strong><small>ACADEMY</small></span>
+        </a>
+        <span className="academy-login-header-label">Secure portal</span>
+      </header>
+
+      <div className="academy-login-stage">
+        <div className="academy-login-intro">
+          <span className="academy-login-kicker"><span aria-hidden="true" /> SKUNKWORKS ACADEMY</span>
+          <h1>Everything begins<br /><em>with your sign-in.</em></h1>
+          <p>One secure identity for your Academy experience. Use any personal Microsoft account or Microsoft Entra work or school account to sign in or register as a learner.</p>
+          <div className="academy-login-trust">
+            <span className="academy-login-check" aria-hidden="true">✓</span>
+            <span>Personal Microsoft and Entra ID accounts supported</span>
+          </div>
+        </div>
+
+        <section className="academy-login-card" aria-labelledby="academy-login-title">
+          <div className="academy-login-card-top">
+            <span className="academy-login-mark" aria-hidden="true">
+              <span /><span /><span /><span />
+            </span>
+            <span className="academy-login-card-tag">MICROSOFT ACCOUNT</span>
+          </div>
+          <h2 id="academy-login-title">Welcome to the portal</h2>
+          <p>Sign in with an Outlook, Hotmail, Live or Microsoft Entra work or school account. First-time users can create an Academy learner profile automatically.</p>
+          {(signInError || startupNotice) && <p className="academy-login-auth-error" role="alert">{signInError || startupNotice}</p>}
+          <button type="button" className="academy-login-button" disabled={redirecting} onClick={() => void beginSignIn()}>
+            <span>{redirecting ? "Opening Microsoft sign-in…" : "Sign in with Microsoft"}</span><span aria-hidden="true">→</span>
+          </button>
+          <p className="academy-login-mobile-help">Having trouble inside an app? Open this website in Safari or Chrome to sign in.</p>
+          <div className="academy-login-security">
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+            <span>Protected by Microsoft Entra ID and your organisation's access policies.</span>
+          </div>
+        </section>
       </div>
 
-
-      <section className="landing-hero">
-        <p className="landing-eyebrow"><span /> The Skunkworks Academy learning portal</p>
-        <h1>Build skills<br /><em>that move you.</em></h1>
-        <p className="landing-intro">A focused learning space for self-paced courses, practical labs, live classes and guided growth—built around the work you want to do next.</p>
-        <div className="landing-actions">
-          <button type="button" className="landing-primary" onClick={onSignIn}>Enter your learning space <span aria-hidden="true">→</span></button>
-          <a href="https://skunkworksacademy.com/self-paced/" className="landing-secondary">Browse the catalogue</a>
-        </div>
-        <p className="landing-trust">Secured by Microsoft Entra · Your progress stays yours</p>
-      </section>
-
-      <section className="landing-constellation" aria-label="Portal capabilities">
-        <article className="landing-float-card card-course"><span>01</span><strong>Learn</strong><p>Courses built for practical progress.</p></article>
-        <article className="landing-float-card card-lab"><span>02</span><strong>Practise</strong><p>Hands-on labs that make skills stick.</p></article>
-        <article className="landing-float-card card-companion"><span className="landing-skunkie">S</span><strong>Skunkie</strong><p>Your AI learning companion.</p></article>
-        <article className="landing-float-card card-class"><span>04</span><strong>Connect</strong><p>Live classes, study groups and support.</p></article>
-      </section>
-
-      <footer className="landing-footer">
-        <span>Learning that compounds.</span>
-        <span>South Africa · Built for momentum</span>
-        <a href="mailto:training@skunkworks.africa">Get support</a>
+      <footer className="academy-login-footer">
+        <span>© {new Date().getFullYear()} Skunkworks Academy · Learn. Build. Deploy.</span>
+        <div><a href="https://www.skunkworksacademy.com/">Academy website</a><a href="mailto:training@skunkworks.africa">Support</a></div>
       </footer>
     </main>
   );

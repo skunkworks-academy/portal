@@ -66,7 +66,7 @@ jobs:
           VITE_MSAL_CLIENT_ID: ${{ env.PORTAL_ENTRA_CLIENT_ID }}
           VITE_API_CLIENT_ID: ${{ env.PORTAL_ENTRA_CLIENT_ID }}
           VITE_APPLICATION_ID_URI: ${{ env.PORTAL_APPLICATION_ID_URI }}
-          VITE_MSAL_AUTHORITY: https://login.microsoftonline.com/${{ env.PORTAL_ENTRA_TENANT_ID }}
+          VITE_MSAL_AUTHORITY: https://login.microsoftonline.com/common
           VITE_API_SCOPE: ${{ env.PORTAL_API_SCOPE }}
           VITE_API_BASE_URL: ${{ env.PORTAL_API_BASE_URL }}
           VITE_SKUNKWORKS_TENANT_ID: ${{ env.PORTAL_ENTRA_TENANT_ID }}
@@ -89,6 +89,10 @@ jobs:
             echo 'The production build does not contain the required /staff/ privileged request path family.' >&2
             exit 1
           fi
+      - name: Install and verify Academy search favicons
+        uses: skunkworks-academy/www/.github/actions/search-favicons@67c4ab0d8f7c5dca50d54b8dad24174b0e41a39a
+        with:
+          artifact-path: "dist"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "contractStatus": "proposed-not-provisioned",
+  "asOf": "2026-10-30",
+  "homeTenant": {
+    "displayName": "SKUNKWORKS",
+    "primaryDomain": "skunkworks.digital",
+    "tenantId": "338a8916-80d9-467c-a94a-7f61d04ef7d5"
+  },
+  "existingPortal": {
+    "displayName": "Skunkworks Academy Portal",
+    "clientId": "e22672ae-61a6-434e-b135-3360557819ec",
+    "applicationObjectId": "5546429d-1373-49ab-b587-67deba7e84c0",
+    "publicOrigin": "https://portal.skunkworksacademy.com",
+    "oidcAuthority": "https://login.microsoftonline.com/common",
+    "apiAudience": "api://e22672ae-61a6-434e-b135-3360557819ec",
+    "use": "User entry and existing Microsoft Entra sign-in",
+    "status": "configured-in-source-not-live-verified"
+  },
+  "proposedEnterpriseApps": [
+    {
+      "name": "Skunkworks Academy LMS API",
+      "status": "proposed",
+      "tenant": "home",
+      "purpose": "Protected course, assessment, cohort, progress, instructor and customer organisation APIs",
+      "scopes": [
+        "LMS.Read",
+        "LMS.Write"
+      ],
+      "requiresServerSideRoles": true
+    },
+    {
+      "name": "Skunkworks Academy Lab Control",
+      "status": "proposed",
+      "tenant": "home",
+      "purpose": "Privileged Azure and Google Cloud lab provisioning with cost controls, metering and teardown",
+      "scopes": [
+        "Labs.Read",
+        "Labs.Launch"
+      ],
+      "requiresServerSideRoles": true
+    },
+    {
+      "name": "Skunkworks Academy Marketplace Fulfillment",
+      "status": "proposed",
+      "tenant": "home",
+      "purpose": "Backend Microsoft Marketplace SaaS fulfillment v2 and subscription lifecycle",
+      "scopes": [],
+      "requiresServerSideRoles": true
+    },
+    {
+      "name": "Skunkworks Academy External Learners",
+      "status": "proposed",
+      "tenant": "external-id-to-be-determined",
+      "purpose": "Customer and public learner identities; verified cross-tenant binding to LMS subjects",
+      "scopes": [],
+      "requiresServerSideRoles": true
+    }
+  ],
+  "tenantPolicy": {
+    "isolateCustomerOrganisations": true,
+    "externalUsersDefaultToStudent": true,
+    "staffAndAdminFromHomeTenantClaimsOnly": true,
+    "commercialMarketplaceEntitlementSeparateFromMicrosoft365Licence": true,
+    "automaticEducationLicenceOnSignup": false,
+    "educationLicenceAssignment": "Eligibility validation, available product licensing, user-location checks, and authorised group-based provisioning required.",
+    "zeroTrust": "Backend enforces token issuer, audience, tenant membership, roles, object ownership and entitlement."
+  },
+  "publication": "Treat this JSON as a deployment contract proposal only. Do not auto-create Entra applications or grant Graph permissions from frontend configuration."
+}
