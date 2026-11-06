@@ -87,12 +87,40 @@ describe("Skunkie metered provider boundary", () => {
     ledger.reserve.mockResolvedValue({ reservation, mayDispatch: false, budget: full });
     expect((await handlers().chat(request(), context)).status).toBe(409); expect(send).not.toHaveBeenCalled();
   });
-  it.each([400, 408, 429, 500])("retains a hold on provider HTTP%s and does not label it monthly exhaustion", async status => {
+  it.each([400, 403, 404, 408, 500])("retains a hold on provider HTTP%s and does not label it monthly exhaustion", async status => {
     send.mockResolvedValue(new Response("secret provider error", { status }));
     const result = await handlers().chat(request(), context);
-    expect(result.status).toBe(status === 429 ? 429 : 502);
+    expect(result.status).toBe(502);
     expect(result.jsonBody).toBeUndefined(); expect(ledger.settle).not.toHaveBeenCalled(); expect(send).toHaveBeenCalledTimes(1);
     expect(JSON.stringify(vi.mocked(context.error).mock.calls)).not.toContain("secret provider error");
+  });
+  it.each([401, 429])("reconciles documented unprocessed HTTP%s as zero usage without retrying inference", async status => {
+    send.mockResolvedValue(new Response("provider details", { status }));
+    const result = await handlers().chat(request(), context);
+    expect(result.status).toBe(status === 429 ? 429 : 502);
+    expect(result.jsonBody).toBeUndefined();
+    expect(result.body).toContain("No model allowance was used");
+    expect(ledger.settle).toHaveBeenCalledWith(principal, reservation, { inputTokens: 0, outputTokens: 0 });
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(send.mock.calls[0][1]?.redirect).toBe("error");
+  });
+  it("retries only idempotent reconciliation after a transient storage failure", async () => {
+    ledger.settle.mockRejectedValueOnce(new HttpError(503, "Storage unavailable"));
+    expect((await handlers().chat(request(), context)).status).toBe(200);
+    expect(ledger.settle).toHaveBeenCalledTimes(2);
+    expect(ledger.settle.mock.calls[0]).toEqual(ledger.settle.mock.calls[1]);
+    expect(send).toHaveBeenCalledTimes(1); expect(ledger.reserve).toHaveBeenCalledTimes(1);
+  });
+  it("bounds failed settlement retries and never redispatches the model", async () => {
+    ledger.settle.mockRejectedValue(new HttpError(503, "Storage unavailable"));
+    expect((await handlers().chat(request(), context)).status).toBe(503);
+    expect(ledger.settle).toHaveBeenCalledTimes(3);
+    expect(send).toHaveBeenCalledTimes(1); expect(ledger.reserve).toHaveBeenCalledTimes(1);
+  });
+  it("does not retry a conflicting settlement", async () => {
+    ledger.settle.mockRejectedValue(new HttpError(409, "Already settled differently"));
+    expect((await handlers().chat(request(), context)).status).toBe(409);
+    expect(ledger.settle).toHaveBeenCalledTimes(1);
   });
   it("retains a hold on network failure without leaking raw error details", async () => {
     send.mockRejectedValue(new Error("private-key"));

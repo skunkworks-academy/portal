@@ -49,6 +49,19 @@ type Dependencies = {
   budget: () => Pick<SkunkieBudgetService, "read" | "reserve" | "settle">;
   send: typeof fetch;
 };
+/** Retry only reconciliation of the same verified usage, never model inference. */
+async function settleVerifiedUsage(
+  ledger: Pick<SkunkieBudgetService, "settle">,
+  ...args: Parameters<SkunkieBudgetService["settle"]>
+) {
+  for (let attempt = 0; ; attempt++) {
+    try { return await ledger.settle(...args); }
+    catch (error) {
+      if (!(error instanceof HttpError) || error.status !== 503 || attempt >= 2) throw error;
+      await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+    }
+  }
+}
 export function createSkunkieHandlers(overrides: Partial<Dependencies> = {}) {
   const dependencies: Dependencies = { authenticate: requireUser, settings: process.env,
     budget: () => createSkunkieBudgetService(), send: fetch, ...overrides };
@@ -89,12 +102,19 @@ export function createSkunkieHandlers(overrides: Partial<Dependencies> = {}) {
       // responses) can be billable: retain the durable hold until verified usage.
       const response = await dependencies.send(
         `${settings.AZURE_OPENAI_ENDPOINT!.replace(/\/$/, "")}/openai/deployments/${encodeURIComponent(settings.AZURE_OPENAI_DEPLOYMENT!)}/chat/completions?api-version=${encodeURIComponent(settings.AZURE_OPENAI_API_VERSION || "2024-10-21")}`,
-        { method: "POST", signal: AbortSignal.timeout(28000), headers: { "Content-Type": "application/json", "api-key": settings.AZURE_OPENAI_API_KEY! },
+        { method: "POST", redirect: "error", signal: AbortSignal.timeout(28000), headers: { "Content-Type": "application/json", "api-key": settings.AZURE_OPENAI_API_KEY! },
           body: JSON.stringify({ temperature: 0.3, max_tokens: SKUNKIE_MAX_OUTPUT_TOKENS, messages }) }
       );
       if (!response.ok) {
         await response.body?.cancel();
         context.error("Skunkie provider request failed", { status: response.status });
+        // Azure's billing FAQ explicitly classifies authentication 401 and
+        // rate-limit 429 as unprocessed/unbilled. It explicitly bills some
+        // content-filter 400 and timeout 408 responses, so never refund broadly.
+        if (response.status === 401 || response.status === 429) {
+          await settleVerifiedUsage(ledger, principal, hold.reservation, { inputTokens: 0, outputTokens: 0 });
+          throw new HttpError(response.status === 429 ? 429 : 502, "Skunkie could not generate a response. No model allowance was used for this rejected request.");
+        }
         throw new HttpError(response.status === 429 ? 429 : 502, "Skunkie could not generate a response. Its allowance remains reserved until usage can be verified.");
       }
       const body = await response.json() as { model?: string; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }; choices?: Array<{ message?: { content?: unknown } }> };
@@ -105,7 +125,7 @@ export function createSkunkieHandlers(overrides: Partial<Dependencies> = {}) {
           usage.total_tokens !== usage.prompt_tokens! + usage.completion_tokens!) {
         throw new HttpError(502, "Skunkie could not verify model usage. The request allowance remains reserved.");
       }
-      const settled = await ledger.settle(principal, hold.reservation, { inputTokens: usage.prompt_tokens!, outputTokens: usage.completion_tokens! });
+      const settled = await settleVerifiedUsage(ledger, principal, hold.reservation, { inputTokens: usage.prompt_tokens!, outputTokens: usage.completion_tokens! });
       if (settled.blocked) throw new HttpError(503, "Skunkie allowance is paused while model usage is checked.");
       const content = body.choices?.[0]?.message?.content;
       if (typeof content !== "string" || !content.trim()) throw new HttpError(502, "Skunkie returned an empty response.");

@@ -10,7 +10,7 @@ The existing organization-partitioned Cosmos container stores a separate budget 
 
 Before each single provider attempt, the server holds US$0.4208704. This covers 1,048,576 input tokens (rounded upward from the documented 1,047,576-token model context) plus the enforced 900-token output maximum. This intentionally uses the entire model context rather than a character-count estimate. At most two such requests can start together from a fresh allowance.
 
-On a valid response from the pinned model, prompt tokens cost 400 nanodollars each and output tokens cost 1,600 nanodollars each (US$0.40 and US$1.60 per million). Cached input is conservatively charged at the full input rate. Verified usage replaces the hold exactly once. Missing, inconsistent or invalid usage, timeouts, provider failures, process crashes and failed settlement retain the hold. Some non-success provider responses are billable; an HTTP error alone is not proof of zero cost. No automatic provider retry is made.
+On a valid response from the pinned model, prompt tokens cost 400 nanodollars each and output tokens cost 1,600 nanodollars each (US$0.40 and US$1.60 per million). Cached input is conservatively charged at the full input rate. Verified usage replaces the hold exactly once. Azure explicitly documents authentication 401 and rate-limit 429 as unprocessed and uncharged, so these settle to zero. Missing, inconsistent or invalid usage, timeouts, other provider failures and process crashes retain the hold. In particular, content-filter 400 and timeout 408 responses can be billable. Settlement alone may retry twice with the same reservation and verified usage; an unresolved settlement retains its hold. No automatic provider retry or redirect is allowed.
 
 A new reply is refused if its maximum hold cannot fit. Therefore some allowance may remain unused. The browser displays the remaining amount after completed usage and outstanding holds, alongside the South African reset date. A monthly 4,096-request storage bound also prevents further requests without fabricating a usage charge. An unexpected model-usage overrun pauses the account for investigation.
 
@@ -26,6 +26,6 @@ Validation includes concurrent reservation races, duplicate IDs and settlements,
 
 - [Azure model context and version](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure#gpt-41-series)
 - [Azure OpenAI pricing](https://azure.microsoft.com/en-us/pricing/details/cognitive-services/openai-service/): South Africa North GlobalStandard non-batch rates were cross-checked with Azure Retail Prices API records.
-- [Azure OpenAI billing and errors](https://learn.microsoft.com/en-us/azure/ai-foundry/openai/faq): unsuccessful responses can still incur usage.
+- [Azure OpenAI billing and errors](https://learn.microsoft.com/en-us/azure/foundry-classic/openai/faq#we-noticed-charges-associated-with-api-calls-that-failed-to-complete-with-status-code-400-why-are-failed-api-calls-generating-a-charge): unsuccessful responses can still incur usage; 401 and 429 are documented unprocessed exceptions.
 - [Cosmos optimistic concurrency](https://learn.microsoft.com/en-us/azure/cosmos-db/nosql/database-transactions-optimistic-concurrency)
 - [Cosmos account metadata](https://learn.microsoft.com/en-us/rest/api/cosmos-db/get-database-account)

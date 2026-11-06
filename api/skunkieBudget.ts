@@ -188,9 +188,10 @@ export class SkunkieBudgetService {
   }
 }
 
+let budgetCredential: DefaultAzureCredential | undefined;
 export function createSkunkieBudgetService(env: NodeJS.ProcessEnv = process.env): SkunkieBudgetService {
   const { LMS_COSMOS_ENDPOINT: endpoint, LMS_COSMOS_DATABASE: database, LMS_COSMOS_CONTAINER: container, LMS_HOME_ORGANIZATION_ID: organizationId } = env;
   if (!endpoint || !database || !container || !organizationId) throw budgetStorageUnavailable();
-  const credential = new DefaultAzureCredential();
+  const credential = budgetCredential ??= new DefaultAzureCredential();
   return new SkunkieBudgetService(new CosmosSkunkieBudgetStore(endpoint, database, container, async () => (await credential.getToken("https://cosmos.azure.com/.default")).token), organizationId);
 }
