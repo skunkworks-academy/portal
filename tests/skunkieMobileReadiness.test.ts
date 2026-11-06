@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { isSkunkieConfigured } from "../api/skunkieReadiness.js";
+import { isSkunkieConfigured, SKUNKIE_BUDGET_POLICY } from "../api/skunkieReadiness.js";
 
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -9,7 +9,12 @@ describe("Skunkie mobile recovery and production provider readiness", () => {
     expect(isSkunkieConfigured({})).toBe(false);
     expect(isSkunkieConfigured({ AZURE_OPENAI_ENDPOINT: "https://academy.openai.azure.com", AZURE_OPENAI_DEPLOYMENT: "companion" })).toBe(false);
     expect(isSkunkieConfigured({ AZURE_OPENAI_ENDPOINT: "http://insecure", AZURE_OPENAI_DEPLOYMENT: "companion", AZURE_OPENAI_API_KEY: "test-secret" })).toBe(false);
-    expect(isSkunkieConfigured({ AZURE_OPENAI_ENDPOINT: "https://academy.openai.azure.com/", AZURE_OPENAI_DEPLOYMENT: "companion", AZURE_OPENAI_API_KEY: "test-secret" })).toBe(true);
+    const configured = { AZURE_OPENAI_ENDPOINT: "https://academy.openai.azure.com/", AZURE_OPENAI_DEPLOYMENT: "companion", AZURE_OPENAI_API_KEY: "test-secret",
+      SKUNKIE_BUDGET_POLICY, LMS_COSMOS_ENDPOINT: "https://test.documents.azure.com/", LMS_COSMOS_DATABASE: "academy", LMS_COSMOS_CONTAINER: "lms", LMS_HOME_ORGANIZATION_ID: "academy" };
+    expect(isSkunkieConfigured(configured)).toBe(true);
+    expect(isSkunkieConfigured({ ...configured, SKUNKIE_BUDGET_POLICY: undefined })).toBe(false);
+    expect(isSkunkieConfigured({ ...configured, LMS_COSMOS_ENDPOINT: undefined })).toBe(false);
+    expect(isSkunkieConfigured({ ...configured, AZURE_OPENAI_ENDPOINT: "https://attacker.example/" })).toBe(false);
   });
 
   it("registers both the existing chat API and authenticated availability check", () => {
@@ -21,8 +26,9 @@ describe("Skunkie mobile recovery and production provider readiness", () => {
     expect(funcs).toContain('"GET /api/skunkie/status"');
     expect(skunkie).toContain('route: "skunkie/status"');
     expect(skunkie).toContain('route: "skunkie/chat"');
-    expect(skunkie).toContain("await requireUser(request)");
-    expect(skunkie).toContain("isSkunkieConfigured(process.env)");
+    expect(skunkie).toContain("authenticate: requireUser");
+    expect(skunkie).toContain("await dependencies.authenticate(request)");
+    expect(skunkie).toContain("isSkunkieConfigured(settings)");
     expect(skunkie).not.toContain("upstreamBody.slice");
     expect(skunkie).not.toContain("user: principal.email");
   });

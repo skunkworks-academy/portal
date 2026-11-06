@@ -7,7 +7,7 @@ import { empty, failure, json, readJson } from "./http.js";
 import "./paymentFunctions.js";
 import "./skunkieFunctions.js";
 import "./learnerPreferencesFunctions.js";
-import { isSkunkieConfigured } from "./skunkieReadiness.js";
+import { isSkunkieConfigured, SKUNKIE_BUDGET_POLICY } from "./skunkieReadiness.js";
 import { isLmsConfigured } from "./lmsReadiness.js";
 import {
   createApplication,
@@ -65,7 +65,8 @@ app.http("health", {
       paypalEnvironment: process.env.PAYPAL_ENV || "sandbox"
     },
     skunkieSettings: {
-      configured: isSkunkieConfigured(process.env)
+      configured: isSkunkieConfigured(process.env),
+      budgetPolicy: SKUNKIE_BUDGET_POLICY
       // Deployment identifiers and credentials are intentionally never public.
     },
     lmsSettings: { configured: isLmsConfigured(process.env) },
