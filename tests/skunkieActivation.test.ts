@@ -84,13 +84,26 @@ describe("Skunkie activation guard", () => {
     const result = verify(valid(), ["--endpoint", "https://private-secret@academy-ai.openai.azure.com/"]);
     expect(result.status).toBe(1); expect(result.output).not.toContain("private-secret");
   }, 20_000);
-  it("keeps the workflow's secret restoration after code deployment and guarded live health", () => {
+  it("keeps Skunkie disabled unless a guarded activation restores secrets after verified deployment", () => {
     const workflow = readFileSync(resolve(repo, ".github/workflows/deploy-azure-function.yml"), "utf8");
     const pause = workflow.indexOf("- name: Keep Skunkie disabled");
     const deploy = workflow.indexOf("- name: Deploy Function package");
     const activate = workflow.indexOf("- name: Verify and activate the protected Skunkie deployment");
     const restore = workflow.indexOf('"AZURE_OPENAI_API_KEY=$SKUNKIE_API_KEY"');
-    expect(pause).toBeGreaterThan(0); expect(deploy).toBeGreaterThan(pause); expect(activate).toBeGreaterThan(deploy);
+    // A release may intentionally leave Skunkie disabled until credentials, quotas,
+    // and an explicit activation rollout are approved. Never require activation
+    // merely to make the deployment workflow's safety test pass.
+    expect(pause).toBeGreaterThan(0);
+    expect(deploy).toBeGreaterThan(pause);
+    expect(workflow).toContain('--settings "SKUNKIE_BUDGET_POLICY="');
+    if (activate === -1) {
+      expect(restore).toBe(-1);
+      expect(workflow).not.toContain("scripts/verify-skunkie-activation.py active");
+      return;
+    }
+    // If activation is added back, the original ordering and secret hygiene
+    // requirements must hold before the provider can be enabled.
+    expect(activate).toBeGreaterThan(deploy);
     expect(activate).toBeGreaterThan(workflow.indexOf("- name: Verify API health"));
     expect(activate).toBeGreaterThan(workflow.indexOf("- name: Verify AI publication and default-deny access contract"));
     expect(restore).toBeGreaterThan(workflow.indexOf("scripts/verify-skunkie-activation.py verify", activate));
