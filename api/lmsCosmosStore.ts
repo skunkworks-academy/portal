@@ -7,7 +7,7 @@ export class CosmosLmsStore implements LmsStore {
     if (!endpoint.startsWith("https://")) throw Error("Cosmos HTTPS endpoint required.");
   }
   private get docs() { return "/dbs/" + encodeURIComponent(this.database) + "/colls/" + encodeURIComponent(this.container) + "/docs"; }
-  private async call(path: string, method: string, body?: unknown, headers: Record<string,string> = {}) {
+  private async call(path: string, method: string, body?: unknown, headers: Record<string,string> = {}): Promise<{ data: Record<string, unknown>; continuation: string | null; etag: string | null } | null> {
     let response: Response;
     try {
       response = await fetch(this.endpoint.replace(/\/$/, "") + path, { method, headers: {
@@ -21,13 +21,31 @@ export class CosmosLmsStore implements LmsStore {
     if (response.status === 404 && (method === "GET" || method === "DELETE")) return null;
     if ([409,412].includes(response.status)) throw new HttpError(409, "LMS write conflict.");
     if (!response.ok) throw new HttpError(503, "LMS database unavailable.");
-    if (response.status === 204) return { data: {}, continuation: null };
-    return { data: await response.json() as Record<string, unknown>, continuation: response.headers.get("x-ms-continuation") };
+    if (response.status === 204) return { data: {}, continuation: null, etag: null };
+    return { data: await response.json() as Record<string, unknown>, continuation: response.headers.get("x-ms-continuation"), etag: response.headers.get("etag") };
   }
   async get<T>(collection: string, key: string): Promise<T | null> {
     const partition = key.split(":")[0];
     const doc = await this.call(this.docs + "/" + encodeURIComponent(collection + ":" + key), "GET", undefined, { "x-ms-documentdb-partitionkey": JSON.stringify([partition]) });
     return doc ? doc.data.value as T : null;
+  }
+  /** SCIM must use the Cosmos ETag for read/modify/write so simultaneous PATCHes cannot overwrite one another. */
+  async getWithEtag<T>(collection: string, key: string): Promise<{ value: T; etag: string } | null> {
+    const partition = key.split(":")[0];
+    const doc = await this.call(this.docs + "/" + encodeURIComponent(collection + ":" + key), "GET", undefined, {
+      "x-ms-documentdb-partitionkey": JSON.stringify([partition])
+    });
+    if (!doc) return null;
+    if (!doc.etag) throw new HttpError(503, "LMS database version unavailable.");
+    return { value: doc.data.value as T, etag: doc.etag };
+  }
+  /** Conditional replacement; Cosmos HTTP 412 becomes HttpError(409). */
+  async putIfMatch<T>(collection: string, key: string, value: T, etag: string): Promise<void> {
+    if (!etag || !/^["A-Za-z0-9_=-]+$/.test(etag)) throw new HttpError(503, "LMS database version unavailable.");
+    const partition = key.split(":")[0];
+    await this.call(this.docs + "/" + encodeURIComponent(collection + ":" + key), "PUT", {
+      id: collection + ":" + key, organizationId: partition, collection, value
+    }, { "x-ms-documentdb-partitionkey": JSON.stringify([partition]), "If-Match": etag });
   }
   async put<T>(collection: string, key: string, value: T, options?: { ifAbsent?: boolean }): Promise<void> {
     const partition = key.split(":")[0];

@@ -186,3 +186,9 @@ Expected healthy shape:
 ## Skunkie orchestration
 
 The Networking Basics vertical slice makes Skunkie the first student view and adds authenticated assessment, curriculum mapping, personalised practice and durable outcomes. See [implementation, validation and rollout](docs/skunkie-central-orchestration.md). Production integration requires staff mapping of real LMS lessons and authenticated staging acceptance.
+
+## Microsoft Entra SCIM 2.0 provisioning
+
+An explicitly opt-in, Azure Functions SCIM endpoint with short-lived OAuth 2.0 client-credential tokens, tenant-scoped Cosmos records, user/group lifecycle operations and schema discovery is under staged development. It is **disabled by default**, is not an Entra gallery listing, and does not imply that any Entra provisioning jobs or customer tenants have been modified.
+
+See [SCIM provisioning and App Gallery launch gates](docs/ENTRA_SCIM_GALLERY.md) for prerequisites, setup, identity lifecycle, validation and publishing requirements.
