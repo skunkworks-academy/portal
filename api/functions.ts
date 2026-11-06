@@ -3,10 +3,12 @@ import { config, missingSettings } from "./config.js";
 import { requireAdmin, requireInstructor, requireStudent, requireUser } from "./auth.js";
 import { exchangeBulkMailApiCourse, exchangeBulkMailFinalAssessment } from "./courseContent.js";
 import { requireCourseLesson, scoreFinalAssessment, validateProgressPayload, type AssessmentPayload, type CourseProgressPayload } from "./courseMiddleware.js";
-import { fallbackJobs } from "./fallbackData.js";
 import { empty, failure, json, readJson } from "./http.js";
 import "./paymentFunctions.js";
 import "./skunkieFunctions.js";
+import "./learnerPreferencesFunctions.js";
+import { isSkunkieConfigured, SKUNKIE_BUDGET_POLICY } from "./skunkieReadiness.js";
+import { isLmsConfigured } from "./lmsReadiness.js";
 import {
   createApplication,
   createClass,
@@ -63,13 +65,21 @@ app.http("health", {
       paypalEnvironment: process.env.PAYPAL_ENV || "sandbox"
     },
     skunkieSettings: {
-      configured: Boolean(process.env.AZURE_OPENAI_ENDPOINT && process.env.AZURE_OPENAI_API_KEY && process.env.AZURE_OPENAI_DEPLOYMENT),
-      deployment: process.env.AZURE_OPENAI_DEPLOYMENT || null
+      configured: isSkunkieConfigured(process.env),
+      budgetPolicy: SKUNKIE_BUDGET_POLICY
+      // Deployment identifiers and credentials are intentionally never public.
     },
+    lmsSettings: { configured: isLmsConfigured(process.env) },
     allowedOrigins: config.allowedOrigins,
     routes: [
       "GET /api/health",
+      "GET /api/learner/preferences",
+      "PUT /api/learner/preferences",
+      "DELETE /api/learner/preferences",
       "POST /api/skunkie/chat",
+      "GET /api/skunkie/status",
+      "GET /api/lms/courses",
+      "GET /api/lms/me/enrolments",
       "GET /api/jobs",
       "GET /api/courses",
       "GET /api/classes",
@@ -115,14 +125,7 @@ app.http("getJobs", {
   methods: ["GET"],
   authLevel: "anonymous",
   route: "jobs",
-  handler: async (request) => {
-    try {
-      return json(request, await getLiveJobs());
-    } catch (error) {
-      console.warn("Falling back to preset jobs because SharePoint jobs could not be loaded.", error);
-      return json(request, fallbackJobs);
-    }
-  }
+  handler: async (request, context) => handle(request, context, async () => json(request, await getLiveJobs()))
 });
 
 app.http("getCourses", {

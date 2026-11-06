@@ -1,0 +1,12 @@
+/* The Microsoft login must stay useful if MSAL cannot initialise (common in in-app webviews). */
+.portal-startup-fallback{min-height:100svh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 10% 15%,rgba(30,107,208,.09),transparent 32rem),var(--academy-bg,#f6f8fb);color:var(--academy-text,#15171a)}
+.portal-startup-card{width:min(520px,100%);padding:clamp(24px,5vw,42px);border:1px solid var(--academy-line,#d8dee8);border-radius:20px;background:var(--academy-surface,#fff);box-shadow:0 22px 70px rgba(9,30,64,.10)}
+.portal-startup-eyebrow{margin:0 0 14px;color:var(--academy-accent,#1e6bd0);font-size:11px;letter-spacing:.12em;font-weight:800}
+.portal-startup-card h1{font-size:clamp(27px,5vw,37px);line-height:1.13;margin:0 0 20px;color:var(--academy-text,#15171a)}
+.portal-startup-card p{line-height:1.65;color:var(--academy-muted,#5a6472);font-size:15px}
+.portal-startup-card strong{overflow-wrap:anywhere;color:var(--academy-text,#15171a)}
+.portal-startup-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:24px}
+.portal-startup-actions button{background:var(--academy-accent,#1e6bd0);color:white;border-radius:10px;font-weight:800}
+.portal-startup-actions a{min-height:44px;display:inline-flex;align-items:center;color:var(--academy-accent,#1e6bd0);font-weight:800;text-decoration:none}
+.portal-startup-fallback :is(button,a):focus-visible{outline:3px solid var(--academy-focus,#f24208);outline-offset:3px}
+@media(max-width:480px){.portal-startup-fallback{padding:16px}.portal-startup-card{padding:24px 20px}}

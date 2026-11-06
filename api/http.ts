@@ -12,7 +12,7 @@ export function corsHeaders(request: HttpRequest) {
   const allowedOrigin = config.allowedOrigins.includes(origin) ? origin : config.allowedOrigins[0];
   return {
     "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS",
     "Access-Control-Allow-Headers": "authorization,content-type",
     "Access-Control-Max-Age": "86400",
     "Vary": "Origin"

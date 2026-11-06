@@ -1,11 +1,17 @@
 import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser";
 import { apiScope } from "./authConfig";
+import { PortalApiError } from "./api-error";
+import type { LearnerPreferences } from "./learner-adaptation";
+import type { SkunkieLearnerAssessment, SkunkieLearnerProfile } from "./learner-assessment/model";
+import type { IdRRoadmap } from "./idr/model";
+import type { CurriculumBinding, LearningOutcome, LearningSession, SkunkieContext } from "./skunkie/contracts";
 import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSession, CourseRecord, JobInput, JobPosting, NewApplication, OnboardingTask, PortalHealth, PortalProfile, PortalProfileInput, PortalRole } from "./types";
 
 // Public production origin. Azure Functions reserves the "admin" namespace, so privileged
 // operations use the non-reserved /api/staff/* route family.
 const productionApiBaseUrl = "https://api.skunkworksacademy.com/api";
-const localApiBaseUrl = "http://localhost:8080/api";
+// Use the Vite same-origin /api proxy (configured for Azure Functions on port 7071).
+const localApiBaseUrl = "/api";
 
 function defaultApiBaseUrl() {
   if (typeof window === "undefined") return productionApiBaseUrl;
@@ -54,7 +60,7 @@ async function request<T>(
 
   if (!response.ok) {
     const message = await response.text();
-    throw new Error(message || `Portal API request failed with ${response.status} at ${requestUrl}`);
+    throw new PortalApiError(response.status, message || `Portal API request failed with ${response.status}`);
   }
 
   if (response.status === 204) {
@@ -79,10 +85,55 @@ async function request<T>(
 }
 
 
+export type LmsCourseRecord = {
+  id: string; organizationId: string; title: string; description: string;
+  status: "draft" | "review" | "published"; ownerSubject: string; createdAt: string;
+};
+export type LmsLessonRecord = { id: string; title: string; mediaType: "pdf" | "video" };
+export type LmsEnrolmentRecord = { courseId: string; organizationId: string; learnerSubject: string; status: "active" | "completed"; enrolledAt: string };
+export type LmsProgressRecord = {
+  organizationId: string; courseId: string; learnerSubject: string;
+  completedLessonIds: string[]; attempts: Array<{ assessmentId: string; percent: number; passed: boolean; at: string }>;
+};
+type LmsAuth = { instance: IPublicClientApplication; account: AccountInfo };
+
 export type AcademyBeginnerAward={version:1;certificateId:string;courseId:string;learnerName:string;issuedAt:string;knowledgeCorrect:number;capstoneScore:number;criticalSafetyPassed:true;approvedBy:string;issuer:string;certificateSvg:string;badgeSvg:string};
 export type AcademyEnrolment={id:string;courseId:string;courseTitle:string;learnerName:string;learnerEmail:string;status:string};
 
 export const portalApi = {
+  skunkieBindCurriculum: (courseId: string, binding: Omit<CurriculumBinding, "courseId">, auth: LmsAuth) => request<CurriculumBinding>(`/staff/skunkie/curriculum/${encodeURIComponent(courseId)}`, { method: "PUT", body: JSON.stringify(binding) }, auth),
+  skunkieContext: (auth: LmsAuth) => request<SkunkieContext>("/me/skunkie/context", {}, auth),
+  skunkieAssessNetworking: (input: { courseId: string; goal: string; answers: Record<string, number>; consentToStore: boolean }, auth: LmsAuth) =>
+    request<LearningSession>("/me/skunkie/networking/assess", { method: "POST", body: JSON.stringify(input) }, auth),
+  skunkieEvaluate: (sessionId: string, answer: number, auth: LmsAuth) => request<LearningOutcome>(`/me/skunkie/sessions/${encodeURIComponent(sessionId)}/evaluate`, { method: "POST", body: JSON.stringify({ answer }) }, auth),
+  mySkunkieAssessment: (auth: LmsAuth, signal?: AbortSignal) => request<SkunkieLearnerProfile | null>("/me/skunkie/assessment", { signal }, auth),
+  saveSkunkieAssessment: (input: SkunkieLearnerAssessment, auth: LmsAuth, signal?: AbortSignal) => request<SkunkieLearnerProfile>("/me/skunkie/assessment", { method: "PUT", body: JSON.stringify(input), signal }, auth),
+  deleteSkunkieAssessment: (auth: LmsAuth, signal?: AbortSignal) => request<void>("/me/skunkie/assessment", { method: "DELETE", signal }, auth),
+  myIdrRoadmap: (auth: LmsAuth) => request<IdRRoadmap | null>("/me/idr/roadmap", {}, auth),
+  learnerPreferences: (auth: LmsAuth) => request<LearnerPreferences | null>("/learner/preferences", {}, auth),
+  saveLearnerPreferences: (preferences: LearnerPreferences, auth: LmsAuth) => request<LearnerPreferences>("/learner/preferences", { method: "PUT", body: JSON.stringify(preferences) }, auth),
+  deleteLearnerPreferences: (auth: LmsAuth) => request<void>("/learner/preferences", { method: "DELETE" }, auth),
+  lmsCourses: (auth: LmsAuth) => request<LmsCourseRecord[]>("/lms/courses", {}, auth),
+  lmsLearnerCourses: (auth: LmsAuth) => request<LmsCourseRecord[]>("/lms/me/courses", {}, auth),
+  lmsMyEnrolments: (auth: LmsAuth) => request<LmsEnrolmentRecord[]>("/lms/me/enrolments", {}, auth),
+  lmsLessons: (courseId: string, auth: LmsAuth) => request<LmsLessonRecord[]>(`/lms/courses/${encodeURIComponent(courseId)}/lessons`, {}, auth),
+  lmsLearnerLessons: (courseId: string, auth: LmsAuth) => request<LmsLessonRecord[]>(`/lms/me/courses/${encodeURIComponent(courseId)}/lessons`, {}, auth),
+  lmsProgress: (courseId: string, auth: LmsAuth) => request<LmsProgressRecord | null>(`/lms/courses/${encodeURIComponent(courseId)}/progress`, {}, auth),
+  lmsAddLesson: (courseId: string, input: { title: string; mediaType: "pdf" | "video"; mimeType: string; blobKey: string }, auth: LmsAuth) =>
+    request<LmsLessonRecord>(`/lms/courses/${encodeURIComponent(courseId)}/lessons`, { method: "POST", body: JSON.stringify(input) }, auth),
+  lmsEnrol: (courseId: string, auth: LmsAuth) => request<LmsEnrolmentRecord>(`/lms/courses/${encodeURIComponent(courseId)}/enrol`, { method: "POST" }, auth),
+  lmsCompleteLesson: (courseId: string, lessonId: string, auth: LmsAuth) => request<LmsProgressRecord>(
+    `/lms/courses/${encodeURIComponent(courseId)}/lessons/${encodeURIComponent(lessonId)}/complete`, { method: "POST" }, auth
+  ),
+  lmsCreateCourse: (payload: { title: string; description: string }, auth: LmsAuth) => request<LmsCourseRecord>(
+    "/lms/courses", { method: "POST", body: JSON.stringify(payload) }, auth
+  ),
+  lmsReviewCourse: (courseId: string, auth: LmsAuth) => request<LmsCourseRecord>(
+    `/lms/courses/${encodeURIComponent(courseId)}/review`, { method: "POST" }, auth
+  ),
+  lmsPublishCourse: (courseId: string, auth: LmsAuth) => request<LmsCourseRecord>(
+    `/lms/courses/${encodeURIComponent(courseId)}/publish`, { method: "POST" }, auth
+  ),
   requestBeginnerAssessment:(courseId:string,learnerName:string,auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyEnrolment>('/enrolments',{method:'POST',body:JSON.stringify({courseId,learnerName,source:'portal',gateway:'manual'})},auth),
   myBeginnerCertificate:(courseId:string,auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyBeginnerAward>('/me/beginner-certificates/'+encodeURIComponent(courseId),{},auth),
   staffBeginnerEnrolments:(courseId:string,auth:{instance:IPublicClientApplication;account:AccountInfo})=>request<AcademyEnrolment[]>('/staff/enrolments?courseId='+encodeURIComponent(courseId),{},auth),

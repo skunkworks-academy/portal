@@ -14,10 +14,16 @@ import {
   skunkworksTenantId
 } from "./authConfig";
 import { portalApi } from "./api";
+import { classRegistrationFailureMessage, classRegistrationResultFeedback, type ClassRegistrationFeedback } from "./class-registration-ui";
+import { loadingServices, resolveAvailability, type PortalServiceAvailability } from "./service-availability";
 import { StudentExperience } from "./student-experience";
+import { LearnerOnboardingGate } from "./LearnerOnboardingGate";
 import { CertificateWallet } from "./CertificateWallet";
 import { PortalLanding } from "./landing-page";
-import { classSchedule, courseCatalog, hasStaffRole, landingRoles, roleDefinitions, roleFromClaims } from "./roles";
+import { AcademyWorkspace } from "./academy-workspace";
+import { AccountPages, AccountPreferences } from "./AccountPages";
+import { PortalAccountLayout } from "./PortalSidebarNavigation";
+import { hasStaffRole, landingRoles, roleDefinitions, roleFromClaims } from "./roles";
 import type {
   ApplicationRecord,
   ClassInput,
@@ -35,51 +41,6 @@ import type {
 } from "./types";
 
 const PORTAL_URL = "https://portal.skunkworksacademy.com/";
-
-const fallbackJobs: JobPosting[] = [
-  {
-    id: "preset-ai-facilitator",
-    title: "AI Tools Facilitator",
-    programme: "Applied AI Short Course",
-    modality: "Remote",
-    rateBand: "To be confirmed",
-    closingDate: "",
-    status: "Live",
-    description: "Guide learners through practical AI tools, prompt workflows, responsible use, and workplace automation.",
-    applicants: 0
-  },
-  {
-    id: "preset-cybersecurity-instructor",
-    title: "Cybersecurity Instructor",
-    programme: "Security Analyst Academy",
-    modality: "Hybrid",
-    rateBand: "To be confirmed",
-    closingDate: "",
-    status: "Live",
-    description: "Lead security fundamentals, labs, incident response exercises, and learner capstone assessment.",
-    applicants: 0
-  },
-  {
-    id: "preset-cloud-labs-coach",
-    title: "Cloud Labs Coach",
-    programme: "Cloud Practitioner Track",
-    modality: "On campus",
-    rateBand: "To be confirmed",
-    closingDate: "",
-    status: "Live",
-    description: "Support learners through cloud fundamentals, hands-on deployments, and practical troubleshooting labs.",
-    applicants: 0
-  }
-];
-
-const fallbackCourses: CourseRecord[] = courseCatalog.map((course) => ({ ...course, status: "Live" }));
-const fallbackClasses: ClassSession[] = classSchedule.map((session) => ({
-  ...session,
-  courseTitle: courseCatalog.find((course) => course.id === session.courseId)?.title ?? session.title,
-  modality: "Hybrid",
-  enrolled: 0,
-  status: "Open"
-}));
 
 const emptyJob: JobInput = {
   title: "",
@@ -135,9 +96,11 @@ function rolesFromClaims(claims: Record<string, unknown>) {
 function getProfile(account?: AccountInfo | null): UserProfile | null {
   if (!account) return null;
   const claims = claimsFromAccount(account);
-  const roles = rolesFromClaims(claims);
-  const tenantId = typeof claims.tid === "string" ? claims.tid : account.tenantId;
-  const isAdmin = tenantId === skunkworksTenantId && hasStaffRole(roles);
+  const tenantId = (typeof claims.tid === "string" ? claims.tid : account.tenantId).toLowerCase();
+  // External accounts always start as learners, even if another tenant emits
+  // an identically named Portal.Staff, Portal.Admin or Portal.Instructor claim.
+  const roles = tenantId === skunkworksTenantId.toLowerCase() ? rolesFromClaims(claims) : [];
+  const isAdmin = tenantId === skunkworksTenantId.toLowerCase() && hasStaffRole(roles);
 
   return {
     name: account.name ?? account.username,
@@ -164,23 +127,44 @@ function formatRole(profile: UserProfile | null, selectedRole: PortalRole) {
   return profile.portalRole;
 }
 
-export function App() {
+export function App({ startupNotice = "" }: { startupNotice?: string }) {
+  const { accounts } = useMsal();
+  const accountKey = accounts[0]?.homeAccountId ?? "signed-out";
+  return <><AccountPreferences accountId={accounts[0]?.homeAccountId ?? null} /><PortalContent key={accountKey} startupNotice={startupNotice} /></>;
+}
+
+function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
   const { instance, accounts } = useMsal();
   const account = accounts[0];
   const profile = useMemo(() => getProfile(account), [account]);
+  const requestedAccountPage = new URLSearchParams(window.location.search).get("account");
+  const accountPage = requestedAccountPage === "profile" || requestedAccountPage === "settings" ? requestedAccountPage : null;
   const [selectedRole, setSelectedRole] = useState<PortalRole>(() => {
     const stored = localStorage.getItem("portalRoleOverride");
     return stored === "Instructor" || stored === "Staff" || stored === "Student" ? stored : "Student";
   });
-  const activeRole = profile?.portalRole ?? selectedRole;
+  // A workspace choice is a UI preference, never a permission grant.
+  const availableRoles: PortalRole[] = !profile ? ["Student"] : [
+    ...(profile.portalRole === "Student" || profile.roles.some(role => role.toLowerCase() === "portal.student") ? ["Student" as const] : []),
+    ...(profile.isAdmin || profile.roles.some(role => role.toLowerCase() === "portal.instructor") ? ["Instructor" as const] : []),
+    ...(profile.isAdmin ? ["Staff" as const] : [])
+  ];
+  const storedChoiceApplies = Boolean(profile && localStorage.getItem("portalRoleAccount") === account?.homeAccountId);
+  const activeRole: PortalRole = profile
+    ? (storedChoiceApplies && availableRoles.includes(selectedRole) ? selectedRole : profile.portalRole)
+    : "Student";
   const roleDefinition = roleDefinitions[activeRole];
   const auth = account ? { instance, account } : undefined;
 
   const [health, setHealth] = useState<PortalHealth | null>(null);
-  const [jobs, setJobs] = useState<JobPosting[]>(fallbackJobs);
-  const [courses, setCourses] = useState<CourseRecord[]>(fallbackCourses);
-  const [classes, setClasses] = useState<ClassSession[]>(fallbackClasses);
+  const [services, setServices] = useState<PortalServiceAvailability>(loadingServices);
+  const [refreshServices, setRefreshServices] = useState(0);
+  const [jobs, setJobs] = useState<JobPosting[]>([]);
+  const [courses, setCourses] = useState<CourseRecord[]>([]);
+  const [classes, setClasses] = useState<ClassSession[]>([]);
   const [registrations, setRegistrations] = useState<ClassRegistrationRecord[]>([]);
+  const [registrationBusyClassId, setRegistrationBusyClassId] = useState<string | null>(null);
+  const [registrationFeedback, setRegistrationFeedback] = useState<ClassRegistrationFeedback | null>(null);
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
   const [adminApplications, setAdminApplications] = useState<ApplicationRecord[]>([]);
   const [adminProfiles, setAdminProfiles] = useState<PortalProfile[]>([]);
@@ -190,11 +174,14 @@ export function App() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showLegacyManagement, setShowLegacyManagement] = useState(false);
 
   function selectRole(role: PortalRole) {
+    if (profile && !availableRoles.includes(role)) return;
     localStorage.setItem("portalRoleOverride", role);
+    if (account) localStorage.setItem("portalRoleAccount", account.homeAccountId);
     setSelectedRole(role);
-    setPortalProfile((current) => ({ ...current, portalRole: role }));
+    setShowLegacyManagement(false);
   }
 
   async function signIn(role?: PortalRole) {
@@ -215,40 +202,67 @@ export function App() {
       if (success) setNotice(success);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "The portal operation failed.";
-      setError(message.includes("Failed to fetch") ? "The Azure Functions API could not be reached. Confirm deployment, CORS, and /api/health." : message);
+      setError(message.includes("Failed to fetch") ? "The Academy service could not be reached. Please try again." : message);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
+    // Do not request workspace records before a Microsoft session exists.
+    if (!account || accountPage) {
+      setServices(loadingServices);
+      return;
+    }
     let cancelled = false;
+    // Clear previously loaded records immediately on account changes and retries,
+    // rather than displaying another session's stale cards while fetching.
+    setServices(loadingServices);
+    setHealth(null);
+    setJobs([]);
+    setCourses([]);
+    setClasses([]);
 
     async function loadPublicData() {
-      const [healthResult, jobsResult, coursesResult, classesResult] = await Promise.allSettled([
+      const results = await Promise.allSettled([
         portalApi.health(),
         portalApi.jobs(),
         portalApi.courses(),
         portalApi.classes()
-      ]);
+      ] as const);
 
       if (cancelled) return;
-      if (healthResult.status === "fulfilled") setHealth(healthResult.value);
-      if (jobsResult.status === "fulfilled" && jobsResult.value.length > 0) setJobs(jobsResult.value);
-      if (coursesResult.status === "fulfilled" && coursesResult.value.length > 0) setCourses(coursesResult.value);
-      if (classesResult.status === "fulfilled" && classesResult.value.length > 0) setClasses(classesResult.value);
+      const [healthResult, jobsResult, coursesResult, classesResult] = results;
+      setServices(resolveAvailability(results));
+      setHealth(healthResult.status === "fulfilled" ? healthResult.value : null);
+      // Never reuse another account's old records when a request fails.
+      setJobs(jobsResult.status === "fulfilled" ? jobsResult.value : []);
+      setCourses(coursesResult.status === "fulfilled" ? coursesResult.value : []);
+      setClasses(classesResult.status === "fulfilled" ? classesResult.value : []);
     }
 
     void loadPublicData();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [account?.homeAccountId, refreshServices, accountPage]);
 
   useEffect(() => {
-    if (!auth || !profile) return;
+    // Account pages load their own profile and write only on explicit Save.
+    if (!auth || !profile || accountPage) return;
+    let cancelled = false;
     void run(async () => {
-      const saved = await portalApi.myProfile(auth);
+      const existingProfile = await portalApi.myProfile(auth);
+      if (cancelled) return;
+      // The first verified Microsoft sign-in is also learner registration.
+      // Persist only genuine identity details; do not seed sample courses or
+      // grant privileged roles. The API derives the role from verified claims.
+      const saved = existingProfile ?? await portalApi.updateProfile({
+        ...defaultProfileInput,
+        displayName: profile.name,
+        portalRole: profile.portalRole
+      }, auth);
+      if (cancelled) return;
       setPortalProfile(
         saved
           ? {
@@ -266,43 +280,67 @@ export function App() {
             }
       );
     });
-  }, [account?.homeAccountId]);
+    return () => { cancelled = true; };
+  }, [account?.homeAccountId, accountPage]);
 
   useEffect(() => {
-    if (!auth || activeRole !== "Student") return;
+    if (!auth || accountPage || activeRole !== "Student") return;
     void run(async () => {
       setRegistrations(await portalApi.myClasses(auth));
     });
-  }, [account?.homeAccountId, activeRole]);
+  }, [account?.homeAccountId, activeRole, accountPage]);
 
   useEffect(() => {
-    if (!auth || activeRole !== "Instructor") return;
+    if (!auth || accountPage || activeRole !== "Instructor") return;
     void run(async () => {
       setApplications(await portalApi.myApplications(auth));
     });
-  }, [account?.homeAccountId, activeRole]);
+  }, [account?.homeAccountId, activeRole, accountPage]);
 
   useEffect(() => {
-    if (!auth || !profile?.isAdmin) return;
+    if (!auth || accountPage || !profile?.isAdmin) return;
     void run(async () => {
       const [nextApplications, nextProfiles] = await Promise.all([portalApi.adminApplications(auth), portalApi.adminProfiles(auth)]);
       setAdminApplications(nextApplications);
       setAdminProfiles(nextProfiles);
     });
-  }, [account?.homeAccountId, profile?.isAdmin]);
+  }, [account?.homeAccountId, profile?.isAdmin, accountPage]);
 
   async function registerForClass(classId: string) {
     if (!auth) {
       await signIn("Student");
       return;
     }
+    // Disable repeat submissions while the POST is pending. The API also
+    // enforces idempotency for the authenticated Microsoft subject.
+    if (registrationBusyClassId) return;
+    setRegistrationBusyClassId(classId);
+    setRegistrationFeedback(null);
+    try {
+      const savedRegistration = await portalApi.registerClass(classId, auth);
+      // The POST response is the authoritative acknowledgement. Show it even
+      // when a subsequent read-back request is temporarily unavailable.
+      setRegistrations((previous) => [
+        ...previous.filter((item) => item.classId !== classId),
+        savedRegistration
+      ]);
+      setRegistrationFeedback(classRegistrationResultFeedback(savedRegistration));
 
-    await run(async () => {
-      await portalApi.registerClass(classId, auth);
-      setRegistrations(await portalApi.myClasses(auth));
-      const nextClasses = await portalApi.classes();
-      setClasses(nextClasses.length ? nextClasses : fallbackClasses);
-    }, "Class registration saved.");
+      const [registrationsResult, classesResult] = await Promise.allSettled([
+        portalApi.myClasses(auth),
+        portalApi.classes()
+      ]);
+      if (registrationsResult.status === "fulfilled") setRegistrations(registrationsResult.value);
+      if (classesResult.status === "fulfilled") setClasses(classesResult.value);
+    } catch (caught) {
+      setRegistrationFeedback({
+        classId,
+        type: "error",
+        message: classRegistrationFailureMessage(caught)
+      });
+    } finally {
+      setRegistrationBusyClassId(null);
+    }
   }
 
   async function assignClass(classId: string) {
@@ -314,7 +352,7 @@ export function App() {
     await run(async () => {
       await portalApi.assignInstructor(classId, auth);
       const nextClasses = await portalApi.classes();
-      setClasses(nextClasses.length ? nextClasses : fallbackClasses);
+      setClasses(nextClasses);
     }, "Class assigned to your instructor profile.");
   }
 
@@ -347,26 +385,6 @@ export function App() {
     }, "Instructor application submitted.");
   }
 
-  async function saveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!auth) {
-      await signIn(activeRole);
-      return;
-    }
-
-    await run(async () => {
-      const saved = await portalApi.updateProfile({ ...portalProfile, portalRole: activeRole }, auth);
-      setPortalProfile({
-        displayName: saved.displayName,
-        portalRole: saved.portalRole,
-        phone: saved.phone,
-        location: saved.location,
-        bio: saved.bio,
-        cvFileName: saved.cvFileName
-      });
-    }, "Profile saved.");
-  }
-
   async function createJob(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!auth || !profile?.isAdmin) return;
@@ -375,7 +393,7 @@ export function App() {
       await portalApi.createJob(jobDraft, auth);
       setJobDraft(emptyJob);
       const nextJobs = await portalApi.jobs();
-      setJobs(nextJobs.length ? nextJobs : fallbackJobs);
+      setJobs(nextJobs);
     }, "Job posting saved.");
   }
 
@@ -387,12 +405,11 @@ export function App() {
       await portalApi.createClass(classDraft, auth);
       setClassDraft(emptyClass);
       const nextClasses = await portalApi.classes();
-      setClasses(nextClasses.length ? nextClasses : fallbackClasses);
+      setClasses(nextClasses);
     }, "Class schedule saved.");
   }
 
-  const liveJobs = jobs.filter((job) => job.status === "Live");
-  const visibleJobs = liveJobs.length ? liveJobs : fallbackJobs;
+  const visibleJobs = jobs.filter((job) => job.status === "Live");
   const registeredClassIds = new Set(registrations.map((registration) => registration.classId));
   const roleBadge = formatRole(profile, activeRole);
 
@@ -402,6 +419,10 @@ export function App() {
         source: "portal";
         authenticated: boolean;
         userName?: string;
+        workspaceRole?: PortalRole;
+        workspaceNavigation?: "sidebar";
+        profileUrl?: string;
+        settingsUrl?: string;
         signInLabel: string;
         signOutLabel: string;
         signIn: () => void;
@@ -413,6 +434,10 @@ export function App() {
       source: "portal",
       authenticated: Boolean(profile),
       userName: profile?.name,
+      workspaceRole: profile ? activeRole : undefined,
+      workspaceNavigation: profile ? "sidebar" : undefined,
+      profileUrl: profile ? new URL("/?account=profile", window.location.origin).href : undefined,
+      settingsUrl: profile ? new URL("/?account=settings", window.location.origin).href : undefined,
       signInLabel: "Sign in",
       signOutLabel: "Sign out",
       signIn: () => { void signIn(activeRole); },
@@ -426,18 +451,46 @@ export function App() {
         window.dispatchEvent(new Event("skunkworksacademy:account-change"));
       }
     };
-  }, [activeRole, profile?.name]);
+  }, [activeRole, profile?.name, account?.homeAccountId, instance]);
 
   if (!profile) {
-    return <PortalLanding onSignIn={() => void signIn("Student")} />;
+    return <PortalLanding startupNotice={startupNotice} onSignIn={() => signIn("Student")} />;
   }
 
+  if (accountPage && auth) return <PortalAccountLayout><AccountPages page={accountPage} auth={auth} profile={profile} activeRole={activeRole} /></PortalAccountLayout>;
+
   const requestedAward = new URLSearchParams(window.location.search).get("certificate");
-  if(requestedAward)return <CertificateWallet courseId={requestedAward} auth={auth} isStaff={Boolean(profile.isAdmin)} onSignOut={()=>void signOut()}/>;
+  if(requestedAward)return <PortalAccountLayout><CertificateWallet courseId={requestedAward} auth={auth} isStaff={Boolean(profile.isAdmin)} onSignOut={()=>void signOut()}/></PortalAccountLayout>;
+
+  const roleSelector = availableRoles.length > 1 ? (
+    <nav aria-label="Switch Academy workspace" style={{
+      position: "relative", zIndex: 30, display: "flex", flexWrap: "wrap",
+      gap: 8, alignItems: "center", justifyContent: "center",
+      padding: "12px 16px", background: "var(--surface, #101b30)",
+      color: "var(--text-primary, #ffffff)", borderBottom: "1px solid #64748b"
+    }}>
+      <strong style={{ marginRight: 8 }}>Workspace: {profile.isAdmin ? "Administrator" : "Academy"}</strong>
+      {availableRoles.map(role => <button key={role} type="button"
+        aria-pressed={activeRole === role}
+        onClick={() => selectRole(role)}
+        style={{
+          cursor: "pointer", borderRadius: 8, padding: "8px 14px", fontWeight: 700,
+          border: "2px solid #64748b",
+          background: activeRole === role ? "#facc15" : "#ffffff",
+          color: "#111827"
+        }}>{role}</button>)}
+    </nav>
+  ) : null;
 
   if (activeRole === "Student") {
     return (
-      <StudentExperience
+      <>
+      {roleSelector}
+      <PortalRequestStatus notice={notice} error={error} loading={loading} />
+      <LearnerOnboardingGate enabled={profile.tenantId?.toLowerCase() === skunkworksTenantId.toLowerCase()}>
+      {(savedLearnerProfile, editSetup) => <StudentExperience
+        savedLearnerProfile={savedLearnerProfile}
+        onEditLearnerProfile={editSetup}
         profile={profile}
         portalProfile={portalProfile}
         courses={courses}
@@ -446,13 +499,37 @@ export function App() {
         onSignIn={() => void signIn("Student")}
         onSignOut={() => void signOut()}
         onRegister={registerForClass}
-      />
+        registrationBusyClassId={registrationBusyClassId}
+        registrationFeedback={registrationFeedback}
+        services={services}
+        onRetryServices={() => setRefreshServices((value) => value + 1)}
+      />}
+      </LearnerOnboardingGate>
+      </>
     );
   }
 
+  if (!showLegacyManagement && (activeRole === "Staff" || activeRole === "Instructor")) {
+    return <>{roleSelector}<PortalRequestStatus notice={notice} error={error} loading={loading} /><AcademyWorkspace
+      profile={profile}
+      role={activeRole}
+      courses={courses}
+      classes={classes}
+      jobs={visibleJobs}
+      applications={activeRole === "Staff" ? adminApplications : applications}
+      people={activeRole === "Staff" ? adminProfiles : []}
+      onManage={() => setShowLegacyManagement(true)}
+      services={services}
+      onRetryServices={() => setRefreshServices((value) => value + 1)}
+      onSignOut={() => void signOut()}
+    /></>;
+  }
+
   return (
-    <div className="portal-page">
+    <PortalAccountLayout><div className="portal-page">
+      {roleSelector}
       <main id="main" className="portal-main">
+        <div className="legacy-portal-toolbar"><button type="button" className="primary-action" onClick={() => setShowLegacyManagement(false)}>← Back to Academy workspace</button><span>Existing management tools · Microsoft Entra secured</span></div>
         <section className="portal-hero" id="overview">
           <div className="hero-copy">
             <p>Skunkworks Academy Portal</p>
@@ -474,8 +551,7 @@ export function App() {
           </div>
         </section>
 
-        {(notice || error) && <div className={error ? "alert error" : "alert"}>{error || notice}</div>}
-        {loading && <div className="alert warning">Working on the portal request…</div>}
+        <PortalRequestStatus notice={notice} error={error} loading={loading} />
 
         <section className="workspace-grid" aria-label="Portal workspaces">
           <div className="section-head full-span">
@@ -525,7 +601,7 @@ export function App() {
 
         <section className="content-grid" aria-label="Instructor jobs and profile">
           <JobSection jobs={visibleJobs} profile={profile} submitApplication={submitApplication} />
-          <ProfilePanel profile={profile} activeRole={activeRole} portalProfile={portalProfile} setPortalProfile={setPortalProfile} saveProfile={saveProfile} />
+          <ProfilePanel profile={profile} activeRole={activeRole} />
         </section>
 
         <section className="content-grid" aria-label="Role-specific operations">
@@ -545,8 +621,16 @@ export function App() {
           )}
         </section>
       </main>
-    </div>
+    </div></PortalAccountLayout>
   );
+}
+
+function PortalRequestStatus({ notice, error, loading }: { notice: string; error: string; loading: boolean }) {
+  return <div className="portal-request-status">
+    {error && <div className="alert error" role="alert">{error}</div>}
+    {notice && !error && <div className="alert" role="status">{notice}</div>}
+    {loading && <div className="alert warning" role="status">Working on your Academy request…</div>}
+  </div>;
 }
 
 function Metric({ value, label }: { value: number | string; label: string }) {
@@ -692,19 +776,7 @@ function JobSection({ jobs, profile, submitApplication }: { jobs: JobPosting[]; 
   );
 }
 
-function ProfilePanel({
-  profile,
-  activeRole,
-  portalProfile,
-  setPortalProfile,
-  saveProfile
-}: {
-  profile: UserProfile | null;
-  activeRole: PortalRole;
-  portalProfile: PortalProfileInput;
-  setPortalProfile: React.Dispatch<React.SetStateAction<PortalProfileInput>>;
-  saveProfile: (event: FormEvent<HTMLFormElement>) => Promise<void>;
-}) {
+function ProfilePanel({ profile, activeRole }: { profile: UserProfile | null; activeRole: PortalRole }) {
   return (
     <section className="command-panel">
       <p className="eyebrow">Identity and profile</p>
@@ -715,20 +787,8 @@ function ProfilePanel({
         <div><dt>Tenant</dt><dd>{profile?.tenantId ?? skunkworksTenantId}</dd></div>
         <div><dt>Role</dt><dd>{formatRole(profile, activeRole)}</dd></div>
       </dl>
-      <form className="form-panel" onSubmit={(event) => void saveProfile(event)}>
-        <label>Display name<input value={portalProfile.displayName} onChange={(event) => setPortalProfile((current) => ({ ...current, displayName: event.target.value }))} /></label>
-        <label>Phone<input value={portalProfile.phone} onChange={(event) => setPortalProfile((current) => ({ ...current, phone: event.target.value }))} /></label>
-        <label>Location<input value={portalProfile.location} onChange={(event) => setPortalProfile((current) => ({ ...current, location: event.target.value }))} /></label>
-        <label>Role
-          <select value={portalProfile.portalRole} onChange={(event) => setPortalProfile((current) => ({ ...current, portalRole: event.target.value as PortalRole }))}>
-            <option value="Student">Student</option>
-            <option value="Instructor">Instructor</option>
-            <option value="Staff">Staff</option>
-          </select>
-        </label>
-        <label className="full">Bio<textarea value={portalProfile.bio} onChange={(event) => setPortalProfile((current) => ({ ...current, bio: event.target.value }))} /></label>
-        <button type="submit">Save profile</button>
-      </form>
+      <p>Manage your Academy details on your account pages. Microsoft sign-in and permissions are administered separately.</p>
+      <div className="landing-actions"><a className="primary-action" href="/?account=profile">Edit profile</a><a className="ghost-action" href="/?account=settings">Settings</a></div>
     </section>
   );
 }

@@ -41,7 +41,7 @@ param(
     [ValidateNotNullOrEmpty()]
     [string]$HomePageUrl = "https://portal.skunkworksacademy.com/",
 
-    [bool]$UserAssignmentRequired = $true,
+    [bool]$UserAssignmentRequired = $false,
 
     [switch]$Apply,
     [switch]$ConfigureRoleGroups,

@@ -182,3 +182,7 @@ Expected healthy shape:
   "missingSettings": []
 }
 ```
+
+## Skunkie orchestration
+
+The Networking Basics vertical slice makes Skunkie the first student view and adds authenticated assessment, curriculum mapping, personalised practice and durable outcomes. See [implementation, validation and rollout](docs/skunkie-central-orchestration.md). Production integration requires staff mapping of real LMS lessons and authenticated staging acceptance.

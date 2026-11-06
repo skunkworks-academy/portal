@@ -35,6 +35,8 @@ on:
       - tsconfig.api.json
       - infra/**
       - scripts/bootstrap-azure-oidc.ps1
+      - scripts/verify-protected-api-route.sh
+      - scripts/verify-skunkie-activation.py
       - .github/workflows/deploy-azure-function.yml
 
 permissions:
@@ -183,6 +185,27 @@ jobs:
               --output none
 
 
+      - name: Keep Skunkie disabled until the protected release is verified
+        uses: azure/cli@v2
+        env:
+          SKUNKIE_ENDPOINT: ${{ vars.PORTAL_AZURE_OPENAI_ENDPOINT }}
+          SKUNKIE_DEPLOYMENT: ${{ vars.PORTAL_AZURE_OPENAI_DEPLOYMENT }}
+          SKUNKIE_API_KEY: ${{ secrets.PORTAL_AZURE_OPENAI_API_KEY }}
+        with:
+          inlineScript: |
+            set -euo pipefail
+            # Removing GitHub configuration must not leave an older live policy enabled.
+            az functionapp config appsettings set --resource-group "$RESOURCE_GROUP_NAME" --name "$FUNCTION_APP_NAME" \
+              --settings "SKUNKIE_BUDGET_POLICY=" --output none
+            if [ -z "${SKUNKIE_ENDPOINT:-}" ] && [ -z "${SKUNKIE_DEPLOYMENT:-}" ] && [ -z "${SKUNKIE_API_KEY:-}" ]; then
+              echo "Skunkie provider is not configured; this release will keep it disabled."
+            elif [ -n "${SKUNKIE_ENDPOINT:-}" ] && [ -n "${SKUNKIE_DEPLOYMENT:-}" ] && [ -n "${SKUNKIE_API_KEY:-}" ]; then
+              echo "Skunkie budget policy paused until the new release passes activation checks."
+            else
+              echo "Partial Skunkie provider configuration is unsafe; complete or remove all three provider settings." >&2
+              exit 1
+            fi
+
       - name: Assemble Function deployment package
         shell: bash
         run: |
@@ -248,18 +271,138 @@ jobs:
             echo "Health check attempt $attempt failed; retrying in 10 seconds."
             sleep 10
           done
-          admin_status=$(curl --silent --show-error --location --max-time 20 --output /tmp/admin-applications.body --write-out '%{http_code}' "$API_BASE_URL/staff/applications" || true)
-          case "$admin_status" in
-            401|403) echo "Staff applications endpoint resolved and correctly requires authentication (HTTP $admin_status)." ;;
-            *)
-              echo "Expected an unauthenticated 401 or 403 from $API_BASE_URL/staff/applications, received HTTP $admin_status." >&2
-              head -c 500 /tmp/admin-applications.body || true
-              exit 1
-              ;;
-          esac
+          echo "$response" | jq -e '.lmsSettings.configured == true' >/dev/null
+          for route in lms/courses lms/me/enrolments lms/me/courses lms/me/courses/registration-probe/lessons; do
+            bash scripts/verify-protected-api-route.sh "$API_BASE_URL/$route"
+          done
+          echo "- LMS: storage settings present; unauthenticated access denied. Signed-in database round trip still requires verification." >> "$GITHUB_STEP_SUMMARY"
+          echo "$response" | jq -e '(.routes // [] | index("POST /api/skunkie/chat") != null) and (.routes // [] | index("GET /api/skunkie/status") != null)' >/dev/null
+          bash scripts/verify-protected-api-route.sh "$API_BASE_URL/skunkie/status"
+          if echo "$response" | jq -e '.skunkieSettings.configured == true' >/dev/null; then
+            echo "- Skunkie AI: configuration present (live generation still requires authenticated functional test)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning::Skunkie AI is not configured in the running Function App."
+            echo "- Skunkie pre-activation checks: provider access remains disabled until the final activation gate." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          bash scripts/verify-protected-api-route.sh "$API_BASE_URL/staff/applications" --location
           {
             echo "### Portal API validation"
             echo ""
             echo "- Canonical API base URL: $API_BASE_URL"
             echo "- Required staff applications route: reachable (authentication enforced)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify AI publication and default-deny access contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          API_HOSTNAME="$(az functionapp show --resource-group "$RESOURCE_GROUP_NAME" --name "$FUNCTION_APP_NAME" --query defaultHostName -o tsv)"
+          API_BASE_URL="https://${API_HOSTNAME}/api"
+          response="$(curl --fail --silent --show-error --retry 4 --retry-delay 5 --max-time 30 "$API_BASE_URL/course-publication")"
+          echo "$response" | jq -e '
+            .schema == "skunkworks-academy/course-publication/v1"
+            and .policy == "default-deny"
+            and (.courses | length == 27)
+            and ([.courses[] | select(.source == "generated-foundation" and .publicationStatus == "review" and .enrolmentStatus == "enquiry-only" and .checkoutUrl == null)] | length == 19)
+            and ([.courses[] | select(.publicationStatus == "published" and .enrolmentStatus == "portal-allowlisted")] | length == 8)
+            and ([.courses[] | select(.courseId == "SWA-AI-001" and .checkoutUrl != null)] | length == 0)
+          ' >/dev/null
+          http_status="$(curl --silent --show-error --max-time 20 -o /tmp/access-denied.txt -w '%{http_code}' "$API_BASE_URL/course-access?courseId=SWA-AI-001" || true)"
+          case "$http_status" in
+            401|403|404) echo "Unauthenticated course access denied: HTTP $http_status" ;;
+            *) echo "Expected access denial, received HTTP $http_status" >&2; exit 1 ;;
+          esac
+          {
+            echo "### AI course publication"
+            echo "- Public API status contract returned 27 records."
+            echo "- 19 generated AI courses remain review-only with no checkout URL."
+            echo "- Eight legacy portal courses retain published state."
+            echo "- Unauthenticated course-access request denied (HTTP $http_status)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify and activate the protected Skunkie deployment
+        uses: azure/cli@v2
+        env:
+          SKUNKIE_ENDPOINT: ${{ vars.PORTAL_AZURE_OPENAI_ENDPOINT }}
+          SKUNKIE_DEPLOYMENT: ${{ vars.PORTAL_AZURE_OPENAI_DEPLOYMENT }}
+          SKUNKIE_API_VERSION: ${{ vars.PORTAL_AZURE_OPENAI_API_VERSION || '2024-10-21' }}
+          SKUNKIE_RESOURCE_GROUP: ${{ vars.PORTAL_AZURE_OPENAI_RESOURCE_GROUP }}
+          COSMOS_RESOURCE_GROUP: ${{ vars.PORTAL_LMS_COSMOS_RESOURCE_GROUP }}
+          SKUNKIE_API_KEY: ${{ secrets.PORTAL_AZURE_OPENAI_API_KEY }}
+        with:
+          inlineScript: |
+            set -euo pipefail
+            if [ -z "${SKUNKIE_ENDPOINT:-}" ] && [ -z "${SKUNKIE_DEPLOYMENT:-}" ] && [ -z "${SKUNKIE_API_KEY:-}" ]; then
+              echo "- Skunkie AI: disabled; provider configuration is absent." >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            if [ -z "${SKUNKIE_ENDPOINT:-}" ] || [ -z "${SKUNKIE_DEPLOYMENT:-}" ] || [ -z "${SKUNKIE_API_KEY:-}" ]; then
+              echo "Partial Skunkie provider configuration is unsafe." >&2
+              exit 1
+            fi
+            metadata_dir="$(mktemp -d)"
+            activation_started=0
+            cleanup_activation() {
+              result=$?
+              trap - EXIT
+              if [ "$result" -ne 0 ] && [ "$activation_started" -eq 1 ]; then
+                az functionapp config appsettings set --resource-group "$RESOURCE_GROUP_NAME" --name "$FUNCTION_APP_NAME" \
+                  --settings "SKUNKIE_BUDGET_POLICY=" --output none || echo "::error::Could not confirm the budget policy was disabled after activation failure."
+              fi
+              rm -rf "$metadata_dir"
+              exit "$result"
+            }
+            trap cleanup_activation EXIT
+            # Select only nonsecret LMS settings; never save the full settings response.
+            az functionapp config appsettings list --resource-group "$RESOURCE_GROUP_NAME" --name "$FUNCTION_APP_NAME" \
+              --query "[?name=='LMS_COSMOS_ENDPOINT' || name=='LMS_COSMOS_DATABASE' || name=='LMS_COSMOS_CONTAINER' || name=='LMS_HOME_ORGANIZATION_ID'].{name:name,value:value}" \
+              -o json > "$metadata_dir/settings.json"
+            python3 scripts/verify-skunkie-activation.py names --settings "$metadata_dir/settings.json" --endpoint "$SKUNKIE_ENDPOINT" > "$metadata_dir/names.json"
+            provider_account="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["providerAccount"])' "$metadata_dir/names.json")"
+            cosmos_account="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["cosmosAccount"])' "$metadata_dir/names.json")"
+            database="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["database"])' "$metadata_dir/names.json")"
+            container="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["container"])' "$metadata_dir/names.json")"
+            az cognitiveservices account show --resource-group "${SKUNKIE_RESOURCE_GROUP:-$RESOURCE_GROUP_NAME}" --name "$provider_account" \
+              --query '{name:name,kind:kind,endpoint:properties.endpoint,provisioningState:properties.provisioningState}' -o json > "$metadata_dir/account.json"
+            az cognitiveservices account deployment show --resource-group "${SKUNKIE_RESOURCE_GROUP:-$RESOURCE_GROUP_NAME}" \
+              --name "$provider_account" --deployment-name "$SKUNKIE_DEPLOYMENT" -o json > "$metadata_dir/deployment.json"
+            az cosmosdb show --resource-group "${COSMOS_RESOURCE_GROUP:-$RESOURCE_GROUP_NAME}" --name "$cosmos_account" \
+              --query '{name:name,documentEndpoint:documentEndpoint,provisioningState:provisioningState,enableMultipleWriteLocations:enableMultipleWriteLocations,writeLocations:writeLocations}' \
+              -o json > "$metadata_dir/cosmos.json"
+            az cosmosdb sql container show --resource-group "${COSMOS_RESOURCE_GROUP:-$RESOURCE_GROUP_NAME}" --account-name "$cosmos_account" \
+              --database-name "$database" --name "$container" --query '{id:resource.id,partitionKey:resource.partitionKey}' -o json > "$metadata_dir/container.json"
+            api_hostname="$(az functionapp show --resource-group "$RESOURCE_GROUP_NAME" --name "$FUNCTION_APP_NAME" --query defaultHostName -o tsv)"
+            test -n "$api_hostname"
+            for attempt in {1..12}; do
+              if curl --fail --silent --show-error --max-time 20 "https://${api_hostname}/api/health" > "$metadata_dir/health.json" && \
+                python3 scripts/verify-skunkie-activation.py verify --settings "$metadata_dir/settings.json" --endpoint "$SKUNKIE_ENDPOINT" \
+                  --deployment-name "$SKUNKIE_DEPLOYMENT" --api-version "$SKUNKIE_API_VERSION" --account "$metadata_dir/account.json" \
+                  --deployment "$metadata_dir/deployment.json" --cosmos "$metadata_dir/cosmos.json" --container "$metadata_dir/container.json" --health "$metadata_dir/health.json"; then
+                break
+              fi
+              if [ "$attempt" -eq 12 ]; then
+                echo "Skunkie activation was refused; protected code/model/storage prerequisites did not pass." >&2
+                exit 1
+              fi
+              sleep 5
+            done
+            # The credential stays in the masked environment, never in a file or command output.
+            activation_started=1
+            az functionapp config appsettings set --resource-group "$RESOURCE_GROUP_NAME" --name "$FUNCTION_APP_NAME" \
+              --settings "AZURE_OPENAI_ENDPOINT=$SKUNKIE_ENDPOINT" "AZURE_OPENAI_DEPLOYMENT=$SKUNKIE_DEPLOYMENT" \
+                "AZURE_OPENAI_API_VERSION=$SKUNKIE_API_VERSION" "AZURE_OPENAI_API_KEY=$SKUNKIE_API_KEY" \
+                "SKUNKIE_BUDGET_POLICY=student-usd1-gpt41mini-2025-04-14-v1" --output none
+            for attempt in {1..12}; do
+              if curl --fail --silent --show-error --max-time 20 "https://${api_hostname}/api/health" > "$metadata_dir/health.json" && \
+                python3 scripts/verify-skunkie-activation.py active --settings "$metadata_dir/settings.json" --endpoint "$SKUNKIE_ENDPOINT" \
+                  --deployment-name "$SKUNKIE_DEPLOYMENT" --api-version "$SKUNKIE_API_VERSION" --account "$metadata_dir/account.json" \
+                  --deployment "$metadata_dir/deployment.json" --cosmos "$metadata_dir/cosmos.json" --container "$metadata_dir/container.json" --health "$metadata_dir/health.json"; then
+                break
+              fi
+              if [ "$attempt" -eq 12 ]; then
+                echo "Skunkie activation health failed; clearing the budget policy." >&2
+                exit 1
+              fi
+              sleep 5
+            done
+            echo "- Skunkie AI: reviewed model and single-write-region storage verified; budget policy enabled. Authenticated generation still requires verification." >> "$GITHUB_STEP_SUMMARY"

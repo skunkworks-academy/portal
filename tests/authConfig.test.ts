@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { apiScope, loginRequest, msalConfig } from "../src/authConfig";
+import { apiScope, loginRequest, msalConfig, msalAuthority, portalSupportedAccountTypes } from "../src/authConfig";
 
 describe("Microsoft Entra auth configuration", () => {
   it("keeps interactive sign-in limited to OpenID Connect scopes", () => {
@@ -9,6 +9,12 @@ describe("Microsoft Entra auth configuration", () => {
     expect(loginRequest.scopes).toContain("offline_access");
     expect(loginRequest.scopes).not.toContain(apiScope);
     expect(apiScope).toMatch(/\/access_as_user$/);
+  });
+
+  it("accepts both organisational and personal Microsoft accounts", () => {
+    expect(msalAuthority).toBe("https://login.microsoftonline.com/common");
+    expect(msalConfig.auth.authority).toBe(msalAuthority);
+    expect(portalSupportedAccountTypes).toContain("personal Microsoft accounts");
   });
 
   it("keeps redirect URIs absolute when evaluated outside a browser", () => {
