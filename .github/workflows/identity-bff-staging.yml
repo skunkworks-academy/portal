@@ -9,6 +9,9 @@ on:
       - 'scripts/verify-identity-bff-staging.mjs'
       - 'scripts/validate-platform-contract.mjs'
       - 'infra/identity-bff-edge-contract.json'
+      - 'infra/identity-frontdoor.bicep'
+      - '.github/workflows/identity-frontdoor.yml'
+      - 'docs/identity-frontdoor-deployment.md'
       - 'academy-platform-contract.json'
       - 'src/authConfig.ts'
       - 'src/academy-brand-theme.css'
@@ -38,6 +41,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - name: Compile Azure Front Door identity routing infrastructure
+        uses: azure/cli@v2
+        with:
+          inlineScript: az bicep build --file infra/identity-frontdoor.bicep
       - name: Validate Portal platform contract
         run: node scripts/validate-platform-contract.mjs
       - name: Re-run Identity BFF and Entra security invariants
