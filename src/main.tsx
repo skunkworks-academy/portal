@@ -4,6 +4,8 @@ import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { App } from "./App";
 import { SkunkieCompanion } from "./SkunkieCompanion";
+import { PostSignInChoice } from "./PostSignInChoice";
+import { capturePublicReturn, clearPublicReturn } from "./public-return";
 import { msalConfig } from "./authConfig";
 import { clearAuthResponseFromAddressBar } from "./auth-response-cleanup";
 import "./styles.css";
@@ -42,6 +44,11 @@ function renderStartupError(error?: unknown) {
 }
 
 async function bootstrapPortal() {
+  let returnStorage: Storage | null = null;
+  try { returnStorage = window.sessionStorage; } catch { /* Restricted browsers can still sign in. */ }
+  let { destination, cleanHref } = capturePublicReturn(window.location.href, returnStorage);
+  if (cleanHref !== window.location.href) window.history.replaceState(window.history.state, "", cleanHref);
+
   await msalInstance.initialize();
   // Authentication response errors are recoverable. Render the public sign-in
   // page so users can retry or open the portal in a full mobile browser.
@@ -50,32 +57,48 @@ async function bootstrapPortal() {
   try {
     redirectResult = await msalInstance.handleRedirectPromise();
   } catch (error) {
+    clearPublicReturn(returnStorage);
+    destination = null;
     console.error("Microsoft redirect sign-in could not finish");
     startupNotice = "Microsoft sign-in could not finish in this browser. Try again or open the portal directly in Safari or Chrome.";
   } finally {
     clearAuthResponseFromAddressBar();
   }
   const activeAccount = redirectResult?.account ?? msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
-  if (activeAccount) {
-    msalInstance.setActiveAccount(activeAccount);
-    const menu = document.createElement("script");
-    menu.src = academyNavigationUrl;
-    menu.defer = true;
-    menu.dataset.skunkworksGlobalNav = "v9";
-    menu.onerror = () => console.warn("Academy navigation script could not load.");
-    document.head.append(menu);
+  if (activeAccount) msalInstance.setActiveAccount(activeAccount);
+  if (!rootElement) throw new Error("Portal root element is missing.");
+  const root = ReactDOM.createRoot(rootElement);
+
+  function renderPortal() {
+    if (activeAccount && !document.querySelector('script[data-skunkworks-global-nav="v9"]')) {
+      const menu = document.createElement("script");
+      menu.src = academyNavigationUrl;
+      menu.defer = true;
+      menu.dataset.skunkworksGlobalNav = "v9";
+      menu.onerror = () => console.warn("Academy navigation script could not load.");
+      document.head.append(menu);
+    }
+    root.render(
+      <React.StrictMode>
+        <MsalProvider instance={msalInstance}>
+          <App startupNotice={startupNotice} />
+          <SkunkieCompanion />
+        </MsalProvider>
+      </React.StrictMode>
+    );
   }
 
-  if (!rootElement) throw new Error("Portal root element is missing.");
-
-  ReactDOM.createRoot(rootElement).render(
-    <React.StrictMode>
-      <MsalProvider instance={msalInstance}>
-        <App startupNotice={startupNotice} />
-        <SkunkieCompanion />
-      </MsalProvider>
-    </React.StrictMode>
-  );
+  // A public navigation hint is not proof of authentication or authorization.
+  // Do not render the private workspace or companion before the user's choice.
+  if (activeAccount && destination) {
+    root.render(<React.StrictMode><PostSignInChoice
+      returnTo={destination}
+      onReturn={() => clearPublicReturn(returnStorage)}
+      onPortal={() => { clearPublicReturn(returnStorage); renderPortal(); }}
+    /></React.StrictMode>);
+  } else {
+    renderPortal();
+  }
 }
 
 void bootstrapPortal().catch((error) => {
