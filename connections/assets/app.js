@@ -47,10 +47,16 @@
       const response = await fetch('/session', {credentials:'same-origin', cache:'no-store', headers:{Accept:'application/json'}});
       if (!response.ok || !(response.headers.get('content-type') || '').includes('application/json')) return;
       const session = await response.json();
-      if (session?.authenticated !== true || !session?.subject_id) return;
+      if (session?.authenticated !== true || typeof session?.subject !== 'string' || !session.subject) return;
       const displayName = typeof session.displayName === 'string' ? session.displayName :
         (typeof session.name === 'string' ? session.name : 'My account');
       $('#academyAccountName').textContent = displayName.slice(0, 80);
+      const roles = Array.isArray(session.roles) ? session.roles.filter((role) => typeof role === 'string') : [];
+      const workspace = roles.includes('administrator') || roles.includes('staff') ? 'Staff workspace' :
+        roles.includes('instructor') ? 'Instructor workspace' :
+        roles.includes('learner') ? 'Learner workspace' : 'Open Portal';
+      const portalLink = $('.account-portal');
+      if (portalLink) portalLink.textContent = workspace;
       signedIn.hidden = false;
       signIn.hidden = true;
       $('[data-auth-signin]').forEach((link) => {
