@@ -46,7 +46,7 @@ jobs:
           jq -e '
             type=="array" and length>0 and
             all(.[]; (.id|type=="string" and test("^[a-z0-9-]+$")) and
-              (.hostname|type=="string" and endswith(".skunkworksacademy.com")) and
+              (.hostname|type=="string" and (.=="skunkworksacademy.com" or endswith(".skunkworksacademy.com")) ) and
               (.staticHost|type=="string" and length>5) and
               (.staticHostHeader|type=="string" and length>5) and
               (.bffHost|type=="string" and endswith(".azurewebsites.net")) )
