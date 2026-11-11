@@ -19,12 +19,13 @@ config = json.loads(metadata.read_text())
 flow_config = config['flow']
 width, height = flow_config['width'], flow_config['height']
 extent = flow_config['range']
-atlas_path = ROOT/'public/assets/skunkie/skunkie-motion-atlas-v2.webp'
+atlas_config = config['atlas']
+atlas_path = ROOT/'public'/atlas_config['source'].lstrip('/')
 atlas = Image.open(atlas_path).convert('RGBA')
 frames = []
 landmarks = []
-for index in range(48):
-    x, y = index % 6 * 288, index // 6 * 384
+for index in range(atlas_config['frameCount']):
+    x, y = index % atlas_config['columns'] * 288, index // atlas_config['columns'] * 384
     cell = atlas.crop((x,y,x+288,y+384)).resize((width,height), Image.Resampling.BICUBIC)
     rgba = np.asarray(cell, dtype=np.float32)/255
     hsv = cv2.cvtColor(np.uint8(rgba[:,:,:3]*255),cv2.COLOR_RGB2HSV)
@@ -44,7 +45,7 @@ for sequence in config['sequences'].values():
     indices = sequence['frames']
     pairs.update(tuple(sorted((a,b))) for a,b in zip(indices,indices[1:]+indices[:1]) if a != b)
 # Every pose can settle to the neutral frame before entering another activity.
-pairs.update((0,index) for index in range(1,48))
+pairs.update((0,index) for index in range(1,atlas_config['frameCount']))
 pairs = sorted(pairs)
 cols = flow_config['columns']
 rows = math.ceil(len(pairs)/cols)

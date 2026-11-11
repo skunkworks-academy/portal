@@ -1,7 +1,8 @@
-"""Pack the eight generated six-pose strips. Requires Pillow; draws no artwork.
+"""Pack sixteen generated six-pose strips into 96 playable cells. Requires Pillow; draws no artwork.
 
 Run: python scripts/build-skunkie-atlas.py [source-directory]
-Sources default to assets/skunkie-motion-v2. Uses connected silhouettes instead
+Original sources default to assets/skunkie-motion-v2; new strips live in
+assets/skunkie-motion-v3. Uses connected silhouettes instead
 of guessed equal-width cuts, one scale per row, and a shared feet baseline.
 """
 import hashlib
@@ -15,7 +16,10 @@ from PIL import Image, ImageDraw
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT/'assets/skunkie-motion-v2'
 ROWS = ['idle', 'waiting', 'running', 'review', 'wave', 'listening', 'speaking', 'idle-alt']
+ROWS += ['nod', 'acknowledge', 'wave-small', 'explain-left', 'breathe', 'consider', 'explain-both', 'reassure']
 WIDTH, HEIGHT, COLS = 288, 384, 6
+ATLAS_COLS, ATLAS_ROWS = 12, 8
+FRAME_COUNT = len(ROWS)*COLS
 
 def components(image):
     alpha = image.getchannel('A').tobytes()
@@ -42,11 +46,11 @@ def components(image):
     assert len(found) == COLS, f'Expected six connected poses; found {len(found)}'
     return sorted(found)
 
-atlas = Image.new('RGBA', (COLS*WIDTH, len(ROWS)*HEIGHT))
+atlas = Image.new('RGBA', (ATLAS_COLS*WIDTH, ATLAS_ROWS*HEIGHT))
 frames = []
 source_hashes = {}
 for row, state in enumerate(ROWS):
-    source_path = SOURCE/f'{state}.png'
+    source_path = (SOURCE if row < 8 else ROOT/'assets/skunkie-motion-v3')/f'{state}.png'
     source_hashes[state] = hashlib.sha256(source_path.read_bytes()).hexdigest()
     source = Image.open(source_path).convert('RGBA')
     assert source.getchannel('A').getextrema() == (0, 255), f'{state}: real transparency required'
@@ -78,13 +82,14 @@ for row, state in enumerate(ROWS):
         visible = sum(p[3] > 16 for p in pixels)
         opaque = sum(p[3] >= 250 for p in pixels)
         assert visible > 10000 and opaque/visible > .85, f'{state}/{col}: sparse or translucent body'
-        atlas.paste(cell, (col*WIDTH, row*HEIGHT))
+        index = row*COLS+col
+        atlas.paste(cell, (index%ATLAS_COLS*WIDTH, index//ATLAS_COLS*HEIGHT))
         frames.append({'index':row*COLS+col, 'state':state, 'column':col, 'bounds':bounds,
                        'visiblePixels':visible, 'opaqueRatio':round(opaque/visible,4),
                        'sha256':hashlib.sha256(cell.tobytes()).hexdigest()})
 
-assert len({f['sha256'] for f in frames}) == 48, 'Duplicate artwork'
-target = ROOT/'public/assets/skunkie/skunkie-motion-atlas-v2.webp'
+assert len({f['sha256'] for f in frames}) == FRAME_COUNT, 'Duplicate artwork'
+target = ROOT/'public/assets/skunkie/skunkie-motion-atlas-v3.webp'
 encoded = io.BytesIO()
 atlas.save(encoded, format='WEBP', lossless=True, method=6, exact=True)
 temporary = target.with_suffix('.tmp')
@@ -93,21 +98,24 @@ temporary.replace(target)
 # Validate exact encoded bytes, including every cell and the still fallback.
 decoded = Image.open(target).convert('RGBA')
 assert decoded.tobytes() == atlas.tobytes(), 'Lossless round-trip failed'
-decoded.crop((0,0,WIDTH,HEIGHT)).save(ROOT/'public/assets/skunkie/skunkie-motion-still-v2.webp', lossless=True, method=6, exact=True)
-report = {'ok':True, 'columns':COLS,'rows':len(ROWS),'cellWidth':WIDTH,'cellHeight':HEIGHT,
-          'frameCount':48, 'previousPlayableFrameCount':27, 'additionalPlayableFrames':21,
+decoded.crop((0,0,WIDTH,HEIGHT)).save(ROOT/'public/assets/skunkie/skunkie-motion-still-v3.webp', lossless=True, method=6, exact=True)
+report = {'ok':True, 'columns':ATLAS_COLS,'rows':ATLAS_ROWS,'cellWidth':WIDTH,'cellHeight':HEIGHT,
+          'frameCount':FRAME_COUNT, 'previousPlayableFrameCount':48, 'additionalPlayableFrames':48,
           'blankFrames':0,'duplicateFrames':0,'clippedFrames':0,
           'sourceSha256':source_hashes,'sha256':hashlib.sha256(target.read_bytes()).hexdigest(),
           'bytes':target.stat().st_size,'frames':frames}
-(ROOT/'docs/skunkie-avatar-v2-validation.json').write_text(json.dumps(report,indent=2)+'\n')
-qa = ROOT/'outputs/skunkie-avatar-v2'
+(ROOT/'docs/skunkie-avatar-v3-validation.json').write_text(json.dumps(report,indent=2)+'\n')
+qa = ROOT/'outputs/skunkie-avatar-v3'
 qa.mkdir(parents=True,exist_ok=True)
-sheet = Image.new('RGB',(6*144,8*212),'#f1f5f8')
+sheet = Image.new('RGB',(6*144,len(ROWS)*212),'#f1f5f8')
 draw = ImageDraw.Draw(sheet)
 for row,state in enumerate(ROWS):
     draw.text((6,row*212+4),state,fill='#172333')
     for col in range(COLS):
-        cell = decoded.crop((col*WIDTH,row*HEIGHT,(col+1)*WIDTH,(row+1)*HEIGHT)).resize((144,192),Image.Resampling.BICUBIC)
+        index = row*COLS+col
+        x,y = index%ATLAS_COLS*WIDTH,index//ATLAS_COLS*HEIGHT
+        cell = decoded.crop((x,y,x+WIDTH,y+HEIGHT)).resize((144,192),Image.Resampling.BICUBIC)
         sheet.paste(cell,(col*144,row*212+20),cell)
 sheet.save(qa/'contact-sheet.png')
+sheet.crop((0,8*212,6*144,len(ROWS)*212)).save(qa/'new-48-frames.png')
 print(json.dumps({k:v for k,v in report.items() if k not in ('frames','sourceSha256')},indent=2))

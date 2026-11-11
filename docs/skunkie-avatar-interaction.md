@@ -4,7 +4,42 @@ This change uses portal-owned rendering and browser voice, not the Codex pet run
 
 ## Assets and playback
 
-### Portal motion artwork v2 (11 November 2026)
+### Portal motion artwork v3 (11 November 2026)
+
+The current player includes **96 distinct illustrated poses**, adding 48 new
+poses to the previous 48-frame library (69 more than the original 27). New
+six-pose strips cover affirming nods, attentive acknowledgement, smaller waves,
+one-hand explanations, relaxed breathing, consideration, two-hand explanations
+and reassurance. All 96 poses are referenced by the five activity cycles.
+These are additional source drawings, not duplicated or interpolated counts.
+
+The lossless v3 atlas uses twelve columns and eight rows of 288 × 384 cells
+(3456 × 3072). Both artwork and motion-data sheets fit within a 4096-pixel texture
+limit. Atlas addressing is read from `src/skunkie-motion.json` throughout the
+player and build pipeline, preserving the original frame indices after repacking.
+The continuous renderer, eased activity transitions and fallback behavior remain.
+
+New source artwork and exact prompts are in `assets/skunkie-motion-v3/`, generated
+with the built-in image tool using the existing user-owned Skunkie identity
+reference. The original eight strips remain in `assets/skunkie-motion-v2/`.
+`python scripts/build-skunkie-atlas.py` now rebuilds the combined 96-pose v3 atlas;
+then `python scripts/build-skunkie-flow.py` rebuilds all cycle and neutral edges.
+See `scripts/requirements-motion.txt` for the pinned build dependencies.
+
+`docs/skunkie-avatar-v3-validation.json` records all 96 cell hashes, nonblank,
+opacity and clipping checks. `docs/skunkie-motion-flow-validation.json` records
+the current displacement-data and source-atlas hashes. The prior v2 report and
+assets are retained as versioned history. Validation for v3: 49 targeted tests
+and the production build pass. Tests verify that the original 48 cell hashes are
+unchanged and that the running timeline reaches all 96 poses. The browser gallery
+rendered all 48 new poses, and a wave recording contained 131 unique frames with
+zero blank frames. This capture was made during local build/test activity and is
+not a frame-rate benchmark. Reduced-motion controls retained the still fallback.
+The new-pose review sheet is `docs/skunkie-avatar-v3-new-frames.png`; the browser
+fixture also exposes `/tests/fixtures/skunkie-flow-diagnostic.html?new`.
+Local validation is not deployment.
+
+### Portal motion artwork v2 (11 November 2026) — superseded
 
 The portal now plays **48 distinct illustrated frames**, up from 27 distinct
 frames referenced by the previous sequences (21 additional playable frames).

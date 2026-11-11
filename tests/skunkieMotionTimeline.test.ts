@@ -4,9 +4,32 @@ import { readFileSync } from "node:fs";
 import { SkunkieTimeline, skunkieSequences, type SkunkieActivity } from "../src/skunkie-motion-timeline";
 import motion from "../src/skunkie-motion.json";
 import report from "../docs/skunkie-motion-flow-validation.json";
+import artwork from "../docs/skunkie-avatar-v3-validation.json";
+import previousArtwork from "../docs/skunkie-avatar-v2-validation.json";
 
 const pairs = new Set(motion.flow.pairs.map(pair => pair.join(":")));
 describe("continuous Skunkie motion", () => {
+  it("preserves the original 48 poses and adds 48 distinct populated cells", () => {
+    expect(artwork.frames.slice(0,48).map(frame => frame.sha256)).toEqual(previousArtwork.frames.map(frame => frame.sha256));
+    expect(new Set(artwork.frames.map(frame => frame.sha256)).size).toBe(96);
+    expect(artwork.blankFrames + artwork.clippedFrames + artwork.duplicateFrames).toBe(0);
+    expect(motion.atlas.columns * motion.atlas.width).toBeLessThanOrEqual(4096);
+    expect(motion.atlas.rows * motion.atlas.height).toBeLessThanOrEqual(4096);
+    expect(motion.flow.columns * motion.flow.width * 2).toBeLessThanOrEqual(4096);
+    expect(motion.flow.rows * motion.flow.height).toBeLessThanOrEqual(4096);
+  });
+  it("actually plays every one of the 96 poses across the five activities", () => {
+    const clock = new SkunkieTimeline();
+    const seen = new Set<number>();
+    for (const activity of Object.keys(skunkieSequences) as SkunkieActivity[]) {
+      clock.request(activity);
+      for (let i=0; i<1500; i++) {
+        const sample=clock.advance(16);
+        seen.add(sample.from); seen.add(sample.to);
+      }
+    }
+    expect([...seen].sort((a,b)=>a-b)).toEqual(Array.from({length:96},(_,i)=>i));
+  });
   it("covers all cycles and neutral transitions with measured motion fields", () => {
     const seen = new Set<number>();
     for (const sequence of Object.values(skunkieSequences)) {
@@ -17,9 +40,9 @@ describe("continuous Skunkie motion", () => {
         if (from !== 0) expect(pairs.has(`0:${from}`)).toBe(true);
       });
     }
-    expect(seen.size).toBe(48);
+    expect(seen.size).toBe(96);
     expect(createHash("sha256").update(readFileSync(`public${motion.flow.source}`)).digest("hex")).toBe(report.flowSha256);
-    expect(createHash("sha256").update(readFileSync("public/assets/skunkie/skunkie-motion-atlas-v2.webp")).digest("hex")).toBe(report.atlasSha256);
+    expect(createHash("sha256").update(readFileSync(`public${motion.atlas.source}`)).digest("hex")).toBe(report.atlasSha256);
   });
   it("interpolates between poses without changing the current pose when an activity is requested", () => {
     const clock = new SkunkieTimeline();

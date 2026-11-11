@@ -1,3 +1,4 @@
+import motion from "./skunkie-motion.json";
 import { useEffect, useRef, useState } from "react";
 import { SkunkieTimeline, type SkunkieActivity } from "./skunkie-motion-timeline";
 import { createSkunkieRenderer, SKUNKIE_MOTION_SRC, SKUNKIE_FLOW_SRC, type SkunkieRenderer } from "./skunkie-motion-renderer";
@@ -5,8 +6,8 @@ import { createSkunkieRenderer, SKUNKIE_MOTION_SRC, SKUNKIE_FLOW_SRC, type Skunk
 export type { SkunkieActivity } from "./skunkie-motion-timeline";
 export { skunkieSequences } from "./skunkie-motion-timeline";
 export { SKUNKIE_MOTION_SRC } from "./skunkie-motion-renderer";
-export const SKUNKIE_STILL_SRC = "/assets/skunkie/skunkie-motion-still-v2.webp";
-export const SKUNKIE_MOTION_GRID = { columns: 6, rows: 8, width: 288, height: 384 } as const;
+export const SKUNKIE_STILL_SRC = "/assets/skunkie/skunkie-motion-still-v3.webp";
+export const SKUNKIE_MOTION_GRID = motion.atlas;
 
 export function useSkunkieMotion(reduceMotion = false) {
   const [visible, setVisible] = useState(() => typeof document === "undefined" || !document.hidden);

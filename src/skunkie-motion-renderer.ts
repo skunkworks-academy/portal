@@ -1,7 +1,7 @@
 import motion from "./skunkie-motion.json";
 import type { MotionSample } from "./skunkie-motion-timeline";
 
-export const SKUNKIE_MOTION_SRC = "/assets/skunkie/skunkie-motion-atlas-v2.webp";
+export const SKUNKIE_MOTION_SRC = motion.atlas.source;
 export const SKUNKIE_FLOW_SRC = motion.flow.source;
 const pairIndex = new Map(motion.flow.pairs.map((pair, index) => [pair.join(":"), index]));
 
@@ -11,7 +11,7 @@ const fragment = `precision highp float;
 varying vec2 uv;
 uniform sampler2D artwork; uniform sampler2D vectors;
 uniform vec2 fromSlot; uniform vec2 toSlot; uniform vec2 flowSlot;
-uniform vec2 flowGrid; uniform vec2 flowCell;
+uniform vec2 flowGrid; uniform vec2 flowCell; uniform vec2 atlasGrid;
 uniform float reverse; uniform float amount; uniform float extent; uniform float still;
 vec2 vectorAt(vec2 point,float direction){
   vec2 slot=vec2(flowSlot.x*2.0+direction,flowSlot.y);
@@ -26,7 +26,7 @@ vec2 sourceAt(float travel,float direction){
 }
 vec4 pose(vec2 point,vec2 slot){
   point=clamp(point,vec2(0.5/288.0,0.5/384.0),vec2(1.0-0.5/288.0,1.0-0.5/384.0));
-  vec4 color=texture2D(artwork,(slot+point)/vec2(6.0,8.0));
+  vec4 color=texture2D(artwork,(slot+point)/atlasGrid);
   return vec4(color.rgb*color.a,color.a);
 }
 void main(){
@@ -76,6 +76,7 @@ export function createSkunkieRenderer(canvas: HTMLCanvasElement, atlas: HTMLImag
     });
     if(gl.getError()!==gl.NO_ERROR)throw Error("Texture upload failed");
     const uniform=(name:string)=>gl.getUniformLocation(program!,name);
+    gl.uniform2f(uniform("atlasGrid"),motion.atlas.columns,motion.atlas.rows);
     gl.uniform1i(uniform("artwork"),0);gl.uniform1i(uniform("vectors"),1);
     gl.uniform2f(uniform("flowGrid"),motion.flow.columns,motion.flow.rows);gl.uniform2f(uniform("flowCell"),motion.flow.width,motion.flow.height);gl.uniform1f(uniform("extent"),motion.flow.range);
     const from=uniform("fromSlot"),to=uniform("toSlot"),slot=uniform("flowSlot"),reverse=uniform("reverse"),amount=uniform("amount"),still=uniform("still");
@@ -83,7 +84,7 @@ export function createSkunkieRenderer(canvas: HTMLCanvasElement, atlas: HTMLImag
     return {dispose,draw(sample){
       const edge=pairIndex.get([Math.min(sample.from,sample.to),Math.max(sample.from,sample.to)].join(":"));
       if(edge===undefined && sample.from!==sample.to)throw Error("Missing motion edge");
-      gl.uniform2f(from,sample.from%6,Math.floor(sample.from/6));gl.uniform2f(to,sample.to%6,Math.floor(sample.to/6));
+      gl.uniform2f(from,sample.from%motion.atlas.columns,Math.floor(sample.from/motion.atlas.columns));gl.uniform2f(to,sample.to%motion.atlas.columns,Math.floor(sample.to/motion.atlas.columns));
       gl.uniform2f(slot,(edge??0)%motion.flow.columns,Math.floor((edge??0)/motion.flow.columns));
       gl.uniform1f(reverse,sample.from>sample.to?1:0);gl.uniform1f(amount,sample.progress);gl.uniform1f(still,sample.from===sample.to?1:0);
       gl.drawArrays(gl.TRIANGLES,0,6);
