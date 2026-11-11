@@ -29,26 +29,50 @@ report includes source/output hashes and per-cell bounds and opacity statistics.
 Visual inspection is still required for accidental interior holes and pose
 semantics; the numeric checks alone do not establish visual quality.
 
-The component displays a separate full-resolution still while the single atlas
-loads and decodes. Network or decode failure retains the still; failure of the
-still leaves a visible S fallback. Activity changes only select validated cell
-indices in the same loaded image, avoiding cross-sheet loading gaps. Reduced
-motion uses frame 0. Animation timers stop while hidden, inactive, loading, or
-unmounted. No chat, microphone, account, model, or billing behavior changes.
+Playback uses a continuous requestAnimationFrame timeline and a WebGL renderer.
+Measured bidirectional optical-flow data moves the artwork between illustrated
+poses on each display refresh. The source poses remain 48 distinct drawings;
+rendered in-between frames are interpolations, not additional generated drawings.
+Frames are registered horizontally to the feet as well as to a shared baseline,
+so raising an arm does not shift the entire body sideways. Cycle timing is linear
+between poses; activity changes finish the current movement and ease through a
+neutral pose before entering the latest requested activity. The thinking cycle
+returns forward before changing the direction of its head turn.
 
-Review fixture: `/tests/fixtures/skunkie-avatar.html` with `npm run dev`.
-Browser QA checked light/dark backgrounds, full-size and launcher-size artwork,
-activity switching, and reduced motion at desktop and 390 Ã— 844 mobile width.
-All 48 frames were visually reviewed in the contact sheet: no missing body
-patches or clipped limbs were observed. The desktop Codex pet was not changed.
+`src/skunkie-motion.json` owns pose order, timing and measured edge addresses.
+To rebuild the displacement data, install `scripts/requirements-motion.txt` and
+run `python scripts/build-skunkie-flow.py` after rebuilding the artwork atlas.
+The data PNG is opaque RGB (never alpha-premultiplied), lossless and content-named.
+The flow script smooths displacement fields and constrains large waves using the
+cyan palm landmarks. `docs/skunkie-motion-flow-validation.json` records source and
+output hashes and edge displacement ranges. Optical interpolation is approximate;
+it is not a 3D rig or lip synchronization, and silhouettes can soften between
+substantially different poses.
 
-Validation on base `7fee44f`: production frontend build passed; 43 targeted
-avatar/interaction/layout/mobile/assets tests passed; full suite: 362 passed,
-one failed. The failure is the pre-existing `skunkieActivation.test.ts` workflow
-guard: it expects the step `Verify and activate the protected Skunkie deployment`,
-which is absent in the unchanged base workflow. This avatar change does not
-edit that workflow, its test, or deployment credentials. Live deployment is
-not part of this local verification.
+The component displays a full-resolution still while artwork and flow data load
+and decode. Image/decode failure, unavailable WebGL or context loss retains the
+still; failure of the still leaves a visible S fallback. Both textures are ready
+before playback starts, preventing asset-loading gaps between poses. Reduced
+motion uses the neutral still. Animation callbacks stop while hidden, inactive,
+loading or unmounted; resuming a hidden tab does not fast-forward the timeline.
+No chat, microphone, account, model or billing behavior changes.
+
+Review fixture: `/tests/fixtures/skunkie-avatar.html` with `npm run dev`; includes
+activity controls, reduced motion, light/dark stages and a four-second recording
+control. `/tests/fixtures/skunkie-flow-diagnostic.html` shows intermediate poses
+for visual regression review. Browser QA covers desktop and 390 × 844 mobile.
+The desktop Codex pet is unchanged. Four-second browser recordings measured
+58.96 fps (wave, 234 distinct frames) and 59.99 fps (activity transition/thinking,
+240 distinct frames), with no blank frames in either capture. Frame rate depends
+on the device; these are measured local results, not a universal guarantee.
+
+Validation: production frontend build and 47 targeted avatar, interaction,
+timeline, layout and mobile tests pass. Earlier full-suite validation on base
+`7fee44f` recorded 362 passed and one failed: the pre-existing
+`skunkieActivation.test.ts` guard expects the step `Verify and activate the
+protected Skunkie deployment`, absent from the unchanged base workflow. This
+avatar change does not edit that workflow, its test or deployment credentials.
+These checks do not establish a live production deployment.
 
 ### Earlier artwork (retained for compatibility)
 

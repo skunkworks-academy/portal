@@ -20,134 +20,134 @@
     "speaking": "c22fc039cc84d712f02c73b1c9961781ddd638430f14702e295e371725bd0e60",
     "idle-alt": "b9f7bd2baa2697255daf53c4cc91e983b40f8eb978edca31b7205798321c7cd2"
   },
-  "sha256": "e55dd6de8bf83e38eb7688df0ea2c5d7a9bacb3f155d26a406cbba1136777382",
-  "bytes": 3378768,
+  "sha256": "7fafe0332d852420213d18021953d2763fa2629c6ca65f0bd78fae930a968a06",
+  "bytes": 3378788,
   "frames": [
     {
       "index": 0,
       "state": "idle",
       "column": 0,
       "bounds": [
-        49,
+        67,
         26,
-        238,
+        256,
         366
       ],
       "visiblePixels": 44754,
       "opaqueRatio": 0.9133,
-      "sha256": "90b6801c74683561eac35f33cad2df22f221099e9dab2a6a3cdd85243152c3fa"
+      "sha256": "60f861df2324cdc70b3df354f8ec8799f9494ae721a4d9afaff4917505a694ca"
     },
     {
       "index": 1,
       "state": "idle",
       "column": 1,
       "bounds": [
-        49,
+        67,
         26,
-        238,
+        256,
         366
       ],
       "visiblePixels": 44496,
       "opaqueRatio": 0.911,
-      "sha256": "89842125aa54274107a80b796cdd85140d1ca9c6524c6dc5c4df6c06e43e9630"
+      "sha256": "4e7eacd864c992df960df2ce8ff7194e013f610b10d6bef54ef9efc450ad8027"
     },
     {
       "index": 2,
       "state": "idle",
       "column": 2,
       "bounds": [
-        49,
+        67,
         26,
-        238,
+        256,
         366
       ],
       "visiblePixels": 44241,
       "opaqueRatio": 0.9148,
-      "sha256": "ff8132ff24bd6b92eddb07ce66a8ea201876b8a770d6045feb0b5f62ca7f6646"
+      "sha256": "9a64c8a9429e0d7ed9b53a1209c47c86c1347a738b64f35574711cdf4a24a0d9"
     },
     {
       "index": 3,
       "state": "idle",
       "column": 3,
       "bounds": [
-        49,
+        67,
         26,
-        238,
+        256,
         366
       ],
       "visiblePixels": 44363,
       "opaqueRatio": 0.9083,
-      "sha256": "3d6d9c6adfd2f1af3c57dba54a1b4832a2d43ba2af67e7a4b668baf1d218b78d"
+      "sha256": "558b01560277b666104e10286fd4c926e314c328f83064a928c11ff7fc0681b9"
     },
     {
       "index": 4,
       "state": "idle",
       "column": 4,
       "bounds": [
-        49,
+        67,
         28,
-        238,
+        256,
         366
       ],
       "visiblePixels": 44569,
       "opaqueRatio": 0.9144,
-      "sha256": "4996c3bb6ad8bf9d2db6d0b13b0845a14f0a91bab53763c178e8fa3e42fd28aa"
+      "sha256": "02ad47a024517b91c55656a520d4865f4ce1953b153c44211b53bafa921adfae"
     },
     {
       "index": 5,
       "state": "idle",
       "column": 5,
       "bounds": [
-        49,
+        68,
         27,
-        238,
+        257,
         366
       ],
       "visiblePixels": 44673,
       "opaqueRatio": 0.9122,
-      "sha256": "1e5e164a84b483a0750e80cf2712e2a0c94189d34cfe4a99bfebcb1c91c02724"
+      "sha256": "0647a5a2ca6a25e1b9a5d713bae9c09d6e44ce7f530e23157a0ff8a20e3043da"
     },
     {
       "index": 6,
       "state": "waiting",
       "column": 0,
       "bounds": [
-        50,
+        66,
         27,
-        238,
+        254,
         366
       ],
       "visiblePixels": 45298,
       "opaqueRatio": 0.9016,
-      "sha256": "2f1d4f9fa00c02be6b5d5a0481133ecce8fcdc8705ed99fb143463a53ee1f7b4"
+      "sha256": "83f7c5758831ba17733a5c8cd6a8963a7bfe4b36be1206b5b288baf6fa9bab54"
     },
     {
       "index": 7,
       "state": "waiting",
       "column": 1,
       "bounds": [
-        37,
+        41,
         20,
-        251,
+        255,
         366
       ],
       "visiblePixels": 44673,
       "opaqueRatio": 0.8934,
-      "sha256": "3813e0ca23b15889ce1ed8146c303491706c46035d97a5c22009061db2f05d7e"
+      "sha256": "5b5b04f7058598bd5c7f7fbff09384f53bb4b7e52b5ff764e31f09a9ef271ca4"
     },
     {
       "index": 8,
       "state": "waiting",
       "column": 2,
       "bounds": [
-        28,
+        23,
         25,
-        259,
+        254,
         366
       ],
       "visiblePixels": 45629,
       "opaqueRatio": 0.8932,
-      "sha256": "e2e08cad5c9f19c36c56119ca17c77618d319d2c90b3777b5ffabd841161594a"
+      "sha256": "970e4e0821408b15e6a07cde8d55ea120783a80b6ba53c70eef451ae03cd46b5"
     },
     {
       "index": 9,
@@ -168,406 +168,406 @@
       "state": "waiting",
       "column": 4,
       "bounds": [
-        33,
+        31,
         30,
-        255,
+        253,
         366
       ],
       "visiblePixels": 44569,
       "opaqueRatio": 0.895,
-      "sha256": "9f99db86bebd4005de19a956ec6eba0e4e9635774f6303642990222568607c0f"
+      "sha256": "8c43438d119543c8a3075b4d399df35ba3992abc696af30ba76664eab4c8a576"
     },
     {
       "index": 11,
       "state": "waiting",
       "column": 5,
       "bounds": [
-        50,
+        64,
         27,
-        238,
+        252,
         366
       ],
       "visiblePixels": 45031,
       "opaqueRatio": 0.9032,
-      "sha256": "2921e19a317f0748037a61824332ddc0cef960d47f1855cb6505e824da72837e"
+      "sha256": "4c3fe1b7b8c97a399827b6ead714f3c2690a124c89020ef660b4909d616c8ac5"
     },
     {
       "index": 12,
       "state": "running",
       "column": 0,
       "bounds": [
-        42,
+        60,
         26,
-        246,
+        264,
         366
       ],
       "visiblePixels": 46074,
       "opaqueRatio": 0.8843,
-      "sha256": "40b535531818a029adeefd2ceda84e55a5abd6e2e28a2a86a06dfc56f8a0a8f2"
+      "sha256": "3643a82185be1a5780dfc3f7b1956242f04c72a153885863d421d4022b61389b"
     },
     {
       "index": 13,
       "state": "running",
       "column": 1,
       "bounds": [
-        41,
+        60,
         26,
-        247,
+        266,
         366
       ],
       "visiblePixels": 45732,
       "opaqueRatio": 0.8821,
-      "sha256": "c001e677249fd66ac5299146bdf17355279160046d67c1c250c1def38e44902d"
+      "sha256": "603b06fc12ddb331b97818046f3ef7206d32cbe7fd37bccae7c1a670b28525ee"
     },
     {
       "index": 14,
       "state": "running",
       "column": 2,
       "bounds": [
-        41,
+        64,
         24,
-        246,
+        269,
         366
       ],
       "visiblePixels": 44949,
       "opaqueRatio": 0.8932,
-      "sha256": "55e2aeec43439eb03044573bb8d5c3cee8a5718efbb4060650541b5280212f0c"
+      "sha256": "d9c57f10516471845866767377c8bd2248082fefcf492a063514d9447f43f0bc"
     },
     {
       "index": 15,
       "state": "running",
       "column": 3,
       "bounds": [
-        37,
+        58,
         33,
-        250,
+        271,
         366
       ],
       "visiblePixels": 44399,
       "opaqueRatio": 0.8875,
-      "sha256": "243bfb7e151493a58f92fc087e4cff4178a8179494b2b61fadf053fcb3e81b68"
+      "sha256": "ddd7d3f874a20224b712b1c219bd152b4793f648d70a8d9f5b255e9065607cbf"
     },
     {
       "index": 16,
       "state": "running",
       "column": 4,
       "bounds": [
-        33,
+        45,
         23,
-        255,
+        267,
         366
       ],
       "visiblePixels": 45208,
       "opaqueRatio": 0.8761,
-      "sha256": "26b22b3b1f78885f5f4ab39ecea90a5e15cbc01fa515260a8b9b2f365b352efb"
+      "sha256": "c683ee00aa067448e7ddae01d0767c4e596cdb5830eaf5a0bcd9ab4835983c9a"
     },
     {
       "index": 17,
       "state": "running",
       "column": 5,
       "bounds": [
-        41,
+        61,
         26,
-        246,
+        266,
         366
       ],
       "visiblePixels": 46057,
       "opaqueRatio": 0.8824,
-      "sha256": "b6cc014bdc0e5c710e99055d028072b87d2e3c889a59b4280c5af1708f567ae6"
+      "sha256": "c3b3966c46e84915d9a9e8e4092fa6b4872a50d5ebe0eab8599e929e202f9916"
     },
     {
       "index": 18,
       "state": "review",
       "column": 0,
       "bounds": [
-        52,
+        64,
         25,
-        236,
+        248,
         366
       ],
       "visiblePixels": 44794,
       "opaqueRatio": 0.9228,
-      "sha256": "550b71f62e5a30d85eaad1396f567db3c9b864cc9714310b23e18f29bcc751ba"
+      "sha256": "b7b2e4a2d97c42c2c29b58d660a5a808be8c0a0843b60c3f002dbf706866ba43"
     },
     {
       "index": 19,
       "state": "review",
       "column": 1,
       "bounds": [
-        41,
+        42,
         39,
-        247,
+        248,
         366
       ],
       "visiblePixels": 42196,
       "opaqueRatio": 0.9279,
-      "sha256": "97114bef3be6dbd19aa9d23cea7c0c227c587a632e0d36ba0044935000c5c3e5"
+      "sha256": "9e87d4987f4e5c1cf45c3b5a67683c83d6cdc3f5c1f58c4e7b3e3900686cc12f"
     },
     {
       "index": 20,
       "state": "review",
       "column": 2,
       "bounds": [
-        44,
+        47,
         26,
-        244,
+        247,
         366
       ],
       "visiblePixels": 42772,
       "opaqueRatio": 0.9261,
-      "sha256": "65f5bcf41e1c5052d59292453533b70e74dbdd94888781b134a60a7874263f4e"
+      "sha256": "61f8d3dfa5c61b20e3074a85e6344d10408380d804b9e887b37f5f166f27ad82"
     },
     {
       "index": 21,
       "state": "review",
       "column": 3,
       "bounds": [
-        48,
+        54,
         22,
-        240,
+        246,
         366
       ],
       "visiblePixels": 42602,
       "opaqueRatio": 0.9242,
-      "sha256": "a316afe48d6c26aa3e157b7b7455b4a7475b0ebfc42946d1842f3de8c42044cc"
+      "sha256": "e783e6507171e057d34c04e04f4db94c0659f80b6008b77228d74e698b180602"
     },
     {
       "index": 22,
       "state": "review",
       "column": 4,
       "bounds": [
-        50,
+        53,
         32,
-        238,
+        241,
         366
       ],
       "visiblePixels": 39320,
       "opaqueRatio": 0.927,
-      "sha256": "afbd1f1f62cf0879e487603678fee80ac2b17120fb8116841750b528cacbc2e1"
+      "sha256": "d74c5da82ab0ddbd223374817e0b3b60e0f6b0a75dcdd9fa564af7a318931ae3"
     },
     {
       "index": 23,
       "state": "review",
       "column": 5,
       "bounds": [
-        51,
+        63,
         26,
-        237,
+        249,
         366
       ],
       "visiblePixels": 44661,
       "opaqueRatio": 0.9182,
-      "sha256": "b5f259c25f2262fe9d86653b72a756ead2a0e1e5038de9f9b7887c11c8ce81b3"
+      "sha256": "c8f9e8ab6c156b93364834698c213540fcbdc3e1c96ba1843f14bc2f95a37c42"
     },
     {
       "index": 24,
       "state": "wave",
       "column": 0,
       "bounds": [
-        53,
+        70,
         26,
-        234,
+        251,
         366
       ],
       "visiblePixels": 43148,
       "opaqueRatio": 0.9119,
-      "sha256": "ebf86ca7a3239f031ebfe4bcabcd2ec176caa21107b22afdb14fd9950695a954"
+      "sha256": "9a2457213b7706042bbf43f759d22b69e50d35f25dae8ea04091f4b19dec421e"
     },
     {
       "index": 25,
       "state": "wave",
       "column": 1,
       "bounds": [
-        38,
+        39,
         27,
-        250,
+        251,
         366
       ],
       "visiblePixels": 42948,
       "opaqueRatio": 0.9138,
-      "sha256": "54716cfe3c09bb96bf96e93844eb15477fbafe8cdfaa6889b440c20a685cad09"
+      "sha256": "7bdac0587f66ad31b4368c8f9027833eebd930e0c57e77d7317011b9356584fa"
     },
     {
       "index": 26,
       "state": "wave",
       "column": 2,
       "bounds": [
-        39,
+        41,
         26,
-        249,
+        251,
         366
       ],
       "visiblePixels": 43674,
       "opaqueRatio": 0.9105,
-      "sha256": "881fd53686ba58edb9a29d8a6586483a90869ef5db9318cf11fc86872a8c3224"
+      "sha256": "e0e61651450dd2d636ccc7ed614c32d1b4a73984277a7dd7be0e8349b8c247c3"
     },
     {
       "index": 27,
       "state": "wave",
       "column": 3,
       "bounds": [
-        27,
+        17,
         26,
-        261,
+        251,
         366
       ],
       "visiblePixels": 43657,
       "opaqueRatio": 0.9104,
-      "sha256": "48be94c5d61871c4576c67607d437afd2ec1b05bc796ee117fcb3e91857c3657"
+      "sha256": "61d8d24bc3b6069dc596e8b28c2d95f79e6b873d08bbbe84e67739a0fa993b30"
     },
     {
       "index": 28,
       "state": "wave",
       "column": 4,
       "bounds": [
-        37,
+        38,
         26,
-        250,
+        251,
         366
       ],
       "visiblePixels": 43325,
       "opaqueRatio": 0.9137,
-      "sha256": "23944a183198758a19ecbe7cdcfa565bb5ae6fda4e59bc9f5ee4de9afa407721"
+      "sha256": "3ef6779cf917fe4b30ba1afc77f68be65e7020678e2934d4643e1b741a299bc5"
     },
     {
       "index": 29,
       "state": "wave",
       "column": 5,
       "bounds": [
-        53,
+        69,
         26,
-        234,
+        250,
         366
       ],
       "visiblePixels": 43015,
       "opaqueRatio": 0.9141,
-      "sha256": "7288eafa9552532cf4ea2abc9fcf8a9a23b4de5fd539a7089a2671bb1e20b653"
+      "sha256": "be65c2fac5cf7acbbc3f3dea071c2ffbfe8394e879d611bc7d7a029e7a4662fc"
     },
     {
       "index": 30,
       "state": "listening",
       "column": 0,
       "bounds": [
-        37,
+        45,
         26,
-        251,
+        259,
         366
       ],
       "visiblePixels": 43312,
       "opaqueRatio": 0.9136,
-      "sha256": "78223641fcb539cba94049b3a8d32ca43e33aab126c3a5d4a50ffb518fc9c2f4"
+      "sha256": "ac3da5ab3ec4c5bd7bc31ff20ea47d08e87054e018ab4d3da5d60134aa108d8e"
     },
     {
       "index": 31,
       "state": "listening",
       "column": 1,
       "bounds": [
-        37,
+        48,
         21,
-        251,
+        262,
         366
       ],
       "visiblePixels": 42812,
       "opaqueRatio": 0.9177,
-      "sha256": "096a2cbbf59a47a3f5c6750ef181aa46c29669f65dc202cbaecd9384d4fe07f7"
+      "sha256": "8196bc3f14963785cf0934be09fd3ebe5314ed068d1f283c26105f96ed56980d"
     },
     {
       "index": 32,
       "state": "listening",
       "column": 2,
       "bounds": [
-        38,
+        44,
         32,
-        249,
+        255,
         366
       ],
       "visiblePixels": 41275,
       "opaqueRatio": 0.9205,
-      "sha256": "5a95a1b0e6e3e171f6995f00a7d049ff24c7b1bc82a5d587c3a39888b2274929"
+      "sha256": "fdabba8c9756f7ba81b941192f6a229f6d64e93161345c84cc1c6d1ef813a5e7"
     },
     {
       "index": 33,
       "state": "listening",
       "column": 3,
       "bounds": [
-        38,
+        45,
         26,
-        249,
+        256,
         366
       ],
       "visiblePixels": 42414,
       "opaqueRatio": 0.9188,
-      "sha256": "db9d66869938b21d26369c94869a54259b2ce4cf193e2be8423d13f4c59540cf"
+      "sha256": "9a49eb6f2016d50a66255884addf83f59280179bce7fd782b08171d0100f90cf"
     },
     {
       "index": 34,
       "state": "listening",
       "column": 4,
       "bounds": [
-        37,
+        47,
         21,
-        250,
+        260,
         366
       ],
       "visiblePixels": 42177,
       "opaqueRatio": 0.919,
-      "sha256": "7e65e5edd0b728760d7126d5299effa9542df9929ceb21c3b48d78bda67a027f"
+      "sha256": "c2b7c43bfce24eea32c567839889bee76c5f93957c535e700cd26c4c96fdffab"
     },
     {
       "index": 35,
       "state": "listening",
       "column": 5,
       "bounds": [
-        34,
+        43,
         26,
-        253,
+        262,
         366
       ],
       "visiblePixels": 43432,
       "opaqueRatio": 0.9166,
-      "sha256": "c2b4a7dd7123adeb8db5ed7ae126c1a5fb2a2f0673c54e4e7adbbeaea97418f4"
+      "sha256": "f3a027948c83e89f71f020f7cf803eab397b2a13458f620bf430d27b2c70f4fb"
     },
     {
       "index": 36,
       "state": "speaking",
       "column": 0,
       "bounds": [
-        56,
+        75,
         26,
-        231,
+        250,
         366
       ],
       "visiblePixels": 40885,
       "opaqueRatio": 0.9258,
-      "sha256": "03d7f3df145237469b626c737a9a6f7b9dba79037348ace5a49c0cffa59dc224"
+      "sha256": "6703c49865bf1b0202d37a2ec26e30071e9a186f8479093cb013bb380746c2f1"
     },
     {
       "index": 37,
       "state": "speaking",
       "column": 1,
       "bounds": [
-        42,
+        47,
         26,
-        246,
+        251,
         366
       ],
       "visiblePixels": 41812,
       "opaqueRatio": 0.9218,
-      "sha256": "66b040e7eed46b5d45005c5956b0ab389421e43abebcb418af7a115ebed13bd5"
+      "sha256": "d659f1d7a836ff5d9b2c7c3a767f84728c333b84736d4d217d5b852e32bf3fcd"
     },
     {
       "index": 38,
       "state": "speaking",
       "column": 2,
       "bounds": [
-        32,
+        27,
         25,
-        256,
+        251,
         366
       ],
       "visiblePixels": 42446,
       "opaqueRatio": 0.9185,
-      "sha256": "a902ac60efc33e219c05247de56716790b57c35729c0dd8b75534973f8ac3fbb"
+      "sha256": "3a06be6f0b7229ec3d90879fc9449bf9c353d27af88a55bdb373d80d78dba646"
     },
     {
       "index": 39,
@@ -588,112 +588,112 @@
       "state": "speaking",
       "column": 4,
       "bounds": [
-        53,
+        70,
         26,
-        234,
+        251,
         366
       ],
       "visiblePixels": 41553,
       "opaqueRatio": 0.9196,
-      "sha256": "c0ad195986cbde189e6d1fbd86a1a8cc0fc09016668911c19a58cde292436b5d"
+      "sha256": "7036813d4691521d791fc84941967dede82111e07e10c0bf3a798adb10bba4e0"
     },
     {
       "index": 41,
       "state": "speaking",
       "column": 5,
       "bounds": [
-        56,
+        76,
         27,
-        231,
+        251,
         366
       ],
       "visiblePixels": 40807,
       "opaqueRatio": 0.9281,
-      "sha256": "e95e56f62731ef999d65c6b40b84b372e51778c4eaa065044189fcbb498e68c2"
+      "sha256": "db444270de6f7dab692d064b12a8337973137baefc37b6ea21977329aa17441e"
     },
     {
       "index": 42,
       "state": "idle-alt",
       "column": 0,
       "bounds": [
-        49,
+        67,
         28,
-        238,
+        256,
         366
       ],
       "visiblePixels": 45238,
       "opaqueRatio": 0.9341,
-      "sha256": "628d31d54d6f39441a0f98e28e323317266951095a0c19dd4d5c51bd132aefa7"
+      "sha256": "9b44268f77774b728c93043d66062396f6cef9dd23d8d50ccb9c6d098be35466"
     },
     {
       "index": 43,
       "state": "idle-alt",
       "column": 1,
       "bounds": [
-        42,
+        55,
         21,
-        246,
+        259,
         366
       ],
       "visiblePixels": 44344,
       "opaqueRatio": 0.9304,
-      "sha256": "7a53ddfe8baf7c8ef6a3612277386e01df572de15e79a002a1fdb9d962f47730"
+      "sha256": "0dd2774f4a5a80be221a7dca3f3345464d10065f9c96388bf3d74ff3d1fd8389"
     },
     {
       "index": 44,
       "state": "idle-alt",
       "column": 2,
       "bounds": [
-        49,
+        67,
         24,
-        239,
+        257,
         366
       ],
       "visiblePixels": 44650,
       "opaqueRatio": 0.9337,
-      "sha256": "d49b31de282bff1796e87f2e79f5dee511514c4017a03ff18060be45f7004ba7"
+      "sha256": "716f19fa9799761ba2787e0691e39b28362ad0ab3d327b2888b49e038f6a8121"
     },
     {
       "index": 45,
       "state": "idle-alt",
       "column": 3,
       "bounds": [
-        47,
+        62,
         23,
-        241,
+        256,
         366
       ],
       "visiblePixels": 44636,
       "opaqueRatio": 0.9312,
-      "sha256": "a55d7c1f47c61cd95b20399741762a61c6f49909c72cc5e1dec49b1efded4abe"
+      "sha256": "039c037d9b26dcc0d3aa3e1206dea1aae9c621a608c7473b89945b1bb0bca369"
     },
     {
       "index": 46,
       "state": "idle-alt",
       "column": 4,
       "bounds": [
-        49,
+        68,
         28,
-        239,
+        258,
         366
       ],
       "visiblePixels": 44948,
       "opaqueRatio": 0.9335,
-      "sha256": "da5638ebcab53a4c3d83e735d377ff56ff519dd3fb3583cd99fc14ea4c81eb3a"
+      "sha256": "a2d30243581117dc9f8e4336b5078fe93247795e67d803f396804198b891d32a"
     },
     {
       "index": 47,
       "state": "idle-alt",
       "column": 5,
       "bounds": [
-        49,
+        68,
         29,
-        239,
+        258,
         366
       ],
       "visiblePixels": 45167,
       "opaqueRatio": 0.9354,
-      "sha256": "3bcd47b360a98559beef492ea472fc5fe0a1bc661b01930e7a489c5cd9b3aa60"
+      "sha256": "756cc2192968fe81b64351dbd353707afe766f92f350bc7df639c613ca475151"
     }
   ]
 }

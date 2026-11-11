@@ -5,6 +5,7 @@ Sources default to assets/skunkie-motion-v2. Uses connected silhouettes instead
 of guessed equal-width cuts, one scale per row, and a shared feet baseline.
 """
 import hashlib
+import io
 import json
 import statistics
 import sys
@@ -61,7 +62,14 @@ for row, state in enumerate(ROWS):
         # BICUBIC avoids the faint outer ringing introduced by LANCZOS.
         sprite = sprite.resize((round(sprite.width*scale), round(sprite.height*scale)), Image.Resampling.BICUBIC)
         cell = Image.new('RGBA', (WIDTH, HEIGHT))
-        cell.alpha_composite(sprite, ((WIDTH-sprite.width)//2, baseline-sprite.height))
+        # The silhouette widens when a hand lifts. Anchor to the planted feet,
+        # not the bounding box, so arm gestures cannot slide the whole body.
+        alpha = sprite.getchannel('A')
+        foot_x = [x for y in range(round(sprite.height*.9),sprite.height)
+                  for x in range(sprite.width) if alpha.getpixel((x,y)) > 200]
+        assert foot_x, f'{state}/{col}: missing feet registration'
+        anchor = statistics.mean(foot_x)
+        cell.alpha_composite(sprite, (round(WIDTH/2-anchor), baseline-sprite.height))
         # Zero RGB underneath transparency for deterministic lossless encoding.
         pixels = [(r,g,b,a) if a else (0,0,0,0) for r,g,b,a in cell.getdata()]
         cell.putdata(pixels)
@@ -77,7 +85,11 @@ for row, state in enumerate(ROWS):
 
 assert len({f['sha256'] for f in frames}) == 48, 'Duplicate artwork'
 target = ROOT/'public/assets/skunkie/skunkie-motion-atlas-v2.webp'
-atlas.save(target, lossless=True, method=6, exact=True)
+encoded = io.BytesIO()
+atlas.save(encoded, format='WEBP', lossless=True, method=6, exact=True)
+temporary = target.with_suffix('.tmp')
+temporary.write_bytes(encoded.getvalue())
+temporary.replace(target)
 # Validate exact encoded bytes, including every cell and the still fallback.
 decoded = Image.open(target).convert('RGBA')
 assert decoded.tobytes() == atlas.tobytes(), 'Lossless round-trip failed'

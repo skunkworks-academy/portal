@@ -4,6 +4,11 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SkunkieCompanion } from "../src/SkunkieCompanion";
 import { SkunkieAvatar } from "../src/SkunkieAvatar";
+const avatarPainter = vi.hoisted(() => ({ draw: vi.fn(), dispose: vi.fn() }));
+vi.mock("../src/skunkie-motion-renderer", async importOriginal => ({
+  ...await importOriginal<typeof import("../src/skunkie-motion-renderer")>(),
+  createSkunkieRenderer: vi.fn(() => avatarPainter)
+}));
 import { LearnerOnboardingGate } from "../src/LearnerOnboardingGate";
 import { readSkunkiePreferences, saveSkunkiePreferences } from "../src/skunkie-preferences";
 const auth = vi.hoisted(() => ({ accounts: [{ homeAccountId: "account-a" }], instance: { acquireTokenSilent: vi.fn() } }));
@@ -134,8 +139,8 @@ describe("avatar-first Skunkie", () => {
       set src(_value: string) { Promise.resolve().then(() => this.onload?.()); }
     });
     vi.useFakeTimers(); await render(<SkunkieAvatar activity="speaking" />);
-    const initial = host.querySelector<HTMLElement>(".skunkie-avatar__frame")!.style.backgroundPosition;
-    await act(async () => vi.advanceTimersByTime(150)); expect(host.querySelector<HTMLElement>(".skunkie-avatar__frame")!.style.backgroundPosition).not.toBe(initial);
+    const initial = avatarPainter.draw.mock.calls.length;
+    await act(async () => vi.advanceTimersByTime(150)); expect(avatarPainter.draw.mock.calls.length).toBeGreaterThan(initial);
     await act(async () => { document.documentElement.dataset.portalMotion = "reduce"; }); expect(vi.getTimerCount()).toBe(0);
     expect(host.querySelector(".skunkie-avatar")?.getAttribute("data-animated")).toBe("false");
     await act(async () => { document.documentElement.dataset.portalMotion = "system"; }); expect(vi.getTimerCount()).toBe(1);
