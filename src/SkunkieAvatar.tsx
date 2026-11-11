@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 
 export type SkunkieActivity = "idle" | "wave" | "listening" | "thinking" | "speaking";
-const original = "/assets/skunkie/skunkie-original-atlas-v1.webp";
-const conversation = "/assets/skunkie/skunkie-conversation-atlas-v1.png";
+export const SKUNKIE_MOTION_SRC = "/assets/skunkie/skunkie-motion-atlas-v2.webp";
+export const SKUNKIE_STILL_SRC = "/assets/skunkie/skunkie-motion-still-v2.webp";
+export const SKUNKIE_MOTION_GRID = { columns: 6, rows: 8, width: 288, height: 384 } as const;
 // Real illustrated frames. These are gestures, not generated lip synchronization.
 export const skunkieSequences = {
-  idle: { source: original, rows: 11, row: 0, frames: [6, 6, 0, 1, 2, 3, 4, 5, 6, 6], ms: 360 },
-  wave: { source: original, rows: 11, row: 3, frames: [0, 1, 2, 1, 2, 3], ms: 170 },
-  listening: { source: conversation, rows: 4, row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1], ms: 150 },
-  thinking: { source: conversation, rows: 4, row: 1, frames: [2, 3, 4, 5, 4, 3], ms: 200 },
-  speaking: { source: conversation, rows: 4, row: 2, frames: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1], ms: 130 }
+  idle: { frames: [0, 1, 2, 3, 4, 5, 42, 43, 44, 45, 46, 47], ms: 300 },
+  wave: { frames: [24, 25, 26, 27, 28, 29], ms: 170 },
+  listening: { frames: [30, 31, 32, 33, 34, 35, 6, 7, 8, 9, 10, 11], ms: 220 },
+  thinking: { frames: [12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23], ms: 240 },
+  speaking: { frames: [36, 37, 38, 39, 40, 41, 40, 39, 38, 37], ms: 130 }
 } as const;
 
 export function useSkunkieMotion(reduceMotion = false) {
@@ -34,23 +35,36 @@ export function SkunkieAvatar({ activity = "idle", active = true, reduceMotion =
 }) {
   const { reduced, visible } = useSkunkieMotion(reduceMotion);
   const [frame, setFrame] = useState(0);
-  const [failed, setFailed] = useState(false);
-  const sequence = reduced || failed ? skunkieSequences.idle : skunkieSequences[activity];
+  const [loaded, setLoaded] = useState(false);
+  const [fallbackFailed, setFallbackFailed] = useState(false);
+  const sequence = reduced ? skunkieSequences.idle : skunkieSequences[activity];
+  const animated = loaded && active && !reduced && visible;
   useEffect(() => {
     setFrame(0);
-    if (!active || reduced || !visible) return;
+    if (!animated) return;
     const timer = window.setInterval(() => setFrame(value => (value + 1) % sequence.frames.length), sequence.ms);
     return () => window.clearInterval(timer);
-  }, [active, reduced, visible, sequence]);
+  }, [animated, sequence]);
   useEffect(() => {
     const probe = new Image();
-    probe.onerror = () => setFailed(true);
-    probe.src = sequence.source;
-    return () => { probe.onerror = null; };
-  }, [sequence.source]);
-  const column = reduced ? 6 : sequence.frames[frame % sequence.frames.length];
-  return <span className="skunkie-avatar" aria-hidden="true" data-activity={activity} data-animated={active && !reduced && visible}><span className="skunkie-avatar__frame"
-    style={{ backgroundImage: `url("${sequence.source}")`, backgroundSize: `800% ${sequence.rows * 100}%`,
-      backgroundPosition: `${column / 7 * 100}% ${sequence.row / (sequence.rows - 1) * 100}%`,
-      aspectRatio: sequence.rows === 11 ? "192 / 208" : "192 / 256", bottom: sequence.rows === 11 ? "3.9%" : 0 }} /></span>;
+    let cancelled = false;
+    const ready = () => { if (!cancelled) setLoaded(true); };
+    probe.onload = () => {
+      if (typeof probe.decode === "function") void probe.decode().then(ready, () => {});
+      else ready();
+    };
+    probe.src = SKUNKIE_MOTION_SRC;
+    return () => { cancelled = true; probe.onload = null; };
+  }, []);
+  const index = reduced || !active ? 0 : sequence.frames[frame % sequence.frames.length];
+  const column = index % SKUNKIE_MOTION_GRID.columns;
+  const row = Math.floor(index / SKUNKIE_MOTION_GRID.columns);
+  return <span className="skunkie-avatar" aria-hidden="true" data-activity={activity} data-animated={animated}>
+    {loaded ? <span className="skunkie-avatar__frame" data-frame={index}
+      style={{ backgroundImage: `url("${SKUNKIE_MOTION_SRC}")`, backgroundSize: "600% 800%",
+        backgroundPosition: `${column / 5 * 100}% ${row / 7 * 100}%`,
+        aspectRatio: "288 / 384", bottom: 0 }} /> : fallbackFailed ?
+      <span className="skunkie-avatar__placeholder">S</span> :
+      <img className="skunkie-avatar__still" src={SKUNKIE_STILL_SRC} alt="" width="288" height="384" onError={() => setFallbackFailed(true)} />}
+  </span>;
 }

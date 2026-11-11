@@ -4,6 +4,54 @@ This change uses portal-owned rendering and browser voice, not the Codex pet run
 
 ## Assets and playback
 
+### Portal motion artwork v2 (11 November 2026)
+
+The portal now plays **48 distinct illustrated frames**, up from 27 distinct
+frames referenced by the previous sequences (21 additional playable frames).
+`skunkie-motion-atlas-v2.webp` is a lossless 1728 × 3072 sheet: six columns,
+eight rows, 288 × 384 cells. This is 50% more pixels on each axis than the
+previous 192 × 256 conversation cells. All 48 cells contain complete artwork;
+there are no unused cells in this portal-specific sheet.
+
+The eight source strips are idle, waiting, working, review, greeting, listening,
+speaking, and alternate idle. The renderer combines these into its existing
+five activity states. Speaking remains an illustrated gesture cycle, not lip
+synchronization. The user-owned robot-skunk reference and eight built-in
+image-generation prompts/outputs are retained in `assets/skunkie-motion-v2/`.
+No new third-party stock art is included.
+
+Run `python scripts/build-skunkie-atlas.py` with Pillow to reproduce the packed
+assets and `docs/skunkie-avatar-v2-validation.json`. The script detects six
+connected silhouettes per source strip, uses a common scale within each row,
+registers the feet to a shared baseline, preserves alpha, and encodes losslessly.
+It rejects blank, duplicate, clipped, or predominantly translucent frames. The
+report includes source/output hashes and per-cell bounds and opacity statistics.
+Visual inspection is still required for accidental interior holes and pose
+semantics; the numeric checks alone do not establish visual quality.
+
+The component displays a separate full-resolution still while the single atlas
+loads and decodes. Network or decode failure retains the still; failure of the
+still leaves a visible S fallback. Activity changes only select validated cell
+indices in the same loaded image, avoiding cross-sheet loading gaps. Reduced
+motion uses frame 0. Animation timers stop while hidden, inactive, loading, or
+unmounted. No chat, microphone, account, model, or billing behavior changes.
+
+Review fixture: `/tests/fixtures/skunkie-avatar.html` with `npm run dev`.
+Browser QA checked light/dark backgrounds, full-size and launcher-size artwork,
+activity switching, and reduced motion at desktop and 390 × 844 mobile width.
+All 48 frames were visually reviewed in the contact sheet: no missing body
+patches or clipped limbs were observed. The desktop Codex pet was not changed.
+
+Validation on base `7fee44f`: production frontend build passed; 43 targeted
+avatar/interaction/layout/mobile/assets tests passed; full suite: 362 passed,
+one failed. The failure is the pre-existing `skunkieActivation.test.ts` workflow
+guard: it expects the step `Verify and activate the protected Skunkie deployment`,
+which is absent in the unchanged base workflow. This avatar change does not
+edit that workflow, its test, or deployment credentials. Live deployment is
+not part of this local verification.
+
+### Earlier artwork (retained for compatibility)
+
 - `public/assets/skunkie/skunkie-original-atlas-v1.webp` is a byte-for-byte copy of the user-approved installed Skunkie atlas, 1536 × 2288, eight columns and eleven rows, 192 × 208 cells. SHA-256: `ebf757b530b5db24f7a1d0c1e6ff99ae1a0254d3ab995f595245ad539b855f0e`. The installed pet and backups were not edited.
 - `public/assets/skunkie/skunkie-conversation-atlas-v1.png` is the cleaned supplemental artwork generated for this task from that character reference. It is 1536 × 1024, eight columns and four rows, 192 × 256 cells. SHA-256: `d4f5c323d2ca78c34ea375608c4ca2191463ee79fcf10044a2f65b2bb7a79220`.
 - Read-only pixel checks found 32 distinct supplemental cells, alpha extrema 0–254, all four image corners alpha 0, every body inside its cell, and feet at y=242–243. The original has transparent unused cells; the runtime only selects populated cells. The original neutral and wave frames remain the default and fallback. Supplemental listening, pondering and explanation gestures are actual artwork, not duplicated transformed frames or claimed lip synchronization.

@@ -129,6 +129,10 @@ describe("avatar-first Skunkie", () => {
     expect(log.scrollTo).toHaveBeenLastCalledWith({ top: 360, behavior: "instant" });
   });
   it("stops all frame timers for reduced motion, hidden tabs and inactive avatars", async () => {
+    vi.stubGlobal("Image", class {
+      onload: (() => void) | null = null;
+      set src(_value: string) { Promise.resolve().then(() => this.onload?.()); }
+    });
     vi.useFakeTimers(); await render(<SkunkieAvatar activity="speaking" />);
     const initial = host.querySelector<HTMLElement>(".skunkie-avatar__frame")!.style.backgroundPosition;
     await act(async () => vi.advanceTimersByTime(150)); expect(host.querySelector<HTMLElement>(".skunkie-avatar__frame")!.style.backgroundPosition).not.toBe(initial);

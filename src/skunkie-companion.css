@@ -5,6 +5,7 @@
 .skunkie__voice-controls label{color:inherit;letter-spacing:normal;text-transform:none}.skunkie textarea::placeholder{color:inherit;opacity:.7}
 .skunkie .skunkie__error button{background:#fff;color:#742912;border-color:#ba4b31}.skunkie__form textarea{min-height:72px}.skunkie__form>button{align-self:end;height:44px}
 .skunkie-avatar{display:block;position:relative;width:100%;aspect-ratio:192/256;flex:none}.skunkie-avatar__frame{display:block;position:absolute;left:0;width:100%;background-repeat:no-repeat}
+.skunkie-avatar__still{display:block;width:100%;height:100%;object-fit:contain}.skunkie-avatar__placeholder{position:absolute;inset:15%;display:grid;place-items:center;border-radius:50%;background:var(--sk-soft,#f1f5f8);color:var(--sk-text,#172333);font:700 2rem/1 system-ui,sans-serif}
 .skunkie__launcher{position:relative;width:132px;flex:none;display:flex;align-items:center;flex-direction:column;padding:0;border:0;background:transparent;color:inherit;min-height:44px}
 .skunkie__launcher .skunkie-avatar{height:156px;width:auto;max-width:152px;filter:drop-shadow(0 5px 5px #0003)}
 .skunkie__label{display:block;background:var(--sk-bg);color:var(--sk-text);border:1px solid var(--sk-line);border-radius:20px;padding:7px 14px;font-weight:650;box-shadow:0 3px 15px #0002;white-space:nowrap}
