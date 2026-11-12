@@ -1,16 +1,13 @@
-import { useEffect, useState } from "react";
+import motion from "./skunkie-motion.json";
+import { useEffect, useRef, useState } from "react";
+import { SkunkieTimeline, type SkunkieActivity } from "./skunkie-motion-timeline";
+import { createSkunkieRenderer, SKUNKIE_MOTION_SRC, SKUNKIE_FLOW_SRC, type SkunkieRenderer } from "./skunkie-motion-renderer";
 
-export type SkunkieActivity = "idle" | "wave" | "listening" | "thinking" | "speaking";
-const original = "/assets/skunkie/skunkie-original-atlas-v1.webp";
-const conversation = "/assets/skunkie/skunkie-conversation-atlas-v1.png";
-// Real illustrated frames. These are gestures, not generated lip synchronization.
-export const skunkieSequences = {
-  idle: { source: original, rows: 11, row: 0, frames: [6, 6, 0, 1, 2, 3, 4, 5, 6, 6], ms: 360 },
-  wave: { source: original, rows: 11, row: 3, frames: [0, 1, 2, 1, 2, 3], ms: 170 },
-  listening: { source: conversation, rows: 4, row: 1, frames: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1], ms: 150 },
-  thinking: { source: conversation, rows: 4, row: 1, frames: [2, 3, 4, 5, 4, 3], ms: 200 },
-  speaking: { source: conversation, rows: 4, row: 2, frames: [0, 1, 2, 3, 4, 5, 6, 7, 6, 5, 4, 3, 2, 1], ms: 130 }
-} as const;
+export type { SkunkieActivity } from "./skunkie-motion-timeline";
+export { skunkieSequences } from "./skunkie-motion-timeline";
+export { SKUNKIE_MOTION_SRC } from "./skunkie-motion-renderer";
+export const SKUNKIE_STILL_SRC = "/assets/skunkie/skunkie-motion-still-v3.webp";
+export const SKUNKIE_MOTION_GRID = motion.atlas;
 
 export function useSkunkieMotion(reduceMotion = false) {
   const [visible, setVisible] = useState(() => typeof document === "undefined" || !document.hidden);
@@ -33,24 +30,64 @@ export function SkunkieAvatar({ activity = "idle", active = true, reduceMotion =
   activity?: SkunkieActivity; active?: boolean; reduceMotion?: boolean;
 }) {
   const { reduced, visible } = useSkunkieMotion(reduceMotion);
-  const [frame, setFrame] = useState(0);
-  const [failed, setFailed] = useState(false);
-  const sequence = reduced || failed ? skunkieSequences.idle : skunkieSequences[activity];
+  const [ready, setReady] = useState(false);
+  const [fallbackFailed, setFallbackFailed] = useState(false);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const renderer = useRef<SkunkieRenderer | null>(null);
+  const timeline = useRef(new SkunkieTimeline());
+  const requested = useRef(activity); requested.current = activity;
+  const animated = ready && active && !reduced && visible;
   useEffect(() => {
-    setFrame(0);
-    if (!active || reduced || !visible) return;
-    const timer = window.setInterval(() => setFrame(value => (value + 1) % sequence.frames.length), sequence.ms);
-    return () => window.clearInterval(timer);
-  }, [active, reduced, visible, sequence]);
+    const element = canvas.current!;
+    const probes: HTMLImageElement[] = [];
+    let cancelled = false;
+    const load = (source: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+      const probe = new Image(); probes.push(probe);
+      probe.onload = () => {
+        if (typeof probe.decode === "function") void probe.decode().then(() => resolve(probe), reject);
+        else resolve(probe);
+      };
+      probe.onerror = reject;
+      probe.src = source;
+    });
+    const failed = () => { renderer.current?.dispose(); renderer.current = null; if (!cancelled) setReady(false); };
+    const lost = (event: Event) => { event.preventDefault(); failed(); };
+    element.addEventListener("webglcontextlost", lost);
+    void Promise.all([load(SKUNKIE_MOTION_SRC), load(SKUNKIE_FLOW_SRC)]).then(([atlas, flow]) => {
+      if (cancelled) return;
+      renderer.current = createSkunkieRenderer(element, atlas, flow);
+      if (!renderer.current) return;
+      renderer.current.draw({ from: 0, to: 0, progress: 0 });
+      setReady(true);
+    }).catch(failed);
+    return () => {
+      cancelled = true; probes.forEach(probe => { probe.onload = null; probe.onerror = null; });
+      element.removeEventListener("webglcontextlost", lost); failed();
+    };
+  }, []);
   useEffect(() => {
-    const probe = new Image();
-    probe.onerror = () => setFailed(true);
-    probe.src = sequence.source;
-    return () => { probe.onerror = null; };
-  }, [sequence.source]);
-  const column = reduced ? 6 : sequence.frames[frame % sequence.frames.length];
-  return <span className="skunkie-avatar" aria-hidden="true" data-activity={activity} data-animated={active && !reduced && visible}><span className="skunkie-avatar__frame"
-    style={{ backgroundImage: `url("${sequence.source}")`, backgroundSize: `800% ${sequence.rows * 100}%`,
-      backgroundPosition: `${column / 7 * 100}% ${sequence.row / (sequence.rows - 1) * 100}%`,
-      aspectRatio: sequence.rows === 11 ? "192 / 208" : "192 / 256", bottom: sequence.rows === 11 ? "3.9%" : 0 }} /></span>;
+    if (!animated) return;
+    let last: number | null = null;
+    let handle = 0;
+    const tick = (now: number) => {
+      const painter = renderer.current;
+      if (!painter) return;
+      timeline.current.request(requested.current);
+      // Discard long stalls. Visibility pauses retain the current pose/time.
+      const sample = timeline.current.advance(last === null ? 0 : Math.min(64, now-last));
+      last = now;
+      try { painter.draw(sample); }
+      catch { painter.dispose(); renderer.current = null; setReady(false); return; }
+      handle = window.requestAnimationFrame(tick);
+    };
+    handle = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(handle);
+  }, [animated]);
+  const showCanvas = ready && active && !reduced;
+  return <span className="skunkie-avatar" aria-hidden="true" data-activity={activity} data-animated={animated}>
+    <canvas ref={canvas} className="skunkie-avatar__canvas" width="288" height="384" hidden={!showCanvas} />
+    {!showCanvas && (fallbackFailed ?
+      <span className="skunkie-avatar__placeholder">S</span> :
+      <img className="skunkie-avatar__still" src={SKUNKIE_STILL_SRC} alt="" width="288" height="384" onError={() => setFallbackFailed(true)} />)}
+  </span>;
 }

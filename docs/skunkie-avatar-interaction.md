@@ -4,6 +4,113 @@ This change uses portal-owned rendering and browser voice, not the Codex pet run
 
 ## Assets and playback
 
+### Portal motion artwork v3 (11 November 2026)
+
+The current player includes **96 distinct illustrated poses**, adding 48 new
+poses to the previous 48-frame library (69 more than the original 27). New
+six-pose strips cover affirming nods, attentive acknowledgement, smaller waves,
+one-hand explanations, relaxed breathing, consideration, two-hand explanations
+and reassurance. All 96 poses are referenced by the five activity cycles.
+These are additional source drawings, not duplicated or interpolated counts.
+
+The lossless v3 atlas uses twelve columns and eight rows of 288 � 384 cells
+(3456 � 3072). Both artwork and motion-data sheets fit within a 4096-pixel texture
+limit. Atlas addressing is read from `src/skunkie-motion.json` throughout the
+player and build pipeline, preserving the original frame indices after repacking.
+The continuous renderer, eased activity transitions and fallback behavior remain.
+
+New source artwork and exact prompts are in `assets/skunkie-motion-v3/`, generated
+with the built-in image tool using the existing user-owned Skunkie identity
+reference. The original eight strips remain in `assets/skunkie-motion-v2/`.
+`python scripts/build-skunkie-atlas.py` now rebuilds the combined 96-pose v3 atlas;
+then `python scripts/build-skunkie-flow.py` rebuilds all cycle and neutral edges.
+See `scripts/requirements-motion.txt` for the pinned build dependencies.
+
+`docs/skunkie-avatar-v3-validation.json` records all 96 cell hashes, nonblank,
+opacity and clipping checks. `docs/skunkie-motion-flow-validation.json` records
+the current displacement-data and source-atlas hashes. The prior v2 report and
+assets are retained as versioned history. Validation for v3: 49 targeted tests
+and the production build pass. Tests verify that the original 48 cell hashes are
+unchanged and that the running timeline reaches all 96 poses. The browser gallery
+rendered all 48 new poses, and a wave recording contained 131 unique frames with
+zero blank frames. This capture was made during local build/test activity and is
+not a frame-rate benchmark. Reduced-motion controls retained the still fallback.
+The new-pose review sheet is `docs/skunkie-avatar-v3-new-frames.png`; the browser
+fixture also exposes `/tests/fixtures/skunkie-flow-diagnostic.html?new`.
+Local validation is not deployment.
+
+### Portal motion artwork v2 (11 November 2026) � superseded
+
+The portal now plays **48 distinct illustrated frames**, up from 27 distinct
+frames referenced by the previous sequences (21 additional playable frames).
+`skunkie-motion-atlas-v2.webp` is a lossless 1728 × 3072 sheet: six columns,
+eight rows, 288 × 384 cells. This is 50% more pixels on each axis than the
+previous 192 × 256 conversation cells. All 48 cells contain complete artwork;
+there are no unused cells in this portal-specific sheet.
+
+The eight source strips are idle, waiting, working, review, greeting, listening,
+speaking, and alternate idle. The renderer combines these into its existing
+five activity states. Speaking remains an illustrated gesture cycle, not lip
+synchronization. The user-owned robot-skunk reference and eight built-in
+image-generation prompts/outputs are retained in `assets/skunkie-motion-v2/`.
+No new third-party stock art is included.
+
+Run `python scripts/build-skunkie-atlas.py` with Pillow to reproduce the packed
+assets and `docs/skunkie-avatar-v2-validation.json`. The script detects six
+connected silhouettes per source strip, uses a common scale within each row,
+registers the feet to a shared baseline, preserves alpha, and encodes losslessly.
+It rejects blank, duplicate, clipped, or predominantly translucent frames. The
+report includes source/output hashes and per-cell bounds and opacity statistics.
+Visual inspection is still required for accidental interior holes and pose
+semantics; the numeric checks alone do not establish visual quality.
+
+Playback uses a continuous requestAnimationFrame timeline and a WebGL renderer.
+Measured bidirectional optical-flow data moves the artwork between illustrated
+poses on each display refresh. The source poses remain 48 distinct drawings;
+rendered in-between frames are interpolations, not additional generated drawings.
+Frames are registered horizontally to the feet as well as to a shared baseline,
+so raising an arm does not shift the entire body sideways. Cycle timing is linear
+between poses; activity changes finish the current movement and ease through a
+neutral pose before entering the latest requested activity. The thinking cycle
+returns forward before changing the direction of its head turn.
+
+`src/skunkie-motion.json` owns pose order, timing and measured edge addresses.
+To rebuild the displacement data, install `scripts/requirements-motion.txt` and
+run `python scripts/build-skunkie-flow.py` after rebuilding the artwork atlas.
+The data PNG is opaque RGB (never alpha-premultiplied), lossless and content-named.
+The flow script smooths displacement fields and constrains large waves using the
+cyan palm landmarks. `docs/skunkie-motion-flow-validation.json` records source and
+output hashes and edge displacement ranges. Optical interpolation is approximate;
+it is not a 3D rig or lip synchronization, and silhouettes can soften between
+substantially different poses.
+
+The component displays a full-resolution still while artwork and flow data load
+and decode. Image/decode failure, unavailable WebGL or context loss retains the
+still; failure of the still leaves a visible S fallback. Both textures are ready
+before playback starts, preventing asset-loading gaps between poses. Reduced
+motion uses the neutral still. Animation callbacks stop while hidden, inactive,
+loading or unmounted; resuming a hidden tab does not fast-forward the timeline.
+No chat, microphone, account, model or billing behavior changes.
+
+Review fixture: `/tests/fixtures/skunkie-avatar.html` with `npm run dev`; includes
+activity controls, reduced motion, light/dark stages and a four-second recording
+control. `/tests/fixtures/skunkie-flow-diagnostic.html` shows intermediate poses
+for visual regression review. Browser QA covers desktop and 390 � 844 mobile.
+The desktop Codex pet is unchanged. Four-second browser recordings measured
+58.96 fps (wave, 234 distinct frames) and 59.99 fps (activity transition/thinking,
+240 distinct frames), with no blank frames in either capture. Frame rate depends
+on the device; these are measured local results, not a universal guarantee.
+
+Validation: production frontend build and 47 targeted avatar, interaction,
+timeline, layout and mobile tests pass. Earlier full-suite validation on base
+`7fee44f` recorded 362 passed and one failed: the pre-existing
+`skunkieActivation.test.ts` guard expects the step `Verify and activate the
+protected Skunkie deployment`, absent from the unchanged base workflow. This
+avatar change does not edit that workflow, its test or deployment credentials.
+These checks do not establish a live production deployment.
+
+### Earlier artwork (retained for compatibility)
+
 - `public/assets/skunkie/skunkie-original-atlas-v1.webp` is a byte-for-byte copy of the user-approved installed Skunkie atlas, 1536 × 2288, eight columns and eleven rows, 192 × 208 cells. SHA-256: `ebf757b530b5db24f7a1d0c1e6ff99ae1a0254d3ab995f595245ad539b855f0e`. The installed pet and backups were not edited.
 - `public/assets/skunkie/skunkie-conversation-atlas-v1.png` is the cleaned supplemental artwork generated for this task from that character reference. It is 1536 × 1024, eight columns and four rows, 192 × 256 cells. SHA-256: `d4f5c323d2ca78c34ea375608c4ca2191463ee79fcf10044a2f65b2bb7a79220`.
 - Read-only pixel checks found 32 distinct supplemental cells, alpha extrema 0–254, all four image corners alpha 0, every body inside its cell, and feet at y=242–243. The original has transparent unused cells; the runtime only selects populated cells. The original neutral and wave frames remain the default and fallback. Supplemental listening, pondering and explanation gestures are actual artwork, not duplicated transformed frames or claimed lip synchronization.
