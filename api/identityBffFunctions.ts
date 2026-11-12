@@ -39,6 +39,13 @@ function firstForwardedValue(value: string | null) {
 
 function assertPublicBoundary(request: HttpRequest) {
   assertIdentityBffReady(identityConfig);
+  // The BFF is private to this Front Door profile; direct Azure Functions
+  // traffic and forged forwarded-host headers must fail closed.
+  const frontDoorId = identityConfig.frontDoorId;
+  if (!frontDoorId) throw new HttpError(503, "Trusted identity edge is not configured.");
+  if (request.headers.get("x-azure-fdid")?.toLowerCase() !== frontDoorId.toLowerCase()) {
+    throw new HttpError(421, "Untrusted identity ingress.");
+  }
   const expected = new URL(identityConfig.publicOrigin);
   const forwardedHost = firstForwardedValue(request.headers.get("x-forwarded-host"));
   const requestHost = forwardedHost || request.headers.get("host") || "";
