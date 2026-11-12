@@ -1,0 +1,93 @@
+/* Post-auth destination choice: Academy brand surface, readable in both themes. */
+.swa-postlogin {
+  min-height: calc(100vh - 82px);
+  display: grid;
+  place-items: center;
+  padding: clamp(36px, 7vw, 86px) 18px;
+  background: var(--academy-bg, #f7f9fc);
+  color: var(--academy-text, #15171a);
+  font-family: "Open Sans", system-ui, sans-serif;
+}
+.swa-postlogin__card {
+  width: min(860px, 100%);
+  padding: clamp(22px, 5vw, 52px);
+  border: 1px solid var(--academy-line, #d8dee8);
+  border-radius: 28px;
+  background: var(--academy-surface, #fff);
+  box-shadow: var(--academy-shadow-soft, 0 14px 38px rgba(3,3,58,.08));
+}
+.swa-postlogin__eyebrow {
+  margin: 0 0 18px;
+  color: var(--academy-accent-2, #1756a9);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+.swa-postlogin__success {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 18px;
+  color: var(--academy-text, #15171a);
+  font-weight: 700;
+}
+.swa-postlogin__success > span {
+  display: inline-grid;
+  place-items: center;
+  width: 26px; height: 26px;
+  border-radius: 999px;
+  background: #176b42; color: white;
+}
+.swa-postlogin h1 {
+  margin: 0;
+  color: inherit;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: clamp(29px, 4vw, 46px);
+  line-height: 1.14;
+  letter-spacing: -.035em;
+}
+.swa-postlogin__lead {
+  max-width: 640px;
+  color: var(--academy-muted-strong, #343a43);
+  font-size: 17px;
+  line-height: 1.6;
+}
+.swa-postlogin__choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0,1fr));
+  gap: 16px;
+  margin-top: 26px;
+}
+.swa-postlogin__choice {
+  display: flex;
+  flex-direction: column;
+  min-height: 216px;
+  gap: 10px;
+  padding: 24px;
+  border: 2px solid var(--academy-line, #d8dee8);
+  border-radius: 20px;
+  background: var(--academy-bg-soft, #eef2f7);
+  color: var(--academy-text, #15171a);
+  text-decoration: none;
+  transition: border-color .18s ease, transform .18s ease;
+}
+.swa-postlogin__choice:hover { border-color: var(--academy-accent, #1e6bd0); transform: translateY(-2px); }
+.swa-postlogin__choice strong { font-size: 20px; font-weight: 800; }
+.swa-postlogin__choice > span:not(.swa-postlogin__icon):not(.swa-postlogin__action) {
+  color: var(--academy-muted-strong, #343a43);
+  line-height: 1.5;
+}
+.swa-postlogin__icon { color: var(--academy-accent-2, #1756a9); font-size: 32px; line-height: 1; }
+.swa-postlogin__action { margin-top: auto; color: var(--academy-accent-2, #1756a9); font-weight: 800; }
+.swa-postlogin__choice--primary { border-color: var(--academy-accent, #1e6bd0); }
+.swa-postlogin__note { margin: 24px 0 0; color: var(--academy-muted-strong, #343a43); font-size: 13px; line-height: 1.6; }
+.swa-postlogin__choice:focus-visible { outline: 3px solid var(--academy-focus, #f24208); outline-offset: 4px; }
+@media (max-width: 640px) {
+  .swa-postlogin__choices { grid-template-columns: 1fr; }
+  .swa-postlogin__choice { min-height: 170px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .swa-postlogin__choice { transition: none; }
+  .swa-postlogin__choice:hover { transform: none; }
+}
