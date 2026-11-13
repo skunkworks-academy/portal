@@ -454,7 +454,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
   }, [activeRole, profile?.name, account?.homeAccountId, instance]);
 
   if (!profile) {
-    return <PortalLanding startupNotice={startupNotice} onSignIn={() => signIn("Student")} />;
+    return <PortalLanding startupNotice={startupNotice} onSignIn={() => signIn("Student")} onRegister={() => signIn("Student")} />;
   }
 
   if (accountPage && auth) return <PortalAccountLayout><AccountPages page={accountPage} auth={auth} profile={profile} activeRole={activeRole} /></PortalAccountLayout>;
