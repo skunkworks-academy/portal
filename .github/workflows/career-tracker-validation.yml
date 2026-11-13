@@ -1,0 +1,27 @@
+name: Career tracker validation
+on:
+  pull_request:
+    paths:
+      - 'api/careerApplication*.ts'
+      - 'api/entrypoint.ts'
+      - 'src/career-api.ts'
+      - 'src/CareerResources.tsx'
+      - '.github/workflows/career-tracker-validation.yml'
+permissions:
+  contents: read
+jobs:
+  career-tracker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Career domain validation tests
+        run: npx vitest run api/careerApplicationDomain.test.ts
+      - name: Typecheck and compile Azure Functions
+        run: npm run build:api
+      - name: Build portal frontend
+        run: npm run build

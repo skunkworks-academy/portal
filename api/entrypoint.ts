@@ -6,6 +6,9 @@ import "./identityBffFunctions.js";
 
 import "./lmsFunctions.js";
 
+// Authenticated learner-owned career application tracker.
+import "./careerApplicationFunctions.js";
+
 // Default-disabled SCIM 2.0 identity provisioning for Microsoft Entra.
 import "./scimFunctions.js";
 
