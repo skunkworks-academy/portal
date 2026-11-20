@@ -1,0 +1,110 @@
+name: Azure Front Door Academy identity gateway (manual gated)
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Review the What-If plan or apply after Azure/DNS/Entra approval
+        type: choice
+        required: true
+        options:
+          - plan
+          - apply
+        default: plan
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: academy-identity-edge
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      properties: ${{ steps.validate.outputs.properties }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/cli@v2
+        with:
+          inlineScript: az bicep build --file infra/identity-frontdoor.bicep
+      - name: Validate explicitly configured properties
+        id: validate
+        env:
+          PROPERTIES_JSON: ${{ vars.ACADEMY_IDENTITY_EDGE_PROPERTIES_JSON }}
+          PROFILE_NAME: ${{ vars.ACADEMY_IDENTITY_FRONTDOOR_PROFILE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$PROPERTIES_JSON" ] || [ -z "$PROFILE_NAME" ]; then
+            echo "Configure ACADEMY_IDENTITY_EDGE_PROPERTIES_JSON and ACADEMY_IDENTITY_FRONTDOOR_PROFILE before attempting deployment." >&2
+            exit 1
+          fi
+          printf '%s' "$PROPERTIES_JSON" > "$RUNNER_TEMP/edge-properties.json"
+          jq -e '
+            type=="array" and length>0 and
+            all(.[]; (.id|type=="string" and test("^[a-z0-9-]+$")) and
+              (.hostname|type=="string" and (.=="skunkworksacademy.com" or endswith(".skunkworksacademy.com")) ) and
+              (.staticHost|type=="string" and length>5) and
+              (.staticHostHeader|type=="string" and length>5) and
+              (.bffHost|type=="string" and endswith(".azurewebsites.net")) )
+          ' "$RUNNER_TEMP/edge-properties.json" >/dev/null
+          echo 'Valid properties for Front Door What-If verified.'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run tests/identityBff.test.ts tests/entraContract.test.ts
+      - run: node scripts/validate-platform-contract.mjs
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.operation == 'apply' && 'production' || 'staging' }}
+    env:
+      AZURE_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      RESOURCE_GROUP: ${{ vars.ACADEMY_IDENTITY_EDGE_RESOURCE_GROUP }}
+      PROFILE_NAME: ${{ vars.ACADEMY_IDENTITY_FRONTDOOR_PROFILE }}
+      PROPERTIES_JSON: ${{ vars.ACADEMY_IDENTITY_EDGE_PROPERTIES_JSON }}
+      ENABLE_APPLY: ${{ vars.ACADEMY_IDENTITY_EDGE_ENABLE_APPLY }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Validate deployment authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in AZURE_CLIENT_ID AZURE_TENANT_ID AZURE_SUBSCRIPTION_ID RESOURCE_GROUP PROFILE_NAME PROPERTIES_JSON; do
+            if [ -z "${!key:-}" ]; then echo "Missing configured variable: $key" >&2; exit 1; fi
+          done
+          if [ "${{ inputs.operation }}" = "apply" ] && [ "$ENABLE_APPLY" != "true" ]; then
+            echo "Apply disabled: set protected production variable ACADEMY_IDENTITY_EDGE_ENABLE_APPLY=true only after approval." >&2
+            exit 1
+          fi
+          printf '%s' "$PROPERTIES_JSON" > "$RUNNER_TEMP/edge-properties.json"
+          jq -e 'type=="array" and length>0' "$RUNNER_TEMP/edge-properties.json" >/dev/null
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ env.AZURE_CLIENT_ID }}
+          tenant-id: ${{ env.AZURE_TENANT_ID }}
+          subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
+      - name: Plan isolated Azure Front Door routes
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az deployment group what-if               --resource-group "$RESOURCE_GROUP"               --template-file infra/identity-frontdoor.bicep               --parameters profileName="$PROFILE_NAME" properties=@"$RUNNER_TEMP/edge-properties.json"               --result-format ResourceIdOnly
+      - name: Apply only after protected environment approval
+        if: inputs.operation == 'apply'
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az deployment group create               --name "academy-identity-edge-${{ github.run_id }}"               --resource-group "$RESOURCE_GROUP"               --template-file infra/identity-frontdoor.bicep               --parameters profileName="$PROFILE_NAME" properties=@"$RUNNER_TEMP/edge-properties.json"               --query "properties.outputs.endpointDomains.value" -o json
+      - name: Record gate for subsequent DNS/certificate and BFF origin lockdown
+        if: inputs.operation == 'apply'
+        run: |
+          echo 'Front Door resources submitted. DNS cutover, custom domain certificate activation, managed-identity identity store, Entra client configuration, and locked BFF origins MUST be verified before enabling IDENTITY_BFF_ENABLED.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Run identity-bff-staging.yml manually against every hostname; do not treat this deployment as successful SSO activation.' >> "$GITHUB_STEP_SUMMARY"

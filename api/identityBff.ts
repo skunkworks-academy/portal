@@ -26,6 +26,7 @@ export interface IdentityBffConfig {
   storageAccountName: string;
   tablePrefix: string;
   managedIdentityClientId?: string;
+  frontDoorId?: string;
   encryptionKey: string;
   apiScope?: string;
   transactionTtlMinutes: number;
@@ -154,6 +155,7 @@ export function loadIdentityBffConfig(env: NodeJS.ProcessEnv = process.env): Ide
     storageAccountName: configuredValue(env.IDENTITY_BFF_STORAGE_ACCOUNT) ?? "",
     tablePrefix: tablePrefix(env.IDENTITY_BFF_TABLE_PREFIX),
     managedIdentityClientId: configuredValue(env.IDENTITY_BFF_MANAGED_IDENTITY_CLIENT_ID),
+    frontDoorId: configuredValue(env.IDENTITY_BFF_FRONTDOOR_ID),
     encryptionKey: configuredValue(env.IDENTITY_BFF_ENCRYPTION_KEY) ?? "",
     apiScope: configuredValue(env.IDENTITY_BFF_API_SCOPE),
     transactionTtlMinutes: Math.min(positiveInteger(env.IDENTITY_BFF_TRANSACTION_TTL_MINUTES, 5), 10),
