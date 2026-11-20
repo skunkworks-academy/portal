@@ -2,6 +2,7 @@
 // Keep the existing portal API registrations intact and register the identity BFF
 // as an isolated, default-disabled module. No frontend cutover occurs in this phase.
 import "./functions.js";
+import "./contactFunctions.js";
 import "./identityBffFunctions.js";
 
 import "./lmsFunctions.js";

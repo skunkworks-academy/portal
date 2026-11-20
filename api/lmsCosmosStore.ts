@@ -47,9 +47,9 @@ export class CosmosLmsStore implements LmsStore {
       id: collection + ":" + key, organizationId: partition, collection, value
     }, { "x-ms-documentdb-partitionkey": JSON.stringify([partition]), "If-Match": etag });
   }
-  async put<T>(collection: string, key: string, value: T, options?: { ifAbsent?: boolean }): Promise<void> {
+  async put<T>(collection: string, key: string, value: T, options?: { ifAbsent?: boolean; ttl?: number }): Promise<void> {
     const partition = key.split(":")[0];
-    await this.call(this.docs, "POST", { id: collection + ":" + key, organizationId: partition, collection, value }, {
+    await this.call(this.docs, "POST", { id: collection + ":" + key, organizationId: partition, collection, value, ...(options?.ttl !== undefined ? { ttl: options.ttl } : {}) }, {
       "x-ms-documentdb-partitionkey": JSON.stringify([partition]),
       "x-ms-documentdb-is-upsert": options?.ifAbsent ? "false" : "true"
     });

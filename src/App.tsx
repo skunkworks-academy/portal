@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { ContactInbox } from "./ContactInbox";
 import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import {
@@ -458,6 +459,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
   }
 
   if (accountPage && auth) return <PortalAccountLayout><AccountPages page={accountPage} auth={auth} profile={profile} activeRole={activeRole} /></PortalAccountLayout>;
+  if (new URLSearchParams(window.location.search).get("inbox") === "contact" && auth) return <PortalAccountLayout><ContactInbox auth={auth} isStaff={Boolean(profile.isAdmin)} /></PortalAccountLayout>;
 
   const requestedAward = new URLSearchParams(window.location.search).get("certificate");
   if(requestedAward)return <PortalAccountLayout><CertificateWallet courseId={requestedAward} auth={auth} isStaff={Boolean(profile.isAdmin)} onSignOut={()=>void signOut()}/></PortalAccountLayout>;
@@ -470,6 +472,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
       color: "var(--text-primary, #ffffff)", borderBottom: "1px solid #64748b"
     }}>
       <strong style={{ marginRight: 8 }}>Workspace: {profile.isAdmin ? "Administrator" : "Academy"}</strong>
+      {profile.isAdmin && <a href="/?inbox=contact">Contact enquiries</a>}
       {availableRoles.map(role => <button key={role} type="button"
         aria-pressed={activeRole === role}
         onClick={() => selectRole(role)}
