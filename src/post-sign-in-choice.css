@@ -1,0 +1,52 @@
+/* Academy identity; corporate shell spacing and interaction dimensions. */
+.post-sign-in {
+  --choice-bg: #f7f9fc;
+  --choice-surface: #ffffff;
+  --choice-text: #15171a;
+  --choice-muted: #5a6472;
+  --choice-line: #5a6472;
+  --choice-focus: #1e6bd0;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: clamp(16px, 4vw, 48px);
+  color: var(--choice-text);
+  background: var(--choice-bg);
+  font-family: "Open Sans", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .post-sign-in {
+    --choice-bg: #05050b;
+    --choice-surface: #11111c;
+    --choice-text: #f4f6fa;
+    --choice-muted: #c8d1df;
+    --choice-line: #8995a7;
+    --choice-focus: #8fbaff;
+  }
+}
+html[data-theme="dark"] .post-sign-in {
+  --choice-bg: #05050b;
+  --choice-surface: #11111c;
+  --choice-text: #f4f6fa;
+  --choice-muted: #c8d1df;
+  --choice-line: #8995a7;
+  --choice-focus: #8fbaff;
+}
+.post-sign-in__card { width: min(100%, 760px); padding: clamp(24px, 5vw, 48px); border: 1px solid var(--choice-line); border-radius: 20px; background: var(--choice-surface); }
+.post-sign-in h1 { margin: 0 0 16px; font-family: Inter, system-ui, sans-serif; font-size: clamp(1.75rem, 4vw, 2.75rem); line-height: 1.15; letter-spacing: -.025em; color: var(--choice-text); }
+.post-sign-in p { color: var(--choice-muted); }
+.post-sign-in .post-sign-in__eyebrow { margin: 0 0 16px; color: var(--choice-text); font-size: .75rem; font-weight: 800; letter-spacing: .12em; }
+.post-sign-in__actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 28px 0; }
+.post-sign-in__actions a, .post-sign-in__actions button { display: grid; align-content: start; gap: 8px; min-height: 104px; padding: 20px; border: 1px solid var(--choice-line); border-radius: 12px; text-align: left; text-decoration: none; font: inherit; cursor: pointer; }
+.post-sign-in__actions strong { font-size: 1rem; }
+.post-sign-in__actions span { font-size: .875rem; line-height: 1.5; }
+.post-sign-in .post-sign-in__return { color: var(--choice-text); background: var(--choice-surface); }
+.post-sign-in .post-sign-in__portal { color: #fff; background: #1e6bd0; border-color: #1e6bd0; }
+.post-sign-in .post-sign-in__portal:hover { background: #1756a9; border-color: #1756a9; }
+.post-sign-in .post-sign-in__return:hover { border-color: var(--choice-focus); text-decoration: underline; }
+.post-sign-in :focus-visible { outline: 3px solid var(--choice-focus); outline-offset: 4px; }
+.post-sign-in__destination { font-size: .875rem; overflow-wrap: anywhere; }
+.post-sign-in__destination span { display: block; }
+.post-sign-in__note { font-size: .875rem; }
+@media (max-width: 620px) { .post-sign-in__actions { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .post-sign-in, .post-sign-in * { scroll-behavior: auto; transition: none; } }

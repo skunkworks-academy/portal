@@ -3,6 +3,7 @@ import "./landing-page.css";
 
 type PortalLandingProps = {
   onSignIn: () => Promise<void> | void;
+  onRegister: () => Promise<void> | void;
   startupNotice?: string;
 };
 
@@ -10,16 +11,16 @@ type PortalLandingProps = {
  * The anonymous portal entry deliberately renders no workspace navigation,
  * dashboards, module previews, record counts or authenticated UI.
  */
-export function PortalLanding({ onSignIn, startupNotice = "" }: PortalLandingProps) {
+export function PortalLanding({ onSignIn, onRegister, startupNotice = "" }: PortalLandingProps) {
   const [signInError, setSignInError] = useState("");
   const [redirecting, setRedirecting] = useState(false);
 
-  async function beginSignIn() {
+  async function beginSignIn(mode: "signin" | "register") {
     if (redirecting) return;
     setRedirecting(true);
     setSignInError("");
     try {
-      await onSignIn();
+      await (mode === "register" ? onRegister() : onSignIn());
     } catch (error) {
       console.error("Could not start Microsoft sign-in", error);
       setSignInError("Microsoft sign-in could not start in this browser. Try again or open the portal directly in Safari or Chrome.");
@@ -58,9 +59,16 @@ export function PortalLanding({ onSignIn, startupNotice = "" }: PortalLandingPro
           <h2 id="academy-login-title">Welcome to the portal</h2>
           <p>Sign in with an Outlook, Hotmail, Live or Microsoft Entra work or school account. First-time users can create an Academy learner profile automatically.</p>
           {(signInError || startupNotice) && <p className="academy-login-auth-error" role="alert">{signInError || startupNotice}</p>}
-          <button type="button" className="academy-login-button" disabled={redirecting} onClick={() => void beginSignIn()}>
+          <button type="button" className="academy-login-button" disabled={redirecting} onClick={() => void beginSignIn("signin")}>
             <span>{redirecting ? "Opening Microsoft sign-in…" : "Sign in with Microsoft"}</span><span aria-hidden="true">→</span>
           </button>
+          <div className="academy-login-registration">
+            <p><strong>New to Skunkworks Academy?</strong> Sign in with a Microsoft account, then complete your learner onboarding and securely save your profile.</p>
+            <button type="button" className="academy-login-register-button" disabled={redirecting} onClick={() => void beginSignIn("register")}>
+              {redirecting ? "Opening Microsoft sign-in…" : "Create learner profile"}
+            </button>
+            <p className="academy-login-register-help">Don't have a Microsoft account? <a href="https://signup.live.com/" target="_blank" rel="noopener noreferrer">Create a free Microsoft account</a>, then return here to sign in.</p>
+          </div>
           <p className="academy-login-mobile-help">Having trouble inside an app? Open this website in Safari or Chrome to sign in.</p>
           <div className="academy-login-security">
             <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>

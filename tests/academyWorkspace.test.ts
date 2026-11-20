@@ -52,8 +52,9 @@ function renderWorkspace(profile: UserProfile) {
 
 describe("Academy workspace server-side render and sign-in", () => {
   it("renders a prominent Microsoft Entra sign-in button before authentication", () => {
-    const markup = renderToStaticMarkup(createElement(PortalLanding, { onSignIn: () => undefined }));
+    const markup = renderToStaticMarkup(createElement(PortalLanding, { onSignIn: () => undefined, onRegister: () => undefined }));
     expect(markup).toContain("Sign in with Microsoft");
+    expect(markup).toContain("Create learner profile");
     expect(markup).toContain("Microsoft Entra ID");
     // No public dashboards, preview navigation, operational module tiles or record counts.
     expect(markup).not.toContain("Dashboard");

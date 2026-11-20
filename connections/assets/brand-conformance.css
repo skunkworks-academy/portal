@@ -1,0 +1,111 @@
+/* Sources: skunkworks-academy/brand README + assets/tokens.json;
+   skunkworks-africa/theme tokens.css; www/assets/academy-brand-theme.css.
+   Keep component pairings explicit so the shell's late-loaded CSS cannot
+   recolour buttons independently of their backgrounds. */
+body.swa-connections {
+  color-scheme: light;
+  --bg: #f7f9fc;
+  --surface: #ffffff;
+  --surface-2: #eef2f7;
+  --text: #15171a;
+  --muted: #5a6472;
+  --line: #d8dee8;
+  --control-line: #5a6472;
+  --accent: #1e6bd0;
+  --accent-soft: #e8f0fc;
+  --nav-bg: #ffffff;
+  --focus: #1e6bd0;
+  --radius: 20px;
+  --radius-sm: 12px;
+  --shadow-soft: 0 12px 32px rgb(3 3 58 / .06);
+  background: var(--bg) !important;
+  color: var(--text) !important;
+  font-family: "Open Sans", system-ui, -apple-system, "Segoe UI", sans-serif !important;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) body.swa-connections {
+    color-scheme: dark;
+    --bg: #05050b;
+    --surface: #11111c;
+    --surface-2: #171728;
+    --text: #f4f6fa;
+    --muted: #c8d1df;
+    --line: #34344b;
+    --control-line: #8995a7;
+    --accent: #8fbaff;
+    --accent-soft: #17253c;
+    --nav-bg: #11111c;
+    --focus: #8fbaff;
+    --shadow-soft: 0 12px 32px rgb(0 0 0 / .24);
+  }
+}
+html[data-theme="dark"] body.swa-connections {
+  color-scheme: dark;
+  --bg: #05050b;
+  --surface: #11111c;
+  --surface-2: #171728;
+  --text: #f4f6fa;
+  --muted: #c8d1df;
+  --line: #34344b;
+  --control-line: #8995a7;
+  --accent: #8fbaff;
+  --accent-soft: #17253c;
+  --nav-bg: #11111c;
+  --focus: #8fbaff;
+  --shadow-soft: 0 12px 32px rgb(0 0 0 / .24);
+}
+.swa-connections .shell { width: min(1240px, calc(100% - 48px)); }
+.swa-connections #main { overflow: visible; color: var(--text); }
+.swa-connections #main :is(h1,h2,h3) { color: var(--text) !important; font-family: Inter, system-ui, sans-serif !important; }
+.swa-connections #main h1 { font-size: clamp(2.25rem, 5vw, 4rem); line-height: 1.08; letter-spacing: -.035em; }
+.swa-connections #main h2 { line-height: 1.15; }
+.swa-connections #main :is(.hero-copy,.hero-panel,.panel,.card,.step,.governance-card,.region-card,.faq details,.metric,.tag,.empty-state,.planner-output) {
+  color: var(--text) !important;
+  background: var(--surface) !important;
+  border-color: var(--line);
+  border-radius: var(--radius);
+}
+.swa-connections #main :is(.lead,.card p,.section-head p,.metric span,.privacy-note,.tag,.result-status,.readiness-list li,.check-row label,.saved-item span,.planner-output pre) { color: var(--muted) !important; }
+.swa-connections #main :is(.eyebrow,.card-link,.plan-link,.card-icon,.readiness-list i,.governance-card > i) { color: var(--accent) !important; }
+.swa-connections #main .hero { gap: 24px; padding-top: 48px; }
+.swa-connections #main :is(input,select,textarea) { color: var(--text) !important; background: var(--surface) !important; border: 1px solid var(--control-line); border-radius: var(--radius-sm); min-height: 48px; }
+.swa-connections #main input[type="checkbox"] { width: 20px; min-height: 20px; accent-color: #1e6bd0; }
+.swa-connections #main :is(input,textarea)::placeholder { color: var(--muted); opacity: 1; }
+.swa-connections #main :is(.button,.filter-button,.save-button,.small-button) { min-height: 48px; border: 1px solid var(--control-line); border-radius: var(--radius-sm); color: var(--text) !important; background: var(--surface) !important; }
+.swa-connections #main :is(.button,.filter-button,.save-button,.small-button):hover { color: var(--text) !important; background: var(--accent-soft) !important; }
+.swa-connections #main :is(.filter-button[aria-pressed="true"],.save-button[aria-pressed="true"]) { color: var(--text) !important; background: var(--accent-soft) !important; border-color: var(--accent); }
+.swa-connections #main .button.primary { color: #ffffff !important; background: #1e6bd0 !important; border-color: #1e6bd0; }
+.swa-connections #main .button.primary:hover { background: #1756a9 !important; border-color: #1756a9; }
+/* Signal Orange is an emphasis colour, not a low-contrast white-text fill. */
+.swa-connections #main .button.orange { color: #ffffff !important; background: #03033a !important; border-color: #03033a; box-shadow: inset 0 -3px #f24208; }
+.swa-connections #main .button.orange:hover { background: #15171a !important; }
+.swa-connections #main :is(.card-link,.plan-link) { min-height: 48px; background: transparent !important; }
+.swa-connections #main .cta { background: #03033a !important; color: #ffffff !important; border-radius: var(--radius); }
+.swa-connections #main .cta :is(h2,p) { color: #ffffff !important; }
+.swa-connections #main .cta .eyebrow { color: #8fbaff !important; }
+.swa-connections #main .cta .button { color: #03033a !important; background: #ffffff !important; border-color: #ffffff; }
+.swa-connections #main .cta .button:hover { color: #03033a !important; background: #d8dee8 !important; }
+.swa-connections #main :is(a,button,input,select,textarea,summary):focus-visible { outline: 3px solid var(--focus) !important; outline-offset: 4px; box-shadow: none; }
+.swa-connections #main .cta :focus-visible { outline-color: #ffffff !important; }
+.swa-connections #main [id] { scroll-margin-top: 160px; }
+.swa-connections .logo-light { display: block; }
+.swa-connections .logo-dark { display: none; }
+html[data-theme="dark"] .swa-connections .logo-light { display: none; }
+html[data-theme="dark"] .swa-connections .logo-dark { display: block; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .swa-connections .logo-light { display: none; }
+  html:not([data-theme="light"]) .swa-connections .logo-dark { display: block; }
+}
+.swa-connections.swa-has-global-nav header[data-fallback-header="true"] { display: none !important; }
+@media (max-width: 980px) { .swa-connections #main :is(.hero,.two-column) { grid-template-columns: minmax(0,1fr); } }
+@media (max-width: 620px) {
+  .swa-connections .shell { width: calc(100% - 32px); }
+  .swa-connections #main :is(.connection-grid,.planner-grid,.toolbar) { grid-template-columns: minmax(0,1fr); }
+  .swa-connections #main .hero { padding-top: 28px; }
+  .swa-connections #main .actions > .button { width: 100%; }
+  .swa-connections #main .section-head { align-items: start; flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html:has(body.swa-connections) { scroll-behavior: auto !important; }
+  .swa-connections *, .swa-connections *::before, .swa-connections *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

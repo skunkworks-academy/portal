@@ -46,3 +46,39 @@
 .academy-login .academy-login-mobile-help{font-size:12px;line-height:1.5;margin:14px 0 0;color:var(--login-muted,#4b5870)}
 .academy-login .academy-login-button:disabled{opacity:.72;cursor:progress}
 @media(prefers-color-scheme:dark){.academy-login .academy-login-auth-error{color:#ffe2dc;background:#421d22;border-color:#a84a41}.academy-login .academy-login-mobile-help{color:#b7c9e3}}
+
+/* Explicit learner registration entry: same Microsoft identity flow as sign-in,
+   with first-time profile creation handled by the protected learner onboarding service. */
+.academy-login-registration {
+  display: grid;
+  gap: .7rem;
+  margin-top: 1.25rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid rgba(148, 163, 184, .34);
+}
+.academy-login-registration > p {
+  margin: 0;
+  line-height: 1.55;
+}
+.academy-login-register-button {
+  width: 100%;
+  min-height: 48px;
+  padding: .7rem 1rem;
+  border: 2px solid currentColor;
+  border-radius: .7rem;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.academy-login-register-button:hover:not(:disabled) {
+  background: rgba(91, 154, 255, .14);
+}
+.academy-login-register-button:focus-visible,
+.academy-login-register-help a:focus-visible {
+  outline: 3px solid #72b8ff;
+  outline-offset: 3px;
+}
+.academy-login-register-button:disabled { opacity: .7; cursor: wait; }
+.academy-login-register-help a { text-decoration: underline; text-underline-offset: .18em; }
