@@ -101,6 +101,7 @@ export type AcademyBeginnerAward={version:1;certificateId:string;courseId:string
 export type AcademyEnrolment={id:string;courseId:string;courseTitle:string;learnerName:string;learnerEmail:string;status:string};
 
 export const portalApi = {
+  contactEnquiries: (auth: { instance: IPublicClientApplication; account: AccountInfo }) => request<Array<{ id: string; name: string; email: string; topic: string; message: string; createdAt: string }>>("/staff/contact-enquiries", { cache: "no-store" }, auth),
   skunkieBindCurriculum: (courseId: string, binding: Omit<CurriculumBinding, "courseId">, auth: LmsAuth) => request<CurriculumBinding>(`/staff/skunkie/curriculum/${encodeURIComponent(courseId)}`, { method: "PUT", body: JSON.stringify(binding) }, auth),
   skunkieContext: (auth: LmsAuth) => request<SkunkieContext>("/me/skunkie/context", {}, auth),
   skunkieAssessNetworking: (input: { courseId: string; goal: string; answers: Record<string, number>; consentToStore: boolean }, auth: LmsAuth) =>

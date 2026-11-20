@@ -30,6 +30,8 @@ param sharePointSitePath string = '/sites/InstructorPortal'
 
 var requestedAllowedOrigins = [for origin in split(allowedOrigins, ','): trim(origin)]
 var parsedAllowedOrigins = union(requestedAllowedOrigins, [
+  'https://www.skunkworksacademy.com'
+  'https://skunkworksacademy.com'
   'https://portal.skunkworksacademy.com'
   'https://skunkworks-academy.github.io'
 ])
