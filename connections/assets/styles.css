@@ -266,3 +266,42 @@ input:focus,select:focus,textarea:focus { border-color:var(--accent); box-shadow
   .saved-item { align-items:flex-start; flex-direction:column; }
 }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } *,*::before,*::after { transition:none!important; animation:none!important; } }
+
+
+/*
+ * Shared Academy brand/theme conformance for the standalone Connections entry.
+ * Canonical topbar and footer are injected by academy-navigation.js; the
+ * existing accessible menu is retained as a failure-safe fallback.
+ */
+body.swa-has-global-nav > .top[data-fallback-header="true"],
+body.swa-has-global-nav > .footer { display: none !important; }
+:root[data-theme="light"], :root[data-swa-theme="light"] {
+  color-scheme: light;
+  --bg:#F7F9FC; --surface:#FFFFFF; --surface-2:#EEF3F9;
+  --text:#15171A; --muted:#5A6472; --line:#D8DEE8;
+  --accent:#1E6BD0; --accent-soft:rgba(30,107,208,.11);
+  --orange-soft:rgba(242,66,8,.10); --nav-bg:rgba(247,249,252,.94);
+  --shadow:0 24px 70px rgba(3,3,58,.12);
+  --shadow-soft:0 14px 38px rgba(3,3,58,.08);
+}
+:root[data-theme="dark"], :root[data-swa-theme="dark"] {
+  color-scheme: dark;
+  --bg:#05050B; --surface:#11111C; --surface-2:#171728;
+  --text:#F4F6FA; --muted:#C8D1DF; --line:#34345E;
+  --accent:#8FBAFF; --accent-soft:rgba(143,186,255,.16);
+  --orange-soft:rgba(242,66,8,.16); --nav-bg:rgba(5,5,11,.94);
+  --shadow:0 28px 80px rgba(0,0,0,.42);
+  --shadow-soft:0 18px 44px rgba(0,0,0,.28);
+}
+:focus-visible { outline:3px solid var(--signal-orange); outline-offset:3px; }
+/* Signal Orange is an emphasis token; use a deeper shade for white-button text. */
+.button.orange { background:#A32F0C; color:#FFFFFF; border-color:#A32F0C; }
+.button.orange:hover { background:#812407; border-color:#812407; }
+.button.primary, .links .microsoft-signin { background:#1756A9; color:#fff; }
+.button.primary:hover, .links .microsoft-signin:hover { background:#104386; }
+.hero h1 { font-size:clamp(36px,5.1vw,65px); line-height:1.06; letter-spacing:-.05em; }
+@media (max-width:680px) {
+  .hero { padding-top:32px; }
+  .hero-copy { padding:clamp(22px,5vw,34px); }
+  .hero h1 { font-size:clamp(34px,9vw,48px); }
+}

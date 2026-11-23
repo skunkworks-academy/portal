@@ -80,6 +80,11 @@ must("connections/index.html", connections, 'href="https://skunkworksacademy.com
 must("connections/index.html", connections, 'href="https://skunkworksacademy.com/plans-and-purchases/"', "Connections global menu must link to plans and purchases.");
 must("connections/index.html", connections, 'href="https://portal.skunkworksacademy.com/reports/"', "Connections global menu must link to reports.");
 must("connections/index.html", connections, 'href="./assets/styles.css"', "Connections stylesheet must be loaded.");
+must("connections/index.html", connections, "academy-navigation.js", "Connections must load the canonical Academy shell.");
+must("connections/index.html", connections, 'data-swa-theme-scope="isolated"', "Connections content must keep its own contrast-safe palette.");
+must("connections/index.html", connections, "data-academy-public-signin", "Connections sign-in links must retain the originating public page.");
+must("connections/assets/app.js", connectionsJs, "publicLoginLink.searchParams.set('returnTo', window.location.href)", "Connections must preserve the public page URL.");
+must("connections/assets/styles.css", connectionsCss, ':root[data-theme="dark"]', "Explicit dark theme override is required.");
 must("connections/index.html", connections, 'src="./assets/app.js"', "Connections interaction module must be loaded.");
 must("connections/index.html", connections, 'id="connectionSearch"', "search interface is required.");
 must("connections/index.html", connections, 'id="connectionPlanner"', "connection brief planner is required.");

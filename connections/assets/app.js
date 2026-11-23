@@ -21,6 +21,15 @@
   const normalise = (value) => String(value || '').trim().toLowerCase();
   const escapeHtml = (value) => String(value).replace(/[&<>'"]/g, (char) => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
 
+  // Keep a verified return destination for the two-way choice after Entra login.
+  // Validation is repeated on the Portal; this URL is navigation context only.
+  const publicLoginLink = new URL('https://portal.skunkworksacademy.com/');
+  publicLoginLink.searchParams.set('start', 'signin');
+  publicLoginLink.searchParams.set('returnTo', window.location.href);
+  $('[data-academy-public-signin]').forEach((link) => {
+    link.href = publicLoginLink.href;
+  });
+
   const header = $('.top[data-fallback-header="true"]');
   const menuToggle = $('.global-menu-toggle');
   const globalNav = $('#primary-portal-navigation');

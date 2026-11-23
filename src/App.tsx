@@ -21,6 +21,8 @@ import { StudentExperience } from "./student-experience";
 import { LearnerOnboardingGate } from "./LearnerOnboardingGate";
 import { CertificateWallet } from "./CertificateWallet";
 import { PortalLanding } from "./landing-page";
+import { publicReturnDestination } from "./public-login-return";
+import { PublicSignInChoice } from "./public-signin-choice";
 import { AcademyWorkspace } from "./academy-workspace";
 import { AccountPages, AccountPreferences } from "./AccountPages";
 import { PortalAccountLayout } from "./PortalSidebarNavigation";
@@ -457,6 +459,9 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
   if (!profile) {
     return <PortalLanding startupNotice={startupNotice} onSignIn={() => signIn("Student")} />;
   }
+
+  const returnUrl = publicReturnDestination(window.location.search);
+  if (returnUrl) return <PublicSignInChoice returnUrl={returnUrl} accountName={profile.name} />;
 
   if (accountPage && auth) return <PortalAccountLayout><AccountPages page={accountPage} auth={auth} profile={profile} activeRole={activeRole} /></PortalAccountLayout>;
   if (new URLSearchParams(window.location.search).get("inbox") === "contact" && auth) return <PortalAccountLayout><ContactInbox auth={auth} isStaff={Boolean(profile.isAdmin)} /></PortalAccountLayout>;

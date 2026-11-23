@@ -4,7 +4,8 @@ import { PublicClientApplication } from "@azure/msal-browser";
 import { MsalProvider } from "@azure/msal-react";
 import { App } from "./App";
 import { SkunkieCompanion } from "./SkunkieCompanion";
-import { msalConfig } from "./authConfig";
+import { loginRequest, msalConfig } from "./authConfig";
+import { publicReturnDestination } from "./public-login-return";
 import { clearAuthResponseFromAddressBar } from "./auth-response-cleanup";
 import "./styles.css";
 import "./academy-brand-theme.css";
@@ -56,6 +57,25 @@ async function bootstrapPortal() {
     clearAuthResponseFromAddressBar();
   }
   const activeAccount = redirectResult?.account ?? msalInstance.getActiveAccount() ?? msalInstance.getAllAccounts()[0];
+  // A public-site Sign in link may start Microsoft login immediately, but only
+  // after the originating URL passes the exact first-party host allowlist.
+  // A tab-scoped marker prevents an endless loop if Microsoft login fails.
+  const loginParameters = new URLSearchParams(window.location.search);
+  if (!activeAccount && loginParameters.get("start") === "signin" &&
+      publicReturnDestination(window.location.search)) {
+    const marker = "swa-public-signin-started:" + window.location.search;
+    let shouldStart = false;
+    try {
+      shouldStart = window.sessionStorage.getItem(marker) !== "1";
+      if (shouldStart) window.sessionStorage.setItem(marker, "1");
+    } catch {
+      // Storage-blocked browsers retain the visible manual sign-in fallback.
+    }
+    if (shouldStart) {
+      await msalInstance.loginRedirect(loginRequest);
+      return;
+    }
+  }
   if (activeAccount) {
     msalInstance.setActiveAccount(activeAccount);
     const menu = document.createElement("script");
