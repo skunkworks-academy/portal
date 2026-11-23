@@ -36,6 +36,37 @@
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && header?.classList.contains('global-menu-open')) { setMenu(false); menuToggle?.focus(); } });
   document.addEventListener('click', (event) => { if (header?.classList.contains('global-menu-open') && event.target instanceof Node && !header.contains(event.target)) setMenu(false); });
 
+
+  // Session awareness never reads cross-origin browser storage or bearer tokens.
+  // A valid same-origin BFF /session response is the sole authority for authenticated UI.
+  async function refreshAcademySession() {
+    const signedIn = $('#academySignedIn');
+    const signIn = $('#academySignIn');
+    if (!signedIn || !signIn) return;
+    try {
+      const response = await fetch('/session', {credentials:'same-origin', cache:'no-store', headers:{Accept:'application/json'}});
+      if (!response.ok || !(response.headers.get('content-type') || '').includes('application/json')) return;
+      const session = await response.json();
+      if (session?.authenticated !== true || typeof session?.subject !== 'string' || !session.subject) return;
+      const displayName = typeof session.displayName === 'string' ? session.displayName :
+        (typeof session.name === 'string' ? session.name : 'My account');
+      $('#academyAccountName').textContent = displayName.slice(0, 80);
+      const roles = Array.isArray(session.roles) ? session.roles.filter((role) => typeof role === 'string') : [];
+      const workspace = roles.includes('administrator') || roles.includes('staff') ? 'Staff workspace' :
+        roles.includes('instructor') ? 'Instructor workspace' :
+        roles.includes('learner') ? 'Learner workspace' : 'Open Portal';
+      const portalLink = $('.account-portal');
+      if (portalLink) portalLink.textContent = workspace;
+      signedIn.hidden = false;
+      signIn.hidden = true;
+      $('[data-auth-signin]').forEach((link) => {
+        link.textContent = 'Open Portal';
+        link.setAttribute('href', 'https://portal.skunkworksacademy.com/');
+      });
+    } catch { /* Anonymous display is the safe fallback for static hosting. */ }
+  }
+  refreshAcademySession();
+
   const grid = $('#connectionGrid');
   function cardMarkup(item) {
     const external = item.href ? `<a class="card-link" href="${escapeHtml(item.href)}"><i class="fa-solid fa-arrow-up-right-from-square"></i>${escapeHtml(item.hrefLabel)}</a>` : '';
