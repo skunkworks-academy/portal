@@ -32,7 +32,7 @@ function messagesFromPayload(value: unknown) {
   const page = payload.context && typeof payload.context === "object" ? payload.context as Record<string, unknown> : {};
   const pageContext = [page.title, page.heading, page.path].filter(item => typeof item === "string").join(" | ").slice(0, 1200);
   const systemPrompt = [
-    "You are Skunkie, the Skunkworks Academy AI learning companion.",
+    "You are Skunky, the Skunkworks Academy AI learning companion.",
     "Your job is to teach, coach, explain, quiz, give hints, and help learners reason through technical material.",
     "Prefer guided learning over simply giving final answers when the learner is working through an assessment or lab.",
     "Be concise, technically accurate, supportive, and explicit when you are uncertain.",
@@ -81,10 +81,10 @@ export function createSkunkieHandlers(overrides: Partial<Dependencies> = {}) {
   const chat = async (request: HttpRequest, context: InvocationContext) => {
     try {
       const principal = await dependencies.authenticate(request);
-      if (!eligible(principal)) throw new HttpError(403, "A Student account is required for the monthly Skunkie allowance.");
+      if (!eligible(principal)) throw new HttpError(403, "A Student account is required for the monthly Skunky allowance.");
       const messages = messagesFromPayload(await readJson<unknown>(request));
       const settings = dependencies.settings;
-      if (!isSkunkieConfigured(settings)) throw new HttpError(503, "The Skunkie AI service has not been configured.");
+      if (!isSkunkieConfigured(settings)) throw new HttpError(503, "The Skunky AI service has not been configured.");
       const ledger = dependencies.budget();
       let hold;
       try {
@@ -97,7 +97,7 @@ export function createSkunkieHandlers(overrides: Partial<Dependencies> = {}) {
         }
         throw error;
       }
-      if (!hold.mayDispatch) throw new HttpError(409, "This Skunkie request has already been accepted.");
+      if (!hold.mayDispatch) throw new HttpError(409, "This Skunky request has already been accepted.");
       // One provider attempt only. Unknown outcomes (including some non-2xx
       // responses) can be billable: retain the durable hold until verified usage.
       const response = await dependencies.send(
@@ -107,15 +107,15 @@ export function createSkunkieHandlers(overrides: Partial<Dependencies> = {}) {
       );
       if (!response.ok) {
         await response.body?.cancel();
-        context.error("Skunkie provider request failed", { status: response.status });
+        context.error("Skunky provider request failed", { status: response.status });
         // Azure's billing FAQ explicitly classifies authentication 401 and
         // rate-limit 429 as unprocessed/unbilled. It explicitly bills some
         // content-filter 400 and timeout 408 responses, so never refund broadly.
         if (response.status === 401 || response.status === 429) {
           await settleVerifiedUsage(ledger, principal, hold.reservation, { inputTokens: 0, outputTokens: 0 });
-          throw new HttpError(response.status === 429 ? 429 : 502, "Skunkie could not generate a response. No model allowance was used for this rejected request.");
+          throw new HttpError(response.status === 429 ? 429 : 502, "Skunky could not generate a response. No model allowance was used for this rejected request.");
         }
-        throw new HttpError(response.status === 429 ? 429 : 502, "Skunkie could not generate a response. Its allowance remains reserved until usage can be verified.");
+        throw new HttpError(response.status === 429 ? 429 : 502, "Skunky could not generate a response. Its allowance remains reserved until usage can be verified.");
       }
       const body = await response.json() as { model?: string; usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number }; choices?: Array<{ message?: { content?: unknown } }> };
       const usage = body?.usage;
@@ -123,19 +123,19 @@ export function createSkunkieHandlers(overrides: Partial<Dependencies> = {}) {
           !Number.isSafeInteger(usage.prompt_tokens) || usage.prompt_tokens! <= 0 ||
           !Number.isSafeInteger(usage.completion_tokens) || usage.completion_tokens! < 0 ||
           usage.total_tokens !== usage.prompt_tokens! + usage.completion_tokens!) {
-        throw new HttpError(502, "Skunkie could not verify model usage. The request allowance remains reserved.");
+        throw new HttpError(502, "Skunky could not verify model usage. The request allowance remains reserved.");
       }
       const settled = await settleVerifiedUsage(ledger, principal, hold.reservation, { inputTokens: usage.prompt_tokens!, outputTokens: usage.completion_tokens! });
-      if (settled.blocked) throw new HttpError(503, "Skunkie allowance is paused while model usage is checked.");
+      if (settled.blocked) throw new HttpError(503, "Skunky allowance is paused while model usage is checked.");
       const content = body.choices?.[0]?.message?.content;
-      if (typeof content !== "string" || !content.trim()) throw new HttpError(502, "Skunkie returned an empty response.");
+      if (typeof content !== "string" || !content.trim()) throw new HttpError(502, "Skunky returned an empty response.");
       // A reply may complete across the SAST month boundary; show the current allowance.
       const current = Date.now() >= Date.parse(settled.resetsAt) ? await ledger.read(principal) : settled;
       return json(request, { reply: content.trim(), budget: publicSkunkieBudget(current) });
     } catch (error) {
       // Never log prompts, identities, provider bodies, credentials or raw errors.
-      const safe = error instanceof HttpError ? error : new HttpError(502, "Skunkie could not complete this request. Please try again later.");
-      context.error("Skunkie request failed", { status: safe.status });
+      const safe = error instanceof HttpError ? error : new HttpError(502, "Skunky could not complete this request. Please try again later.");
+      context.error("Skunky request failed", { status: safe.status });
       return failure(request, safe);
     }
   };

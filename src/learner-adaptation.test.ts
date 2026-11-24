@@ -10,8 +10,8 @@ import {
   validateLearnerPreferences
 } from "./learner-adaptation";
 
-describe("Skunkie learner discovery", () => {
-  it("shows only Skunkie during opted-in discovery, then yields to the dashboard", () => {
+describe("Skunky learner discovery", () => {
+  it("shows only Skunky during opted-in discovery, then yields to the dashboard", () => {
     expect(shouldShowSkunkieWelcome(false, true, false, false)).toBe(false);
     expect(shouldShowSkunkieWelcome(true, false, false, false)).toBe(true);
     expect(shouldShowSkunkieWelcome(true, true, false, false)).toBe(true);

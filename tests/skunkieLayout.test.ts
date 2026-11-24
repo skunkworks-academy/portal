@@ -31,7 +31,7 @@ describe("learner setup and companion styles with the shared portal form rules",
   it("keeps the accessible composer label out of the two-column grid flow", () => {
     style = document.createElement("style"); style.textContent = globalStyles + componentStyles; document.head.append(style);
     host = document.createElement("div");
-    host.innerHTML = '<aside class="skunkie"><form class="skunkie__form"><label class="sr-only" for="layout-message">Ask Skunkie</label><textarea id="layout-message"></textarea><button>Send</button></form></aside>';
+    host.innerHTML = '<aside class="skunkie"><form class="skunkie__form"><label class="sr-only" for="layout-message">Ask Skunky</label><textarea id="layout-message"></textarea><button>Send</button></form></aside>';
     document.body.append(host);
     const label = host.querySelector("label")!; const computed = getComputedStyle(label);
     expect(computed.position).toBe("absolute"); expect(computed.width).toBe("1px");

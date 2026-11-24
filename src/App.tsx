@@ -1,3 +1,4 @@
+import { NotificationBell } from "./NotificationBell";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ContactInbox } from "./ContactInbox";
 import { useMsal } from "@azure/msal-react";
@@ -422,6 +423,8 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
         userName?: string;
         workspaceRole?: PortalRole;
         workspaceNavigation?: "sidebar";
+        availableWorkspaces?: PortalRole[];
+        selectWorkspace?: (role: PortalRole) => void;
         profileUrl?: string;
         settingsUrl?: string;
         signInLabel: string;
@@ -437,6 +440,8 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
       userName: profile?.name,
       workspaceRole: profile ? activeRole : undefined,
       workspaceNavigation: profile ? "sidebar" : undefined,
+      availableWorkspaces: profile ? availableRoles : [],
+      selectWorkspace: role => { if (!availableRoles.includes(role)) return; selectRole(role); if (window.location.search) window.location.assign("/"); },
       profileUrl: profile ? new URL("/?account=profile", window.location.origin).href : undefined,
       settingsUrl: profile ? new URL("/?account=settings", window.location.origin).href : undefined,
       signInLabel: "Sign in",
@@ -452,43 +457,25 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
         window.dispatchEvent(new Event("skunkworksacademy:account-change"));
       }
     };
-  }, [activeRole, profile?.name, account?.homeAccountId, instance]);
+  }, [activeRole, profile?.name, account?.homeAccountId, instance, availableRoles.join(",")]);
 
   if (!profile) {
     return <PortalLanding startupNotice={startupNotice} onSignIn={() => signIn("Student")} />;
   }
 
-  if (accountPage && auth) return <PortalAccountLayout><AccountPages page={accountPage} auth={auth} profile={profile} activeRole={activeRole} /></PortalAccountLayout>;
-  if (new URLSearchParams(window.location.search).get("inbox") === "contact" && auth) return <PortalAccountLayout><ContactInbox auth={auth} isStaff={Boolean(profile.isAdmin)} /></PortalAccountLayout>;
+  const notifications = auth ? <NotificationBell key={account?.homeAccountId} auth={auth} isStaff={Boolean(profile.isAdmin)} classes={classes} registrations={registrations} /> : null;
+  if (accountPage && auth) return <PortalAccountLayout>{notifications}<AccountPages page={accountPage} auth={auth} profile={profile} activeRole={activeRole} /></PortalAccountLayout>;
+  if (new URLSearchParams(window.location.search).get("inbox") === "contact" && auth) return <PortalAccountLayout>{notifications}<ContactInbox auth={auth} isStaff={Boolean(profile.isAdmin)} /></PortalAccountLayout>;
 
   const requestedAward = new URLSearchParams(window.location.search).get("certificate");
-  if(requestedAward)return <PortalAccountLayout><CertificateWallet courseId={requestedAward} auth={auth} isStaff={Boolean(profile.isAdmin)} onSignOut={()=>void signOut()}/></PortalAccountLayout>;
+  if(requestedAward)return <PortalAccountLayout>{notifications}<CertificateWallet courseId={requestedAward} auth={auth} isStaff={Boolean(profile.isAdmin)} onSignOut={()=>void signOut()}/></PortalAccountLayout>;
 
-  const roleSelector = availableRoles.length > 1 ? (
-    <nav aria-label="Switch Academy workspace" style={{
-      position: "relative", zIndex: 30, display: "flex", flexWrap: "wrap",
-      gap: 8, alignItems: "center", justifyContent: "center",
-      padding: "12px 16px", background: "var(--surface, #101b30)",
-      color: "var(--text-primary, #ffffff)", borderBottom: "1px solid #64748b"
-    }}>
-      <strong style={{ marginRight: 8 }}>Workspace: {profile.isAdmin ? "Administrator" : "Academy"}</strong>
-      {profile.isAdmin && <a href="/?inbox=contact">Contact enquiries</a>}
-      {availableRoles.map(role => <button key={role} type="button"
-        aria-pressed={activeRole === role}
-        onClick={() => selectRole(role)}
-        style={{
-          cursor: "pointer", borderRadius: 8, padding: "8px 14px", fontWeight: 700,
-          border: "2px solid #64748b",
-          background: activeRole === role ? "#facc15" : "#ffffff",
-          color: "#111827"
-        }}>{role}</button>)}
-    </nav>
-  ) : null;
+
 
   if (activeRole === "Student") {
     return (
       <>
-      {roleSelector}
+      {notifications}
       <PortalRequestStatus notice={notice} error={error} loading={loading} />
       <LearnerOnboardingGate enabled={profile.tenantId?.toLowerCase() === skunkworksTenantId.toLowerCase()}>
       {(savedLearnerProfile, editSetup) => <StudentExperience
@@ -513,7 +500,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
   }
 
   if (!showLegacyManagement && (activeRole === "Staff" || activeRole === "Instructor")) {
-    return <>{roleSelector}<PortalRequestStatus notice={notice} error={error} loading={loading} /><AcademyWorkspace
+    return <>{notifications}<PortalRequestStatus notice={notice} error={error} loading={loading} /><AcademyWorkspace
       profile={profile}
       role={activeRole}
       courses={courses}
@@ -530,7 +517,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
 
   return (
     <PortalAccountLayout><div className="portal-page">
-      {roleSelector}
+      {notifications}
       <main id="main" className="portal-main">
         <div className="legacy-portal-toolbar"><button type="button" className="primary-action" onClick={() => setShowLegacyManagement(false)}>← Back to Academy workspace</button><span>Existing management tools · Microsoft Entra secured</span></div>
         <section className="portal-hero" id="overview">

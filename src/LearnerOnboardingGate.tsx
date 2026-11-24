@@ -178,10 +178,10 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
   if (ready) return <>{children(profile, edit)}</>;
   const config = draft.journey.workspaceConfiguration;
   return <main className="learner-onboarding" aria-labelledby="learner-setup-title">
-    <div className="learner-onboarding__essential"><a href="?account=profile">My account</a><a href="https://skunkworksacademy.com/contact.html">Help</a><button type="button" onClick={showAvatar}>{ui.showAvatar ? "Use text only" : "Show Skunkie"}</button></div>
+    <div className="learner-onboarding__essential"><a href="?account=profile">My account</a><a href="https://skunkworksacademy.com/contact.html">Help</a><button type="button" onClick={showAvatar}>{ui.showAvatar ? "Use text only" : "Show Skunky"}</button></div>
     {ui.showAvatar && <div className="learner-onboarding__avatar"><SkunkieAvatar active={!loading} activity={voice.listening ? "listening" : voice.speaking ? "speaking" : busy || loading ? "thinking" : draft.step === 0 ? "wave" : "idle"} /></div>}
     <section className="learner-onboarding__conversation">
-      <p className="learner-onboarding__eyebrow">Skunkie · Your learning companion</p>
+      <p className="learner-onboarding__eyebrow">Skunky · Your learning companion</p>
       <h1 id="learner-setup-title" ref={heading} tabIndex={-1}>{loading ? "Checking your saved learning setup…" : ["What would you like to work toward?", "Let’s try two short examples", "Make this learning space yours", "Review and save your starting plan"][draft.step]}</h1>
       {!loading && <><p>{prompts[draft.step]}</p><p className="learner-onboarding__progress">Step {draft.step + 1} of 4</p></>}
       {error && <div role="alert"><p>{error}</p>{!loaded && <button type="button" disabled={loading} onClick={() => setRetry(value => value + 1)}>Retry account check</button>}</div>}
@@ -190,7 +190,7 @@ function AccountOnboarding({ account, children }: { account: AccountInfo; childr
         <fieldset disabled={busy || !loaded}>
           {draft.step === 0 && <>
             <label>Your goal<select value={draft.assessment.studyGoal} onChange={event => patchAssessment({ studyGoal: event.target.value as SkunkieLearnerAssessment["studyGoal"] })}><option value="skills">Develop practical skills</option><option value="career">Explore a career direction</option><option value="certification">Prepare for a certification</option><option value="explore">Find a starting point</option></select></label>
-            <label>Tell Skunkie what you want to work on<textarea rows={2} maxLength={1000} value={draft.assessment.notes || ""} onChange={event => patchAssessment({ notes: event.target.value })} placeholder="A task, subject or question you want help with" /></label>
+            <label>Tell Skunky what you want to work on<textarea rows={2} maxLength={1000} value={draft.assessment.notes || ""} onChange={event => patchAssessment({ notes: event.target.value })} placeholder="A task, subject or question you want help with" /></label>
             <label>Topics you’re interested in <small>(separate with commas)</small><input value={draft.assessment.interests.join(",")} maxLength={240} onChange={event => patchAssessment({ interests: event.target.value.split(",").slice(0, 12).map(s => s.slice(0, 80)) })} /></label>
             <label>How confident do you feel about getting started?<select value={draft.assessment.selfRatedConfidence} onChange={event => patchAssessment({ selfRatedConfidence: Number(event.target.value) as 1 | 2 | 3 | 4 | 5 })}>{[1,2,3,4,5].map(n => <option key={n} value={n}>{n} — {n === 1 ? "New to this" : n === 5 ? "Very confident" : "Some confidence"}</option>)}</select></label>
             <p className="learner-onboarding__hint">This is your own confidence rating. It does not measure ability or assign a learning style.</p>

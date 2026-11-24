@@ -5,7 +5,7 @@ const canvas = document.createElement("canvas"); canvas.width=288; canvas.height
 const renderer = createSkunkieRenderer(canvas,atlas,flow); if (!renderer) throw Error("Renderer unavailable");
 const added = new URLSearchParams(location.search).has("new");
 if (added) {
-  document.querySelector("h1")!.textContent = "48 additional Skunkie poses — 96 total";
+  document.querySelector("h1")!.textContent = "48 additional Skunky poses — 96 total";
   document.body.dataset.new = "true";
 }
 const pairs = added ? Array.from({length:48},(_,i)=>[48+i,48+i]) : [[12,13],[13,14],[14,15],[15,16],[17,18],[18,19],[18,21],[23,12],[24,25]];

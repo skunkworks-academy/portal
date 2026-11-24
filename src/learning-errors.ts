@@ -3,7 +3,7 @@ import { PortalApiError } from "./api-error";
 type LearningService = "lms" | "idr" | "assessment" | "skunkie";
 const names: Record<LearningService, string> = {
   lms: "Academy learning records", idr: "your private IDR",
-  assessment: "your learner assessment", skunkie: "Skunkie"
+  assessment: "your learner assessment", skunkie: "Skunky"
 };
 
 export function learningErrorMessage(error: unknown, service: LearningService): string {
@@ -18,7 +18,7 @@ export function learningErrorMessage(error: unknown, service: LearningService): 
   if (status === 429) return "The learning service is receiving too many requests. Try again shortly.";
   if (status === 503 || (!status && /storage is not configured|database unavailable|\b503\b/i.test(message))) {
     return service === "skunkie"
-      ? "Skunkie is not ready on the Academy server. An administrator needs to check its Azure AI configuration."
+      ? "Skunky is not ready on the Academy server. An administrator needs to check its Azure AI configuration."
       : `The service for ${names[service]} is unavailable. Try again later or contact Academy support.`;
   }
   return `The request for ${names[service]} could not be completed. Try again or contact Academy support.`;

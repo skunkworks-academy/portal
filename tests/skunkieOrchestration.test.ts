@@ -27,7 +27,7 @@ async function setup() {
 }
 const request = (overrides = {}) => ({ courseId: "networking", goal: "Learn networking", answers, consentToStore: true, ...overrides });
 
-describe("Skunkie Networking vertical slice", () => {
+describe("Skunky Networking vertical slice", () => {
   it("aggregates actual enrolment and never returns private storage or answer keys", async () => {
     const { service } = await setup();
     const context = await service.context(student());

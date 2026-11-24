@@ -31,7 +31,7 @@ export const academyServiceRegistry: readonly AcademyService[] = [
     id: "student-lms",
     name: "My learning",
     area: "Learning",
-    summary: "Courses, lessons, PDFs, videos, quizzes, cohort schedules and Skunkie study assistance.",
+    summary: "Courses, lessons, PDFs, videos, quizzes, cohort schedules and Skunky study assistance.",
     status: "planned",
     href: null,
     access: "sign-in-required"

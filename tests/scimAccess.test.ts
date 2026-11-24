@@ -18,7 +18,7 @@ const active: ScimUser = {
   createdAt: "2026-01-01T00:00:00Z", modifiedAt: "2026-01-01T00:00:00Z"
 };
 afterEach(() => delete process.env.SCIM_ENFORCE_PROVISIONED_USERS);
-describe("optional LMS/Skunkie SCIM enforcement", () => {
+describe("optional LMS/Skunky SCIM enforcement", () => {
   it("preserves current behaviour while explicitly disabled", async () => {
     process.env.SCIM_ENFORCE_PROVISIONED_USERS = "false";
     await expect(requireActiveScimUser(new TestStore(), "org1", "00000000-0000-0000-0000-000000000001")).resolves.toBeUndefined();

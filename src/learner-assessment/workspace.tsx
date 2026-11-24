@@ -78,7 +78,7 @@ export function LearnerAssessmentWorkspace() {
   }
 
   async function remove() {
-    if (!auth || !window.confirm("Delete your saved Skunkie learner assessment? This will not delete your separate IDR.")) return;
+    if (!auth || !window.confirm("Delete your saved Skunky learner assessment? This will not delete your separate IDR.")) return;
     setBusy(true);
     try {
       await portalApi.deleteSkunkieAssessment(auth);
@@ -89,8 +89,8 @@ export function LearnerAssessmentWorkspace() {
     finally { setBusy(false); }
   }
 
-  return <section className="student-view" aria-label="Skunkie learner assessment">
-    <div className="student-section-heading"><div><p className="student-kicker">Skunkie AI learning companion</p>
+  return <section className="student-view" aria-label="Skunky learner assessment">
+    <div className="student-section-heading"><div><p className="student-kicker">Skunky AI learning companion</p>
       <h2>Discover how you learn</h2>
       <p>This is about your learning experience, not your career roadmap. There are no right or wrong answers. Your preferences can change as you learn.</p>
     </div></div>
@@ -124,7 +124,7 @@ export function LearnerAssessmentWorkspace() {
       <label className="full">What support or adjustments would help? (optional, comma-separated)
         <input maxLength={500} value={form.supportNeeds} onChange={e => setForm(v => ({ ...v, supportNeeds: e.target.value }))} placeholder="More practice, captions, extra time…"/>
       </label>
-      <label className="full">Anything else Skunkie should know? (optional)
+      <label className="full">Anything else Skunky should know? (optional)
         <textarea maxLength={1000} value={form.notes} onChange={e => setForm(v => ({ ...v, notes: e.target.value }))}/>
       </label>
       <label className="full" style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -157,12 +157,12 @@ export function IndividualRoadmapWorkspace() {
   return <section className="student-view" aria-label="Individual development roadmap">
     <div className="student-section-heading"><div><p className="student-kicker">Individual development roadmap</p>
       <h2>My career and development plan</h2>
-      <p>Your IDR is informed by a separate career and competency assessment, plus your Skunkie learner profile.</p>
+      <p>Your IDR is informed by a separate career and competency assessment, plus your Skunky learner profile.</p>
     </div></div>
     {loading && <p role="status">Loading your private roadmap…</p>}
     {error && <p role="alert">{error}</p>}
     {!loading && !error && !roadmap && <div className="student-empty-state"><div><h2>Your IDR has not been created yet</h2>
-      <p>Complete learner discovery with Skunkie, then work through your career goals and skills assessment. Your approved roadmap will appear here when available.</p>
+      <p>Complete learner discovery with Skunky, then work through your career goals and skills assessment. Your approved roadmap will appear here when available.</p>
     </div></div>}
     {roadmap && <article className="student-panel">
       <h2>{roadmap.targetRole || "Development roadmap"}</h2>

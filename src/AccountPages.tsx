@@ -102,7 +102,7 @@ function SettingsForm({ accountId }: { accountId: string }) {
     <p>These preferences are kept separately for each signed-in account in this browser. They do not change your account permissions or your learning profile.</p>
     <form onSubmit={event => { event.preventDefault(); save(); }}>
       <label>Motion<select value={motion} onChange={event => { setMotion(event.target.value as AccountUiPreferences["motion"]); setNotice(""); }}><option value="system">Follow device preference</option><option value="reduce">Reduce portal animation</option></select></label>
-      <p className="account-note">Your device's reduced-motion setting is always respected. Reduce portal animation also disables decorative animations such as Skunkie's floating button.</p>
+      <p className="account-note">Your device's reduced-motion setting is always respected. Reduce portal animation also disables decorative animations such as Skunky's floating button.</p>
       <label className="account-check"><input type="checkbox" checked={remember} onChange={event => { setRemember(event.target.checked); setNotice(""); }} />Remember on this browser after this tab closes</label>
       <p className="account-note">Leave this unchecked on a shared computer. Profile drafts are stored only in the tab session; this choice applies to motion preferences.</p>
       <button className="account-primary" type="submit">Save settings</button>

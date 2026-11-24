@@ -53,16 +53,16 @@ interface Ledger {
  */
 export function skunkieTokenCostNanos(usage: SkunkieTokenUsage): number {
   if (!usage || !Number.isSafeInteger(usage.inputTokens) || usage.inputTokens < 0 || !Number.isSafeInteger(usage.outputTokens) || usage.outputTokens < 0) {
-    throw new HttpError(502, "Skunkie could not verify model usage. The request allowance remains reserved.");
+    throw new HttpError(502, "Skunky could not verify model usage. The request allowance remains reserved.");
   }
   const cost = usage.inputTokens * SKUNKIE_INPUT_NANOS_PER_TOKEN + usage.outputTokens * SKUNKIE_OUTPUT_NANOS_PER_TOKEN;
-  if (!Number.isSafeInteger(cost)) throw new HttpError(502, "Skunkie model usage exceeds the supported accounting range.");
+  if (!Number.isSafeInteger(cost)) throw new HttpError(502, "Skunky model usage exceeds the supported accounting range.");
   return cost;
 }
 
 export function skunkieBudgetAccountKey(principal: BudgetPrincipal): string {
   if (!principal.tenantId || !uuid.test(principal.tenantId) || !principal.subject || principal.subject.length > 1024) {
-    throw new HttpError(401, "A verified Microsoft account is required for the Skunkie allowance.");
+    throw new HttpError(401, "A verified Microsoft account is required for the Skunky allowance.");
   }
   return createHash("sha256").update(JSON.stringify([principal.tenantId.toLowerCase(), principal.subject])).digest("hex");
 }
@@ -140,7 +140,7 @@ export class SkunkieBudgetService {
     return snapshot(ledger);
   }
   async reserve(principal: BudgetPrincipal, request: SkunkieReservationRequest): Promise<SkunkieReserveResult> {
-    if (!validRequest(request)) throw new HttpError(503, "Skunkie model allowance is not configured safely.");
+    if (!validRequest(request)) throw new HttpError(503, "Skunky model allowance is not configured safely.");
     const accountKey = skunkieBudgetAccountKey(principal);
     const month = skunkieBudgetMonth(this.now());
     const requestId = request.requestId.toLowerCase();
@@ -150,12 +150,12 @@ export class SkunkieBudgetService {
       const { record, ledger } = await this.load(accountKey, month);
       const existing = ledger.reservations.find(entry => entry.requestId === requestId);
       if (existing) {
-        if (existing.model !== request.model || existing.maxInputTokens !== request.maxInputTokens || existing.maxOutputTokens !== request.maxOutputTokens) throw new HttpError(409, "Skunkie request allowance does not match the original request.");
+        if (existing.model !== request.model || existing.maxInputTokens !== request.maxInputTokens || existing.maxOutputTokens !== request.maxOutputTokens) throw new HttpError(409, "Skunky request allowance does not match the original request.");
         return { reservation, mayDispatch: false, budget: snapshot(ledger) };
       }
-      if (ledger.blocked) throw new HttpError(503, "Skunkie allowance is paused because model usage could not be safely reconciled.");
-      if (reservedNanos > ledger.limitNanos - ledger.usedNanos) throw new HttpError(429, "This request exceeds your remaining US$1 monthly Skunkie model allowance. It resets at the start of next month in South Africa.");
-      if (ledger.reservations.length >= SKUNKIE_MAX_MONTHLY_RESERVATIONS) throw new HttpError(429, "The monthly Skunkie request limit has been reached. Your allowance resets next month in South Africa.");
+      if (ledger.blocked) throw new HttpError(503, "Skunky allowance is paused because model usage could not be safely reconciled.");
+      if (reservedNanos > ledger.limitNanos - ledger.usedNanos) throw new HttpError(429, "This request exceeds your remaining US$1 monthly Skunky model allowance. It resets at the start of next month in South Africa.");
+      if (ledger.reservations.length >= SKUNKIE_MAX_MONTHLY_RESERVATIONS) throw new HttpError(429, "The monthly Skunky request limit has been reached. Your allowance resets next month in South Africa.");
       ledger.reservations.push({ requestId, model: request.model, maxInputTokens: request.maxInputTokens, maxOutputTokens: request.maxOutputTokens, reservedNanos, state: "reserved" });
       ledger.usedNanos += reservedNanos;
       if (await this.save(ledger, record)) return { reservation, mayDispatch: true, budget: snapshot(ledger) };
@@ -166,14 +166,14 @@ export class SkunkieBudgetService {
   }
   async settle(principal: BudgetPrincipal, reservation: SkunkieBudgetReservation, usage: SkunkieTokenUsage): Promise<SkunkieBudgetSnapshot> {
     const accountKey = skunkieBudgetAccountKey(principal);
-    if (reservation.accountKey !== accountKey || !/^\d{4}-(0[1-9]|1[0-2])$/.test(reservation.month) || !uuid.test(reservation.requestId)) throw new HttpError(403, "Skunkie allowance belongs to a different account or request.");
+    if (reservation.accountKey !== accountKey || !/^\d{4}-(0[1-9]|1[0-2])$/.test(reservation.month) || !uuid.test(reservation.requestId)) throw new HttpError(403, "Skunky allowance belongs to a different account or request.");
     const actual = skunkieTokenCostNanos(usage);
     for (let attempt = 0; attempt < 32; attempt++) {
       const { record, ledger } = await this.load(accountKey, reservation.month);
       const entry = ledger.reservations.find(item => item.requestId === reservation.requestId);
       if (!record || !entry || entry.model !== reservation.model || entry.reservedNanos !== reservation.reservedNanos) throw budgetStorageUnavailable();
       if (entry.state === "settled") {
-        if (entry.usage?.inputTokens !== usage.inputTokens || entry.usage.outputTokens !== usage.outputTokens) throw new HttpError(409, "Skunkie usage has already been settled for this request.");
+        if (entry.usage?.inputTokens !== usage.inputTokens || entry.usage.outputTokens !== usage.outputTokens) throw new HttpError(409, "Skunky usage has already been settled for this request.");
         return snapshot(ledger);
       }
       const total = ledger.usedNanos - entry.reservedNanos + actual;

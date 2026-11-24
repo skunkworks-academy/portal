@@ -14,7 +14,7 @@ beforeEach(() => {
   mocks.user.mockResolvedValue({ subject: "verified-learner", tenantId: home, roles: [], name: "Synthetic", email: "synthetic@example.invalid" });
   mocks.context.mockResolvedValue({ courses: [] }); mocks.assess.mockResolvedValue({ id: "saved" });
 });
-describe("Skunkie API identity and availability boundary", () => {
+describe("Skunky API identity and availability boundary", () => {
   it("guards every new route with verified Microsoft authentication before storage", async () => {
     mocks.user.mockRejectedValue(new HttpError(401, "Invalid Microsoft access token."));
     for (const spec of mocks.routes.values()) expect((await spec.handler(request())).status).toBe(401);
