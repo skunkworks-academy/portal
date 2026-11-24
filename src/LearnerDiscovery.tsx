@@ -51,10 +51,10 @@ export function LearnerDiscovery({
 
   return <section className="learner-discovery" aria-labelledby="learner-discovery-heading">
     <header className="learner-discovery-hero">
-      <img src={SKUNKIE_AVATAR_SRC} width="80" height="80" alt="Skunkie, your Academy AI learning companion" />
+      <img src={SKUNKIE_AVATAR_SRC} width="80" height="80" alt="Skunky, your Academy AI learning companion" />
       <div>
         <p className="student-kicker">Meet your AI learning companion</p>
-        <h2 id="learner-discovery-heading">{editing ? "Shape your learning space" : "Hi " + name.split(" ")[0] + ", I'm Skunkie!"}</h2>
+        <h2 id="learner-discovery-heading">{editing ? "Shape your learning space" : "Hi " + name.split(" ")[0] + ", I'm Skunky!"}</h2>
         <p>Before I help you learn, I'd like to learn about you. Your answers help arrange your Academy dashboard around your goals and preferences.</p>
       </div>
     </header>
@@ -88,7 +88,7 @@ export function LearnerDiscovery({
       <fieldset className="learner-fieldset">
         <legend>2. How would you like to get started?</legend>
         <div className="learner-form-grid">
-          <Choice label="What should Skunkie show you first?" hint="You can explore all formats at any time.">
+          <Choice label="What should Skunky show you first?" hint="You can explore all formats at any time.">
             <select value={draft.format} onChange={e => set("format", e.target.value as LearningFormat)}>
               {Object.entries(formatLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
             </select>
@@ -187,9 +187,9 @@ export function PersonalisedLearningOverview({
         <button type="button" onClick={() => onNavigate("lms")}>Open Academy LMS</button>
       </article>
       <article className="learner-overview-card learner-companion-first">
-        <p className="student-kicker">Learn with Skunkie</p>
+        <p className="student-kicker">Learn with Skunky</p>
         <h3>Ask for guidance, hints or an explanation</h3>
-        <p>Skunkie can provide personalised AI responses once the Academy AI service is configured and available.</p>
+        <p>Skunky can provide personalised AI responses once the Academy AI service is configured and available.</p>
         <button type="button" onClick={() => onNavigate("companion")}>Open learning companion</button>
       </article>
     </div>

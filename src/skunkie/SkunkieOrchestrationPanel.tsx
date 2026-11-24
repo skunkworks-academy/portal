@@ -62,10 +62,10 @@ export function SkunkieOrchestrationPanel({ onAssess, onCourses }: Props) {
     finally { setBusy(false); }
   }
   const route = routeLearningGoal(goal);
-  return <section className="student-view student-companion-view skunkie-learning" aria-label="Skunkie learning orchestrator">
+  return <section className="student-view student-companion-view skunkie-learning" aria-label="Skunky learning orchestrator">
     <div className="student-companion-header">
       <div className="student-skunkie-avatar" aria-hidden="true"><img src={SKUNKIE_AVATAR_SRC} alt="" width="64" height="64" /></div>
-      <div><p className="student-kicker">Your Academy learning companion</p><h2>Start with Skunkie</h2>
+      <div><p className="student-kicker">Your Academy learning companion</p><h2>Start with Skunky</h2>
         <p>Welcome{context?.learner.name ? `, ${context.learner.name}` : ""}. Tell me your goal, try a short knowledge check, and we'll work through your next learning activity.</p></div>
     </div>
     <ol className="skunkie-flow" aria-label="Learning flow"><li>Share a goal</li><li>Assess</li><li>Learn and practise</li><li>Check progress</li></ol>
@@ -75,7 +75,7 @@ export function SkunkieOrchestrationPanel({ onAssess, onCourses }: Props) {
     {context && <>
       <p>{context.courses.length} enrolled course{context.courses.length === 1 ? "" : "s"} connected to Networking · {context.sessions.length} saved diagnostics · {context.outcomes.length} recorded practice checks</p>
       <div className="student-action-row"><button type="button" onClick={onAssess}>Learning preferences</button><button type="button" onClick={onCourses}>My LMS courses</button></div>
-      {context.courses.length === 0 ? <div className="student-panel"><h3>Your Networking path needs a course connection</h3><p>Skunkie needs an active enrolment in a published Networking Basics course with staff-mapped lessons. Ask your Academy team to connect it, or view your LMS courses.</p></div> : <form onSubmit={e => { e.preventDefault(); void assess(); }}>
+      {context.courses.length === 0 ? <div className="student-panel"><h3>Your Networking path needs a course connection</h3><p>Skunky needs an active enrolment in a published Networking Basics course with staff-mapped lessons. Ask your Academy team to connect it, or view your LMS courses.</p></div> : <form onSubmit={e => { e.preventDefault(); void assess(); }}>
         <fieldset disabled={busy}><legend>Networking Basics diagnostic</legend>
           <label htmlFor="skunkie-course">Your enrolled course</label>
           <select id="skunkie-course" value={courseId} onChange={e => setCourseId(e.target.value)}>{context.courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}</select>

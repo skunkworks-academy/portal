@@ -11,7 +11,7 @@ function installFetch(fetch: (url: string, options: RequestInit) => unknown) {
     ? Promise.resolve(new Response(JSON.stringify(topology))) : fetch(url, options));
 }
 
-describe("Skunkie budget Cosmos conditional-write contract", () => {
+describe("Skunky budget Cosmos conditional-write contract", () => {
   it("reads in the exact organization partition and uses managed identity", async () => {
     const fetch = vi.fn().mockResolvedValue(record());
     installFetch(fetch);
@@ -85,7 +85,7 @@ describe("Skunkie budget Cosmos conditional-write contract", () => {
   it("never retries an ambiguous transport failure or leaks provider/token errors", async () => {
     const fetch = vi.fn().mockRejectedValue(Error("private token and storage URL"));
     installFetch(fetch);
-    await expect(store().create(document)).rejects.toMatchObject({ status: 503, message: "Skunkie allowance storage is unavailable. Please try again later." });
+    await expect(store().create(document)).rejects.toMatchObject({ status: 503, message: "Skunky allowance storage is unavailable. Please try again later." });
     expect(fetch).toHaveBeenCalledTimes(1);
     await expect(store(async () => { throw Error("credential secret"); }).read(document.id, "academy")).rejects.toMatchObject({ status: 503 });
     expect(fetch).toHaveBeenCalledTimes(1);

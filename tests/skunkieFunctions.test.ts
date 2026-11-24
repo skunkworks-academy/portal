@@ -24,7 +24,7 @@ beforeEach(() => {
   ledger = { read: vi.fn().mockResolvedValue(full), reserve: vi.fn().mockResolvedValue({ reservation, mayDispatch: true, budget: full }), settle: vi.fn().mockResolvedValue({ ...full, usedNanos: 72000, remainingNanos: 999928000 }) };
   send = vi.fn().mockImplementation(async () => Response.json(validResponse()));
 });
-describe("Skunkie metered provider boundary", () => {
+describe("Skunky metered provider boundary", () => {
   it("reserves verified identity and fixed bounds before any provider request, then settles provider usage", async () => {
     const order: string[] = [];
     ledger.reserve.mockImplementation(async () => { order.push("reserve"); return { reservation, mayDispatch: true, budget: full }; });

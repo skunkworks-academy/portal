@@ -4,7 +4,7 @@ import { isSkunkieConfigured, SKUNKIE_BUDGET_POLICY } from "../api/skunkieReadin
 
 const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
-describe("Skunkie mobile recovery and production provider readiness", () => {
+describe("Skunky mobile recovery and production provider readiness", () => {
   it("is unavailable unless endpoint, deployment and server-only key are configured", () => {
     expect(isSkunkieConfigured({})).toBe(false);
     expect(isSkunkieConfigured({ AZURE_OPENAI_ENDPOINT: "https://academy.openai.azure.com", AZURE_OPENAI_DEPLOYMENT: "companion" })).toBe(false);
@@ -38,7 +38,7 @@ describe("Skunkie mobile recovery and production provider readiness", () => {
     expect(widget).toContain("setChatError(reason)");
     expect(widget).toContain("history: messages.slice(-8)");
     expect(widget).toContain('role="alert"');
-    expect(widget).toContain('aria-label="Close Skunkie"');
+    expect(widget).toContain('aria-label="Close Skunky"');
     expect(widget).toContain("onEscape");
     expect(widget).toContain('setInput(value => value.trim() === message ? "" : value)');
     expect(widget).not.toContain("I can’t reach the learning service right now");

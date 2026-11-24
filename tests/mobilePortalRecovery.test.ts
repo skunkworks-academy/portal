@@ -17,7 +17,7 @@ const student: UserProfile = {
 };
 
 describe("Portal mobile sign-in and student data integrity", () => {
-  it("opens Skunkie first and waits for actual learning records", () => {
+  it("opens Skunky first and waits for actual learning records", () => {
     const html = renderToStaticMarkup(createElement(StudentExperience, {
       profile: student,
       portalProfile: { displayName: "Real Learner", portalRole: "Student", phone: "", location: "", bio: "", cvFileName: "" },
@@ -28,9 +28,9 @@ describe("Portal mobile sign-in and student data integrity", () => {
       onSignOut: () => undefined,
       onRegister: async () => undefined
     }));
-    expect(html).toContain("Start with Skunkie");
+    expect(html).toContain("Start with Skunky");
     expect(html).toContain("Loading your Academy enrolments and learning evidence");
-    expect(html).toContain('class="student-nav-item active" aria-current="page"><span aria-hidden="true">✺</span>Skunkie');
+    expect(html).toContain('class="student-nav-item active" aria-current="page"><span aria-hidden="true">✺</span>Skunky');
     expect(html).not.toContain("Your study plan");
     expect(html).not.toContain("42%");
     expect(html).not.toContain("5 days");

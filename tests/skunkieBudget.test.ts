@@ -31,7 +31,7 @@ class AtomicStore implements SkunkieBudgetStore {
   async replace(document: BudgetStoreDocument, etag: string) { return this.write(document, etag); }
 }
 
-describe("durable per-account monthly Skunkie model allowance", () => {
+describe("durable per-account monthly Skunky model allowance", () => {
   it("uses exact integer pricing and does not discount cached input", () => {
     expect(skunkieTokenCostNanos({ inputTokens: 123, outputTokens: 45 })).toBe(121200);
     expect(skunkieTokenCostNanos({ inputTokens: 2500000, outputTokens: 0 })).toBe(SKUNKIE_MONTHLY_LIMIT_NANOS);

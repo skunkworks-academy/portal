@@ -39,7 +39,7 @@ beforeEach(() => {
 });
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
-describe("Skunkie frame availability", () => {
+describe("Skunky frame availability", () => {
   it("keeps a still visible until the atlas has loaded and decoded", async () => {
     await render();
     expect(host.querySelector("img")).not.toBeNull();

@@ -47,7 +47,7 @@ type StudentExperienceProps = {
 };
 
 const navItems: Array<{ id: StudentView; label: string; icon: string }> = [
-  { id: "companion", label: "Skunkie", icon: "✺" },
+  { id: "companion", label: "Skunky", icon: "✺" },
   { id: "dashboard", label: "Dashboard", icon: "⌂" },
   { id: "assessment", label: "My learner assessment", icon: "◈" },
   { id: "idr", label: "My development roadmap", icon: "◇" },
@@ -323,7 +323,7 @@ export function StudentExperience({
           )}
           {view === "dashboard" && adaptivePilot && !learnerReady && (
             <section className="learner-discovery" role="status" aria-live="polite">
-              <h2>Skunkie is preparing your learning space</h2>
+              <h2>Skunky is preparing your learning space</h2>
               <p>Checking for existing preferences on your Academy account.</p>
             </section>
           )}
@@ -359,10 +359,10 @@ export function StudentExperience({
                 <div>
                   <p className="student-kicker">Your study plan</p>
                   <h2>Small, consistent sessions build real confidence.</h2>
-                  <p>Continue where you left off, reserve a class, or ask Skunkie to make today’s study plan.</p>
+                  <p>Continue where you left off, reserve a class, or ask Skunky to make today’s study plan.</p>
                   <div className="student-action-row">
                     <button type="button" onClick={() => setView("learning")}>My learning</button>
-                    <button type="button" className="student-secondary-action" onClick={() => setView("companion")}>Ask Skunkie</button>
+                    <button type="button" className="student-secondary-action" onClick={() => setView("companion")}>Ask Skunky</button>
                   </div>
                 </div>
                 <div className="student-progress-summary" aria-label={`${registrations.length} class registrations`}>
@@ -492,8 +492,8 @@ function Messages() {
 
 function Companion() {
   return <section className="student-view student-companion-view" aria-label="AI Learning Companion">
-    <div className="student-companion-header"><div className="student-skunkie-avatar" aria-hidden="true"><img src={SKUNKIE_AVATAR_SRC} alt="" width="64" height="64" /></div><div><p className="student-kicker">AI Learning Companion</p><h2>Ask Skunkie</h2><span>Use the floating Skunkie chat button to connect to the authenticated Academy assistant.</span></div></div>
-    <p>Skunkie opens from the chat button in the corner of the screen. Chat responses are delivered by the live Academy service, not generated placeholders.</p>
+    <div className="student-companion-header"><div className="student-skunkie-avatar" aria-hidden="true"><img src={SKUNKIE_AVATAR_SRC} alt="" width="64" height="64" /></div><div><p className="student-kicker">AI Learning Companion</p><h2>Ask Skunky</h2><span>Use the floating Skunky chat button to connect to the authenticated Academy assistant.</span></div></div>
+    <p>Skunky opens from the chat button in the corner of the screen. Chat responses are delivered by the live Academy service, not generated placeholders.</p>
   </section>;
 }
 

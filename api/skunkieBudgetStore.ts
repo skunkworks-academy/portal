@@ -19,7 +19,7 @@ export interface SkunkieBudgetStore {
 }
 
 export function budgetStorageUnavailable() {
-  return new HttpError(503, "Skunkie allowance storage is unavailable. Please try again later.");
+  return new HttpError(503, "Skunky allowance storage is unavailable. Please try again later.");
 }
 
 /** Uses the existing organization-partitioned Cosmos container and managed identity.

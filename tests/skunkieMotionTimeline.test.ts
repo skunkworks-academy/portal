@@ -8,7 +8,7 @@ import artwork from "../docs/skunkie-avatar-v3-validation.json";
 import previousArtwork from "../docs/skunkie-avatar-v2-validation.json";
 
 const pairs = new Set(motion.flow.pairs.map(pair => pair.join(":")));
-describe("continuous Skunkie motion", () => {
+describe("continuous Skunky motion", () => {
   it("preserves the original 48 poses and adds 48 distinct populated cells", () => {
     expect(artwork.frames.slice(0,48).map(frame => frame.sha256)).toEqual(previousArtwork.frames.map(frame => frame.sha256));
     expect(new Set(artwork.frames.map(frame => frame.sha256)).size).toBe(96);

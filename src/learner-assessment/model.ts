@@ -1,6 +1,6 @@
 import type { LearnerJourney } from "./journey.js";
 
-/** Skunkie learner assessment: distinct from career-development/IDR assessment. */
+/** Skunky learner assessment: distinct from career-development/IDR assessment. */
 export interface SkunkieLearnerAssessment {
   schemaVersion: 1;
   assessmentId: string;

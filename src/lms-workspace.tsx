@@ -201,10 +201,10 @@ export function LmsWorkspace({ mode, scope = "catalogue", query = "", onBrowseCo
                     void execute(() => portalApi.skunkieBindCurriculum(selected.id, {
                       companionId: "networking", catalogueTitle: "Networking Basics", version: 1,
                       lessonIds: { addressing: String(data.get("addressing")), switching: String(data.get("switching")), troubleshooting: String(data.get("troubleshooting")) }
-                    }, auth), "Networking Basics lessons connected to Skunkie. Enrolled students can now use the diagnostic path.");
+                    }, auth), "Networking Basics lessons connected to Skunky. Enrolled students can now use the diagnostic path.");
                   }}>
-                    <h4>Connect Networking Basics to Skunkie</h4>
-                    <p>Choose reviewed lessons for each skill. Saving replaces the Skunkie mapping for this course; it does not publish content or enrol students.</p>
+                    <h4>Connect Networking Basics to Skunky</h4>
+                    <p>Choose reviewed lessons for each skill. Saving replaces the Skunky mapping for this course; it does not publish content or enrol students.</p>
                     {(["addressing", "switching", "troubleshooting"] as const).map(skill => <label key={skill}>{skill[0].toUpperCase() + skill.slice(1)} lesson<select name={skill} required defaultValue=""><option value="" disabled>Choose an existing lesson</option>{lessons.map(lesson => <option key={lesson.id} value={lesson.id}>{lesson.title}</option>)}</select></label>)}
                     <button type="submit" disabled={busy}>Save Networking curriculum mapping</button>
                   </form>}

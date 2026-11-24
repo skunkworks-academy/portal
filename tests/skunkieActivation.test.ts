@@ -41,7 +41,7 @@ function verify(data = valid(), overrides: string[] = [], mode = "verify") {
   if (result.error) throw result.error;
   return { status: result.status, output: result.stdout + result.stderr };
 }
-describe("Skunkie activation guard", () => {
+describe("Skunky activation guard", () => {
   it("accepts only the reviewed cloud contract and a live protected release, before any provider activation", () => {
     const result = verify();
     expect(result.status).toBe(0);
@@ -86,9 +86,9 @@ describe("Skunkie activation guard", () => {
   }, 20_000);
   it("keeps the workflow's secret restoration after code deployment and guarded live health", () => {
     const workflow = readFileSync(resolve(repo, ".github/workflows/deploy-azure-function.yml"), "utf8");
-    const pause = workflow.indexOf("- name: Keep Skunkie disabled");
+    const pause = workflow.indexOf("- name: Keep Skunky disabled");
     const deploy = workflow.indexOf("- name: Deploy Function package");
-    const activate = workflow.indexOf("- name: Verify and activate the protected Skunkie deployment");
+    const activate = workflow.indexOf("- name: Verify and activate the protected Skunky deployment");
     const restore = workflow.indexOf('"AZURE_OPENAI_API_KEY=$SKUNKIE_API_KEY"');
     expect(pause).toBeGreaterThan(0); expect(deploy).toBeGreaterThan(pause); expect(activate).toBeGreaterThan(deploy);
     expect(activate).toBeGreaterThan(workflow.indexOf("- name: Verify API health"));

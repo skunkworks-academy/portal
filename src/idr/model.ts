@@ -1,4 +1,4 @@
-/** Skunkie IDR v1: structured, reviewable learner assessments and roadmaps. */
+/** Skunky IDR v1: structured, reviewable learner assessments and roadmaps. */
 export type Confidence = "self_reported" | "assessed" | "verified";
 export type MilestoneStatus = "not_started" | "in_progress" | "completed" | "blocked";
 export type ReviewState = "draft" | "awaiting_review" | "approved";

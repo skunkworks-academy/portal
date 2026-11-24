@@ -15,7 +15,7 @@ export function ContactInbox({ auth, isStaff }: { auth: Auth; isStaff: boolean }
   return <main className="command-panel" style={{ maxWidth: 1000, margin: "2rem auto", padding: "2rem" }}>
     <a href="/">Back to workspace</a><p className="eyebrow">Private · Academy staff</p><h1>Contact enquiries</h1>
     {!isStaff ? <p role="alert">A staff or administrator account is required.</p> : <>
-      <p>Website enquiries, including messages drafted with Skunkie. Reply using your approved team mailbox. No automatic emails are sent.</p>
+      <p>Website enquiries, including messages drafted with Skunky. Reply using your approved team mailbox. No automatic emails are sent.</p>
       <button onClick={() => void refresh()} disabled={busy}>{busy ? "Loading…" : "Load / refresh enquiries"}</button>
       <label>Filter by topic <select value={topic} onChange={e => setTopic(e.target.value)}><option value="">All topics</option>{["training", "support", "business", "editorial", "privacy", "legal", "general"].map(t => <option key={t}>{t}</option>)}</select></label>
       {error && <p role="alert">{error}</p>}

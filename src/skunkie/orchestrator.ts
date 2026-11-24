@@ -1,5 +1,5 @@
 /**
- * Deterministic, advisory-only first stage of Skunkie's orchestration pipeline.
+ * Deterministic, advisory-only first stage of Skunky's orchestration pipeline.
  * It never grants course access or invokes an AI/tool endpoint.
  */
 export const companionRegistry = [

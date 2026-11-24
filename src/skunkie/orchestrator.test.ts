@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { companionRegistry, routeLearningGoal } from "./orchestrator";
 
-describe("Skunkie advisory routing", () => {
+describe("Skunky advisory routing", () => {
   it("routes a subnetting request to networking", () => {
     expect(routeLearningGoal("I need help with VLAN and subnet routing").companionId).toBe("networking");
   });
