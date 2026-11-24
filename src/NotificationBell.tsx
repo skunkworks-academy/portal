@@ -13,7 +13,7 @@ export function NotificationBell({auth,isStaff,classes,registrations,loadEvents=
  useEffect(()=>{if(!loadEvents)return;let alive=true;setAccountEvents({classes:[],registrations:[]});void Promise.all([portalApi.classes(),portalApi.myClasses(auth)]).then(([classes,registrations])=>{if(alive)setAccountEvents({classes,registrations});}).catch(()=>{if(alive)setError("Scheduled events could not be refreshed.");});return()=>{alive=false;};},[auth.account.homeAccountId,loadEvents]);
  if(loadEvents){classes=accountEvents.classes;registrations=accountEvents.registrations;}
  const registered=new Set(registrations.filter(r=>r.status!=="Cancelled").map(r=>r.classId));
- const events=classes.filter(c=>registered.has(c.id));
+ const events=classes.filter(c=>registered.has(c.id) && c.status!=="Cancelled" && c.status!=="Complete");
  const visibleEnquiries=isStaff ? enquiries : [];
  const count=visibleEnquiries.length+events.length;
  if(!mount)return null;

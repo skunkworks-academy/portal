@@ -463,7 +463,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
     return <PortalLanding startupNotice={startupNotice} onSignIn={() => signIn("Student")} />;
   }
 
-  const notifications = auth ? <NotificationBell key={account?.homeAccountId} auth={auth} isStaff={Boolean(profile.isAdmin)} loadEvents={Boolean(accountPage && activeRole === "Student")} classes={classes} registrations={registrations} /> : null;
+  const notifications = auth ? <NotificationBell key={account?.homeAccountId} auth={auth} isStaff={Boolean(profile.isAdmin)} loadEvents={Boolean(availableRoles.includes("Student") && (accountPage || activeRole !== "Student"))} classes={classes} registrations={registrations} /> : null;
   if (accountPage && auth) return <PortalAccountLayout>{notifications}<AccountPages page={accountPage} auth={auth} profile={profile} activeRole={activeRole} /></PortalAccountLayout>;
   if (new URLSearchParams(window.location.search).get("inbox") === "contact" && auth) return <PortalAccountLayout>{notifications}<ContactInbox auth={auth} isStaff={Boolean(profile.isAdmin)} /></PortalAccountLayout>;
 
