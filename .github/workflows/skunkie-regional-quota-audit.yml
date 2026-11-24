@@ -1,4 +1,4 @@
-name: Skunkie regional interactive quota audit (read-only)
+name: Skunky regional interactive quota audit (read-only)
 
 on:
   workflow_dispatch:
@@ -39,7 +39,7 @@ jobs:
             [ "$(az account show --query id -o tsv)" = "$AZURE_SUBSCRIPTION_ID" ] || exit 1
             tmp="$(mktemp -d)"
             trap 'rm -rf "$tmp"' EXIT
-            echo "## Academy Skunkie regional interactive model quota (read-only)" >> "$GITHUB_STEP_SUMMARY"
+            echo "## Academy Skunky regional interactive model quota (read-only)" >> "$GITHUB_STEP_SUMMARY"
             echo "This is a quota feasibility study only. No alternative region is approved for learner data processing." >> "$GITHUB_STEP_SUMMARY"
             for region in southafricanorth southafricawest swedencentral francecentral uaenorth; do
               echo "### $region" >> "$GITHUB_STEP_SUMMARY"

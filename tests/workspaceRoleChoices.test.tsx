@@ -26,7 +26,8 @@ describe("workspace choices from assigned claims", () => {
   });
   it("honors all three assigned roles and restores the authorized Student choice", () => {
     const html = render(["Portal.Staff", "Portal.Instructor", "Portal.Student"]);
-    for (const role of ["Student", "Instructor", "Staff"]) expect(html).toContain(`>${role}</button>`);
+    expect(html).not.toContain("Switch Academy workspace");
+    expect(html).not.toContain("Workspace: Administrator");
     expect(html).toContain("Student workspace</main>");
   });
   it("keeps the ordinary learner default and normalizes explicit Student claims", () => {

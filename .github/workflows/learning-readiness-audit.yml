@@ -59,7 +59,7 @@ jobs:
             az monitor app-insights query --app "$insights_id" --analytics-query \
               'dependencies | where timestamp > ago(72h) | where target has "documents.azure.com" | summarize requests=count() by resultCode, success, type' -o json
             az monitor app-insights query --app "$insights_id" --analytics-query \
-              'requests | where timestamp > ago(72h) | extend service=case(name has "/lms/" or operation_Name has "lms", "LMS", name has "/skunkie/" or operation_Name has "skunkie", "Skunkie", "Other") | where service != "Other" | summarize requests=count() by service, resultCode' -o json
+              'requests | where timestamp > ago(72h) | extend service=case(name has "/lms/" or operation_Name has "lms", "LMS", name has "/skunkie/" or operation_Name has "skunkie", "Skunky", "Other") | where service != "Other" | summarize requests=count() by service, resultCode' -o json
 
       - name: Inspect access configuration without tokens or account data (read-only)
         uses: azure/cli@v2
