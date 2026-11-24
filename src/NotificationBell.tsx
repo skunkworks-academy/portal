@@ -4,11 +4,14 @@ import { portalApi } from "./api";
 import type { ClassSession, ClassRegistrationRecord } from "./types";
 
 type Auth = Parameters<typeof portalApi.contactEnquiries>[0];
-export function NotificationBell({auth,isStaff,classes,registrations}:{auth:Auth;isStaff:boolean;classes:ClassSession[];registrations:ClassRegistrationRecord[]}) {
+export function NotificationBell({auth,isStaff,classes,registrations,loadEvents=false}:{auth:Auth;isStaff:boolean;classes:ClassSession[];registrations:ClassRegistrationRecord[];loadEvents?:boolean}) {
  const [mount,setMount]=useState<HTMLElement|null>(null),[open,setOpen]=useState(false),[error,setError]=useState("");
  const [enquiries,setEnquiries]=useState<Awaited<ReturnType<typeof portalApi.contactEnquiries>>>([]);
  useEffect(()=>{const el=document.createElement("div");el.style.position="relative"; const attach=()=>{const brand=document.querySelector('.swa-global-nav__brand');if(brand?.parentElement&&!el.isConnected){brand.before(el);setMount(el);}};attach();const observer=new MutationObserver(attach);observer.observe(document.body,{childList:true,subtree:true});return()=>{observer.disconnect();el.remove();};},[]);
  useEffect(()=>{let alive=true;async function refresh(){if(!isStaff)return;try{const rows=await portalApi.contactEnquiries(auth);if(alive){setEnquiries(rows);setError("");}}catch{if(alive)setError("Notifications could not be refreshed.");}}void refresh();const timer=setInterval(()=>void refresh(),60000);return()=>{alive=false;clearInterval(timer);};},[auth.account.homeAccountId,isStaff]);
+ const [accountEvents,setAccountEvents]=useState<{classes:ClassSession[];registrations:ClassRegistrationRecord[]}>({classes:[],registrations:[]});
+ useEffect(()=>{if(!loadEvents)return;let alive=true;setAccountEvents({classes:[],registrations:[]});void Promise.all([portalApi.classes(),portalApi.myClasses(auth)]).then(([classes,registrations])=>{if(alive)setAccountEvents({classes,registrations});}).catch(()=>{if(alive)setError("Scheduled events could not be refreshed.");});return()=>{alive=false;};},[auth.account.homeAccountId,loadEvents]);
+ if(loadEvents){classes=accountEvents.classes;registrations=accountEvents.registrations;}
  const registered=new Set(registrations.filter(r=>r.status!=="Cancelled").map(r=>r.classId));
  const events=classes.filter(c=>registered.has(c.id));
  const visibleEnquiries=isStaff ? enquiries : [];
