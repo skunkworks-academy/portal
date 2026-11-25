@@ -1,0 +1,55 @@
+/* The palette is an unmodified copy of skunkworks-academy/brand/assets/brand-colours.css. */
+@import "./assets/brand-colours.css";
+@import "@fontsource-variable/inter/wght.css";
+@import "@fontsource-variable/open-sans/wght.css";
+
+:is(.academy-login, .boot, .portal-startup-fallback) {
+  color-scheme: light dark;
+  --entry-display: "Inter Variable", "Segoe UI", Arial, sans-serif;
+  --entry-body: "Open Sans Variable", "Segoe UI", Arial, sans-serif;
+  --entry-canvas: var(--sw-background);
+  --entry-surface: var(--sw-surface);
+  --entry-text: var(--sw-text-primary);
+  --entry-muted: var(--sw-text-secondary);
+  --entry-link: var(--sw-accent-readable, var(--sw-skunk-blue-hover));
+  --entry-border: color-mix(in srgb, var(--entry-text) 19%, var(--entry-canvas));
+  --entry-action: var(--sw-action-primary);
+  --entry-action-hover: var(--sw-skunk-blue-hover);
+  --entry-on-action: var(--sw-white);
+  --entry-focus: var(--sw-focus-ring);
+  --entry-light-logo: block;
+  --entry-dark-logo: none;
+}
+
+/* Explicit shell preferences take precedence over the operating system. */
+@media (prefers-color-scheme: dark) {
+  :is(.academy-login, .boot, .portal-startup-fallback) {
+    --entry-light-logo: none;
+    --entry-dark-logo: block;
+  }
+}
+
+:root:is([data-theme="dark"], [data-swa-theme="dark"]) :is(.academy-login, .boot, .portal-startup-fallback) {
+  color-scheme: dark;
+  --entry-canvas: var(--sw-dark-canvas);
+  --entry-surface: var(--sw-dark-surface);
+  --entry-text: var(--sw-dark-text);
+  --entry-muted: var(--sw-dark-muted);
+  --entry-link: var(--sw-blue-on-dark);
+  --entry-light-logo: none;
+  --entry-dark-logo: block;
+}
+
+:root:is([data-theme="light"], [data-swa-theme="light"]) :is(.academy-login, .boot, .portal-startup-fallback) {
+  color-scheme: light;
+  --entry-canvas: var(--sw-white);
+  --entry-surface: var(--sw-off-white);
+  --entry-text: var(--sw-graphite);
+  --entry-muted: var(--sw-slate-text);
+  --entry-link: var(--sw-skunk-blue-hover);
+  --entry-light-logo: block;
+  --entry-dark-logo: none;
+}
+
+.academy-entry-logo-light { display: var(--entry-light-logo); }
+.academy-entry-logo-dark { display: var(--entry-dark-logo); }

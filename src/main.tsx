@@ -8,7 +8,6 @@ import { msalConfig } from "./authConfig";
 import { clearAuthResponseFromAddressBar } from "./auth-response-cleanup";
 import "./styles.css";
 import "./academy-brand-theme.css";
-import "./startup-fallback.css";
 import "./instructor-account-navigation";
 import "./staff-account-navigation";
 import "./workspace-card-navigation";
@@ -25,7 +24,11 @@ function renderStartupError(error?: unknown) {
   rootElement.innerHTML = `
     <main class="portal-startup-fallback" id="main" tabindex="-1">
       <section class="portal-startup-card" role="alert">
-        <p class="portal-startup-eyebrow">SKUNKWORKS ACADEMY · SECURE SIGN-IN</p>
+        <div class="portal-startup-brand">
+          <img class="academy-entry-logo-light" src="/images/academy-mark-black.png" width="60" height="60" alt="" />
+          <img class="academy-entry-logo-dark" src="/images/academy-mark-white.png" width="60" height="60" alt="" />
+          <span>Skunkworks Academy</span>
+        </div>
         <h1>Microsoft sign-in could not start</h1>
         <p>Your browser could not initialise the secure sign-in session. Your account has not been changed.</p>
         <p>If you opened this page inside another app, use its menu to open

@@ -1,0 +1,50 @@
+:root {
+  /* Canonical core palette */
+  --sw-ink-navy: #03033A;
+  --sw-skunk-blue: #1E6BD0;
+  --sw-signal-orange: #F24208;
+  --sw-white: #FFFFFF;
+
+  /* Supporting neutrals */
+  --sw-off-white: #F7F9FC;
+  --sw-graphite: #15171A;
+  --sw-steel-gray: #D8DEE8;
+  --sw-slate-text: #5A6472;
+
+  /* Accessibility and interaction support */
+  --sw-skunk-blue-hover: #1756A9;
+  --sw-blue-on-dark: #8FBAFF;
+  --sw-dark-canvas: #05050B;
+  --sw-dark-surface: #11111C;
+  --sw-dark-text: #F4F6FA;
+  --sw-dark-muted: #C8D1DF;
+
+  /* Light-mode semantic roles */
+  --sw-background: var(--sw-white);
+  --sw-surface: var(--sw-off-white);
+  --sw-text-primary: var(--sw-graphite);
+  --sw-text-secondary: var(--sw-slate-text);
+  --sw-action-primary: var(--sw-skunk-blue);
+  --sw-focus-ring: var(--sw-signal-orange);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sw-background: var(--sw-dark-canvas);
+    --sw-surface: var(--sw-dark-surface);
+    --sw-text-primary: var(--sw-dark-text);
+    --sw-text-secondary: var(--sw-dark-muted);
+    --sw-accent-readable: var(--sw-blue-on-dark);
+  }
+}
+
+/*
+Approved visual usage ratio:
+70% White / Off White
+20% Ink Navy / Graphite
+8%  Skunk Blue
+2%  Signal Orange
+
+Signal Orange is for restrained accents and should not be used for long body copy.
+Blue On Dark is an accessibility support token and does not replace canonical Skunk Blue.
+*/
