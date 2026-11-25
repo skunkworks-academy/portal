@@ -28,51 +28,54 @@ export function PortalLanding({ onSignIn, startupNotice = "" }: PortalLandingPro
   }
 
   return (
-    <main className="academy-login" id="main">
+    <div className="academy-login">
+      <a className="skip-link" href="#main">Skip to sign-in</a>
       <header className="academy-login-header">
-        <a href="https://www.skunkworksacademy.com/" className="academy-login-brand" aria-label="Skunkworks Academy main website">
-          <img src="https://www.skunkworksacademy.com/images/favicon-white.png" width="44" height="44" alt="" />
-          <span><strong>SKUNKWORKS</strong><small>ACADEMY</small></span>
-        </a>
-        <span className="academy-login-header-label">Secure portal</span>
+        <div className="academy-login-bar">
+          <a href="https://www.skunkworksacademy.com/" className="academy-login-brand" aria-label="Skunkworks Academy home">
+            <img className="academy-entry-logo-light" src="/images/academy-mark-black.png" width="60" height="60" alt="" />
+            <img className="academy-entry-logo-dark" src="/images/academy-mark-white.png" width="60" height="60" alt="" />
+            <span>Skunkworks Academy</span>
+          </a>
+          <a className="academy-login-support" href="mailto:training@skunkworks.africa">Support</a>
+        </div>
       </header>
 
-      <div className="academy-login-stage">
-        <div className="academy-login-intro">
-          <span className="academy-login-kicker"><span aria-hidden="true" /> SKUNKWORKS ACADEMY</span>
-          <h1>Everything begins<br /><em>with your sign-in.</em></h1>
-          <p>One secure identity for your Academy experience. Use any personal Microsoft account or Microsoft Entra work or school account to sign in or register as a learner.</p>
-          <div className="academy-login-trust">
-            <span className="academy-login-check" aria-hidden="true">✓</span>
-            <span>Personal Microsoft and Entra ID accounts supported</span>
+      <main className="academy-login-main" id="main" tabIndex={-1}>
+        <div className="academy-login-stage">
+          <div className="academy-login-intro">
+            <h1>Academy portal</h1>
+            <p>Access your courses, learning records and Academy profile.</p>
           </div>
-        </div>
 
-        <section className="academy-login-card" aria-labelledby="academy-login-title">
-          <div className="academy-login-card-top">
-            <span className="academy-login-mark" aria-hidden="true">
-              <span /><span /><span /><span />
-            </span>
-            <span className="academy-login-card-tag">MICROSOFT ACCOUNT</span>
-          </div>
-          <h2 id="academy-login-title">Welcome to the portal</h2>
-          <p>Sign in with an Outlook, Hotmail, Live or Microsoft Entra work or school account. First-time users can create an Academy learner profile automatically.</p>
-          {(signInError || startupNotice) && <p className="academy-login-auth-error" role="alert">{signInError || startupNotice}</p>}
-          <button type="button" className="academy-login-button" disabled={redirecting} onClick={() => void beginSignIn()}>
-            <span>{redirecting ? "Opening Microsoft sign-in…" : "Sign in with Microsoft"}</span><span aria-hidden="true">→</span>
-          </button>
-          <p className="academy-login-mobile-help">Having trouble inside an app? Open this website in Safari or Chrome to sign in.</p>
-          <div className="academy-login-security">
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-            <span>Protected by Microsoft Entra ID and your organisation's access policies.</span>
-          </div>
-        </section>
-      </div>
+          <section className="academy-login-card" aria-labelledby="academy-login-title">
+            <h2 id="academy-login-title">Sign in</h2>
+            <p>Use a personal Microsoft account or a work or school account through Microsoft Entra ID.</p>
+            {(signInError || startupNotice) && <p className="academy-login-auth-error" role="alert">{signInError || startupNotice}</p>}
+            <button type="button" className="academy-login-button" disabled={redirecting} onClick={() => void beginSignIn()}>
+              <span>{redirecting ? "Opening Microsoft sign-in…" : "Sign in with Microsoft"}</span>
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+                <path d="M4 12h15m-6-6 6 6-6 6" />
+              </svg>
+            </button>
+            <p className="academy-login-first-visit">On your first sign-in, we’ll set up your Academy learner profile.</p>
+            <details className="academy-login-help">
+              <summary>Having trouble signing in?</summary>
+              <p>If you opened the portal inside another app, open it directly in Safari or Chrome and try again.</p>
+            </details>
+          </section>
+        </div>
+      </main>
 
       <footer className="academy-login-footer">
-        <span>© {new Date().getFullYear()} Skunkworks Academy · Learn. Build. Deploy.</span>
-        <div><a href="https://www.skunkworksacademy.com/">Academy website</a><a href="mailto:training@skunkworks.africa">Support</a></div>
+        <div className="academy-login-bar">
+          <span>© {new Date().getFullYear()} Skunkworks Academy</span>
+          <nav aria-label="Legal">
+            <a href="/privacystatement/">Privacy</a>
+            <a href="/termsofservice/">Terms of service</a>
+          </nav>
+        </div>
       </footer>
-    </main>
+    </div>
   );
 }

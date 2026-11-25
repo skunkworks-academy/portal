@@ -1,12 +1,97 @@
-/* The Microsoft login must stay useful if MSAL cannot initialise (common in in-app webviews). */
-.portal-startup-fallback{min-height:100svh;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at 10% 15%,rgba(30,107,208,.09),transparent 32rem),var(--academy-bg,#f6f8fb);color:var(--academy-text,#15171a)}
-.portal-startup-card{width:min(520px,100%);padding:clamp(24px,5vw,42px);border:1px solid var(--academy-line,#d8dee8);border-radius:20px;background:var(--academy-surface,#fff);box-shadow:0 22px 70px rgba(9,30,64,.10)}
-.portal-startup-eyebrow{margin:0 0 14px;color:var(--academy-accent,#1e6bd0);font-size:11px;letter-spacing:.12em;font-weight:800}
-.portal-startup-card h1{font-size:clamp(27px,5vw,37px);line-height:1.13;margin:0 0 20px;color:var(--academy-text,#15171a)}
-.portal-startup-card p{line-height:1.65;color:var(--academy-muted,#5a6472);font-size:15px}
-.portal-startup-card strong{overflow-wrap:anywhere;color:var(--academy-text,#15171a)}
-.portal-startup-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:24px}
-.portal-startup-actions button{background:var(--academy-accent,#1e6bd0);color:white;border-radius:10px;font-weight:800}
-.portal-startup-actions a{min-height:44px;display:inline-flex;align-items:center;color:var(--academy-accent,#1e6bd0);font-weight:800;text-decoration:none}
-.portal-startup-fallback :is(button,a):focus-visible{outline:3px solid var(--academy-focus,#f24208);outline-offset:3px}
-@media(max-width:480px){.portal-startup-fallback{padding:16px}.portal-startup-card{padding:24px 20px}}
+/* These states must also work before the React bundle runs. */
+body {
+  margin: 0;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+.boot,
+.portal-startup-fallback {
+  box-sizing: border-box;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--entry-canvas);
+  color: var(--entry-text);
+  font-family: var(--entry-body);
+}
+
+.portal-startup-card {
+  box-sizing: border-box;
+  width: min(100%, 32rem);
+  padding: clamp(1.25rem, 5vw, 2.5rem);
+  border: 1px solid var(--entry-border);
+  border-radius: 1rem;
+  background: var(--entry-surface);
+  overflow-wrap: anywhere;
+}
+
+.portal-startup-brand {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-family: var(--entry-display);
+  font-weight: 800;
+}
+
+.portal-startup-brand img {
+  flex: none;
+  object-fit: contain;
+}
+
+.portal-startup-card h1 {
+  margin: 1.5rem 0 .75rem;
+  font: 800 clamp(1.625rem, 5vw, 2.25rem)/1.15 var(--entry-display);
+  color: var(--entry-text);
+  letter-spacing: -.025em;
+}
+
+.portal-startup-card p {
+  margin: .75rem 0 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--entry-muted);
+}
+
+.portal-startup-card strong {
+  color: var(--entry-text);
+}
+
+.portal-startup-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: .5rem 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.portal-startup-actions button,
+.portal-startup-actions a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font: 700 1rem/1.4 var(--entry-body);
+}
+
+.portal-startup-actions button {
+  border: 1px solid transparent;
+  border-radius: .5rem;
+  padding: .625rem 1.25rem;
+  color: var(--entry-on-action);
+  background: var(--entry-action);
+  cursor: pointer;
+}
+
+.portal-startup-actions a {
+  color: var(--entry-link);
+  text-underline-offset: .2em;
+}
+
+.portal-startup-fallback :is(button, a):focus-visible {
+  outline: 3px solid var(--entry-focus);
+  outline-offset: 3px;
+}

@@ -6,7 +6,6 @@
     <meta name="skunkworks:repo" content="portal" />
     <meta name="skunkworks:repo-sitemap" content="https://skunkworksacademy.com/repositories/" />
     <link rel="sitemap" type="text/html" title="Skunkworks Academy Repository Sitemap" href="https://skunkworksacademy.com/repositories/" data-skunkworks-org-sitemap="v1" />
-    <!-- The React bundle owns portal styling and the canonical global header. -->
     <meta charset="utf-8" data-skunkworks-head="mandatory-v1" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Skunkworks Academy Portal | Learning, Labs, Jobs & Staff Operations</title>
@@ -31,9 +30,9 @@
     <meta name="twitter:title" content="Skunkworks Academy Portal" />
     <meta name="twitter:description" content="Portal access for students, instructors, staff operations, jobs, labs and academy resources." />
     <meta name="twitter:image" content="https://skunkworksacademy.com/images/favicon-black.png" />
-    <style>
-      :root{font-family:Inter,"IBM Plex Sans",system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;min-width:320px;background:#f5f7fb;color:#0d1c34}#root{min-height:100svh}.boot{min-height:100svh;display:grid;place-items:center;padding:24px}.boot-card{width:min(460px,100%);border:1px solid #dce3ed;border-radius:22px;background:#fff;padding:clamp(28px,5vw,46px);box-shadow:0 24px 60px rgba(7,25,56,.09)}.boot-mark{color:#1e6bd0;font-size:12px;letter-spacing:.14em;font-weight:900}.boot h1{font-size:clamp(27px,6vw,35px);letter-spacing:-.045em;margin:16px 0 12px}.boot p{font-size:14px;line-height:1.65;color:#4b5870;margin:0}.boot a{color:#1e6bd0}@media(prefers-color-scheme:dark){body{background:#0a1120;color:#f4f7ff}.boot-card{border-color:#38465d;background:#121e32}.boot p{color:#c3cedd}}
-    </style>
+    <link rel="stylesheet" href="/src/portal-entry-theme.css" />
+    <link rel="stylesheet" href="/src/startup-fallback.css" />
+    <noscript><style>.boot-loading { display: none; }</style></noscript>
 <link rel="icon" type="image/png" sizes="96x96" href="https://www.skunkworksacademy.com/images/favicon-search.png?v=2026.11.05.2" data-skunkworks-favicon="canonical" />
 <link rel="shortcut icon" type="image/png" href="https://www.skunkworksacademy.com/images/favicon-search.png?v=2026.11.05.2" data-skunkworks-favicon="canonical" />
 <link rel="icon" type="image/png" sizes="96x96" href="https://www.skunkworksacademy.com/images/favicon-search.png?v=2026.11.05.2" media="(prefers-color-scheme: light)" data-skunkworks-favicon="canonical" />
@@ -42,15 +41,19 @@
 </head>
   <body data-repo="portal" data-domain="portal.skunkworksacademy.com">
     <div id="root">
-      <main class="boot" aria-label="Skunkworks Academy secure sign-in loading">
-        <section class="boot-card">
-          <span class="boot-mark">SKUNKWORKS ACADEMY</span>
-          <h1>Secure sign-in</h1>
-          <p>Preparing Microsoft Entra ID authentication…</p>
+      <main class="boot" aria-labelledby="boot-title">
+        <section class="portal-startup-card">
+          <div class="portal-startup-brand">
+            <img class="academy-entry-logo-light" src="/images/academy-mark-black.png" width="60" height="60" alt="" />
+            <img class="academy-entry-logo-dark" src="/images/academy-mark-white.png" width="60" height="60" alt="" />
+            <span>Skunkworks Academy</span>
+          </div>
+          <h1 id="boot-title">Portal sign-in</h1>
+          <p class="boot-loading" role="status">Preparing Microsoft sign-in…</p>
+          <noscript><p>Enable JavaScript in your browser to sign in with Microsoft.</p></noscript>
         </section>
       </main>
     </div>
-    <noscript><main class="boot"><section class="boot-card"><span class="boot-mark">SKUNKWORKS ACADEMY</span><h1>JavaScript required</h1><p>Enable JavaScript to sign in with your Microsoft account.</p></section></main></noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
