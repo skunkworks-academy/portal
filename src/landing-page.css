@@ -7,6 +7,7 @@
   background: var(--entry-canvas);
   color: var(--entry-text);
   font-family: var(--entry-body);
+  overflow-wrap: anywhere;
 }
 
 .academy-login-bar,
@@ -148,6 +149,10 @@
 
 .academy-login .academy-login-button:hover {
   background: var(--entry-action-hover);
+}
+
+.academy-login-button span {
+  min-width: 0;
 }
 
 .academy-login-button svg {
