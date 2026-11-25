@@ -4,7 +4,7 @@
   "runtimeClass": "spa-functions-bff",
   "canonicalHost": "portal.skunkworksacademy.com",
   "shellVersion": "2026.08.14.2",
-  "themeVersion": "2026.09.07.1",
+  "themeVersion": "2026.09.08.3",
   "identityMode": "msal-browser+bff-staging-disabled",
   "analyticsVersion": "application-insights-v1",
   "cspMode": "not-enforced",

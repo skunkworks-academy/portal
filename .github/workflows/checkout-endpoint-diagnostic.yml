@@ -55,9 +55,43 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          API_BASE_URL='https://api.skunkworksacademy.com/api'
-          health=$(curl --fail --silent --show-error --location --connect-timeout 15 --max-time 45 "$API_BASE_URL/health")
-          echo "$health" | jq -e '.ok == true' >/dev/null
+          API_URL='https://api.skunkworksacademy.com/api/health'
+          max_attempts=12
+
+          for ((attempt=1; attempt<=max_attempts; attempt++)); do
+            body_file=$(mktemp)
+            status=$(curl \
+              --silent \
+              --show-error \
+              --location \
+              --connect-timeout 15 \
+              --max-time 45 \
+              --output "$body_file" \
+              --write-out '%{http_code}' \
+              "$API_URL" || true)
+
+            if [[ "$status" == "200" ]] && jq -e '.ok == true' "$body_file" >/dev/null 2>&1; then
+              cat "$body_file"
+              rm -f "$body_file"
+              exit 0
+            fi
+
+            if [[ "$status" != "404" ]]; then
+              echo "Portal API health failed with HTTP ${status}; not retrying." >&2
+              cat "$body_file" >&2 || true
+              rm -f "$body_file"
+              exit 1
+            fi
+
+            rm -f "$body_file"
+            if [[ "$attempt" -eq "$max_attempts" ]]; then
+              echo "Portal API health remained HTTP 404 after ${max_attempts} attempts." >&2
+              exit 1
+            fi
+
+            echo "Portal API health returned HTTP 404 on attempt ${attempt}/${max_attempts}; retrying in 5 seconds."
+            sleep 5
+          done
 
       - name: Require at least one valid plans endpoint
         shell: bash
