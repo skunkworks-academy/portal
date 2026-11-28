@@ -1,0 +1,36 @@
+name: Verify Academy profile storage
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - api/graph.ts
+      - src/account-profile.ts
+      - scripts/verify-academy-profile.ts
+      - .github/workflows/verify-academy-profile.yml
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Verify profile creation, update and reload in the production SharePoint site
+        env:
+          GRAPH_TENANT_ID: ${{ vars.PORTAL_ENTRA_TENANT_ID || '338a8916-80d9-467c-a94a-7f61d04ef7d5' }}
+          API_CLIENT_ID: ${{ vars.PORTAL_ENTRA_CLIENT_ID || 'e22672ae-61a6-434e-b135-3360557819ec' }}
+          API_CLIENT_SECRET: ${{ secrets.PORTAL_API_CLIENT_SECRET }}
+          SHAREPOINT_HOSTNAME: ${{ vars.PORTAL_SHAREPOINT_HOSTNAME || '202025721807skunkworks.sharepoint.com' }}
+          SHAREPOINT_SITE_PATH: ${{ vars.PORTAL_SHAREPOINT_SITE_PATH || '/sites/InstructorPortal' }}
+        run: ./node_modules/.bin/tsx scripts/verify-academy-profile.ts
