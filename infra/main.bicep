@@ -34,10 +34,14 @@ param sharePointHostname string = '202025721807skunkworks.sharepoint.com'
 param sharePointSitePath string = '/sites/InstructorPortal'
 
 @description('Dataverse environment origin for the Jobs workspace.')
-param jobsDataverseUrl string = ''
+@allowed(['https://sw.crm14.dynamics.com'])
+param jobsDataverseUrl string = 'https://sw.crm14.dynamics.com'
 
 @description('Publisher prefix of the installed Jobs solution.')
 param jobsDataversePrefix string = ''
+param jobsDataverseClientId string = ''
+@description('Key Vault secret URI for the dedicated Dynamics application.')
+param jobsDataverseSecretUri string = ''
 
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
@@ -60,6 +64,8 @@ module portalApi './portal-api.bicep' = {
     sharePointSitePath: sharePointSitePath
     jobsDataverseUrl: jobsDataverseUrl
     jobsDataversePrefix: jobsDataversePrefix
+    jobsDataverseClientId: jobsDataverseClientId
+    jobsDataverseSecretUri: jobsDataverseSecretUri
   }
 }
 

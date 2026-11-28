@@ -3,8 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { config } from "../api/config.js";
 import { HttpError } from "../api/http.js";
 import type { Principal } from "../api/auth.js";
-import { JobsDataverse, type Row, type Table } from "../api/jobsDataverse.js";
-import { jobsHandler } from "../api/jobsFunctions.js";
+import { JobsDataverse, JobsSetupRequired, jobsConnection, type Row, type Table } from "../api/jobsDataverse.js";
+import { jobsHandler, jobsReadiness } from "../api/jobsFunctions.js";
 import { isRecruiter, JobsWorkspace, stableId } from "../api/jobsWorkspace.js";
 import { metrics } from "../src/jobs/model.js";
 
@@ -123,5 +123,44 @@ describe("Dataverse Web API transport", () => {
     const batch = String(send.mock.calls[2][1]?.body);
     expect(batch).toContain("If-Match: " + ver); expect(batch).toContain("If-None-Match: *");
     await expect(db.submit(vacancy, ver, entry, { sw_name: "Role" })).rejects.toMatchObject({ status:409 });
+  });
+});
+
+describe("Jobs storage readiness", () => {
+  it("requires an application in Dynamics when the Function is hosted in another directory", () => {
+    const env = { JOBS_DATAVERSE_PREFIX: "sw", JOBS_HOST_TENANT_ID: "338a8916-80d9-467c-a94a-7f61d04ef7d5" };
+    expect(() => jobsConnection(env)).toThrow(JobsSetupRequired);
+    expect(() => jobsConnection({ ...env, JOBS_DATAVERSE_URL: "https://different.crm14.dynamics.com" })).toThrow(JobsSetupRequired);
+    expect(() => jobsConnection({ ...env, JOBS_DATAVERSE_CLIENT_ID: requestId, JOBS_DATAVERSE_CLIENT_SECRET: "@Microsoft.KeyVault(SecretUri=test)" })).toThrow(JobsSetupRequired);
+    expect(jobsConnection({ ...env, JOBS_DATAVERSE_CLIENT_ID: requestId, JOBS_DATAVERSE_CLIENT_SECRET: "fixture" }).origin).toBe("https://sw.crm14.dynamics.com");
+  });
+  it("coalesces checks and recovers after configuration is restored", async () => {
+    let now = 0;
+    const verify = vi.fn().mockRejectedValueOnce(new JobsSetupRequired()).mockResolvedValue(undefined);
+    const check = jobsReadiness(verify, () => now);
+    const req = new HttpRequest({ method: "GET", url: "https://example.invalid/api/health/jobs" });
+    for (const result of await Promise.all([check(req), check(req)])) {
+      expect(result).toMatchObject({ status: 503, jsonBody: { status: "setup_required" } });
+    }
+    expect(verify).toHaveBeenCalledTimes(1);
+    now = 60001;
+    expect(await check(req)).toMatchObject({ status: 200, jsonBody: { status: "ready" } });
+  });
+  it("checks read access to each table without selecting any candidate fields or writing records", async () => {
+    const send = vi.fn<typeof fetch>(async url => {
+      const u = new URL(String(url));
+      if (u.pathname.includes("EntityDefinitions")) {
+        const table = u.pathname.match(/LogicalName='(sw_\w+)'/)![1];
+        return Response.json({ EntitySetName: table + "s", PrimaryIdAttribute: table + "id" });
+      }
+      const id = u.searchParams.get("$select");
+      expect(id).toMatch(/^sw_job(profile|entry|vacancy)id$/);
+      expect(u.searchParams.get("$filter")).toBe(id + " eq null");
+      return Response.json({ value: [] });
+    });
+    const db = new JobsDataverse("https://sw.crm14.dynamics.com", "sw", async () => ({ token: "test" }), send);
+    await db.verifyReads();
+    expect(send).toHaveBeenCalledTimes(6);
+    expect(send.mock.calls.every(([, init]) => !init?.method || init.method === "GET")).toBe(true);
   });
 });

@@ -56,6 +56,13 @@ describe("jobs workspace screens", () => {
     expect(host.textContent).not.toContain("No candidate"); expect(host.querySelector("form")).toBeNull();
     expect(button("Ask Skunkie")).toBeTruthy();
   });
+  it("identifies a pending Dynamics connection without collecting a candidate profile", async () => {
+    request.mockRejectedValue(Object.assign(new Error('{"code":"jobs_setup_required"}'), { status: 503 }));
+    await act(async () => root.render(<JobsWorkspace auth={auth} onSignOut={vi.fn()} />));
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain("connecting its Jobs database");
+    expect(host.querySelector("form")).toBeNull();
+    expect(button("Ask Skunkie")).toBeTruthy();
+  });
   it("reads the hiring pipeline only when an authorised recruiter opens it", async () => {
     request.mockImplementation(async (path: string) => path === "" ? { ...dashboard, recruiter: true } : { vacancies: [], submissions: [] });
     await act(async () => root.render(<JobsWorkspace auth={auth} onSignOut={vi.fn()} />));

@@ -73,6 +73,8 @@ app.http("health", {
     allowedOrigins: config.allowedOrigins,
     routes: [
       "GET /api/health",
+      "GET /api/health/jobs",
+      "GET /api/jobs-workspace",
       "GET /api/learner/preferences",
       "PUT /api/learner/preferences",
       "DELETE /api/learner/preferences",

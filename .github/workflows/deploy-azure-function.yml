@@ -87,6 +87,8 @@ jobs:
       PORTAL_SHAREPOINT_SITE_PATH: ${{ vars.PORTAL_SHAREPOINT_SITE_PATH || '/sites/InstructorPortal' }}
       JOBS_DATAVERSE_URL: ${{ vars.JOBS_DATAVERSE_URL }}
       JOBS_DATAVERSE_PREFIX: ${{ vars.JOBS_DATAVERSE_PREFIX }}
+      JOBS_DATAVERSE_CLIENT_ID: ${{ vars.JOBS_DATAVERSE_CLIENT_ID }}
+      JOBS_DATAVERSE_SECRET_URI: ${{ vars.JOBS_DATAVERSE_SECRET_URI }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -148,6 +150,31 @@ jobs:
             fi
             az account show --query '{subscription:id,tenant:tenantId,name:name}' -o json
 
+      - name: Check recent Academy profile save outcomes
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_id=$(az resource show --resource-group "$RESOURCE_GROUP_NAME" --resource-type Microsoft.Insights/components \
+            --name "$FUNCTION_APP_NAME-insights" --query properties.AppId -o tsv)
+          query=$(cat <<'KQL'
+          let hits = requests
+            | where timestamp > ago(24h) and (name =~ 'updateMyProfile' or name =~ 'myProfile' or tostring(parse_url(url).Path) endswith '/api/me/profile')
+            | project operation_Id, operation=iff(name contains 'update' or name startswith 'PATCH' or tostring(customDimensions["HttpMethod"]) =~ 'PATCH', 'save', 'profile'), http=resultCode;
+          let signals = union (traces | project operation_Id, details=message), (exceptions | project operation_Id, details=outerMessage)
+            | extend signal=case(details contains 'accessDenied' or details contains 'Forbidden', 'SharePoint permission',
+                details contains 'invalidClient' or details contains 'AADSTS', 'Graph credential',
+                details contains 'not recognized' or details contains 'does not exist' or details contains 'not found' or details contains 'not indexed', 'SharePoint schema or resource',
+                details contains 'invalidRequest' or details contains 'Invalid request' or details contains 'invalid field', 'Graph rejected request',
+                details contains 'invalid token' or details contains 'Missing bearer', 'portal authentication', '')
+            | where signal != '' | summarize diagnostic=take_any(signal) by operation_Id;
+          hits | join kind=leftouter signals on operation_Id
+            | summarize requests=count() by operation, http, diagnostic=iff(isempty(diagnostic), 'unclassified', diagnostic)
+          KQL
+          )
+          az rest --method post --url "https://api.applicationinsights.io/v1/apps/$app_id/query" \
+            --resource https://api.applicationinsights.io --body "$(jq -nc --arg q "$query" '{query:$q,timespan:"P1D"}')" \
+            --query 'tables[0].rows' --output json
       - name: Provision Function App infrastructure
         uses: azure/cli@v2
         with:
@@ -169,8 +196,10 @@ jobs:
                 allowedOrigins="$PORTAL_ALLOWED_ORIGINS" \
                 sharePointHostname="$PORTAL_SHAREPOINT_HOSTNAME" \
                 sharePointSitePath="$PORTAL_SHAREPOINT_SITE_PATH" \
-                jobsDataverseUrl="$JOBS_DATAVERSE_URL" \
-                jobsDataversePrefix="$JOBS_DATAVERSE_PREFIX"
+                jobsDataverseUrl="${JOBS_DATAVERSE_URL:-https://sw.crm14.dynamics.com}" \
+                jobsDataversePrefix="${JOBS_DATAVERSE_PREFIX:-}" \
+                jobsDataverseClientId="${JOBS_DATAVERSE_CLIENT_ID:-}" \
+                jobsDataverseSecretUri="${JOBS_DATAVERSE_SECRET_URI:-}"
 
       - name: Restore protected API credential
         uses: azure/cli@v2
@@ -290,6 +319,7 @@ jobs:
             echo "- Skunky pre-activation checks: provider access remains disabled until the final activation gate." >> "$GITHUB_STEP_SUMMARY"
           fi
           bash scripts/verify-protected-api-route.sh "$API_BASE_URL/staff/applications" --location
+          bash scripts/verify-protected-api-route.sh "$API_BASE_URL/jobs-workspace"
           {
             echo "### Portal API validation"
             echo ""
@@ -411,3 +441,30 @@ jobs:
               sleep 5
             done
             echo "- Skunky AI: reviewed model and single-write-region storage verified; budget policy enabled. Authenticated generation still requires verification." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify Jobs API and Dynamics storage
+        shell: bash
+        run: |
+          set -euo pipefail
+          jobs_public_url='https://api.skunkworksacademy.com/api'
+          bash scripts/verify-protected-api-route.sh "$jobs_public_url/jobs-workspace"
+          jobs_status=$(curl --silent --show-error --retry 2 --connect-timeout 8 --max-time 25 \
+            --output "$RUNNER_TEMP/jobs-readiness.json" --write-out '%{http_code}' "$jobs_public_url/health/jobs")
+          if [[ "$jobs_status" == 200 ]] && jq -e '.status == "ready"' "$RUNNER_TEMP/jobs-readiness.json" >/dev/null; then
+            echo "Jobs: the production identity read all three Dynamics tables." >> "$GITHUB_STEP_SUMMARY"
+          elif [[ "$jobs_status" == 503 ]] && jq -e '.status == "setup_required"' "$RUNNER_TEMP/jobs-readiness.json" >/dev/null && [[ -z "${JOBS_DATAVERSE_PREFIX:-}${JOBS_DATAVERSE_CLIENT_ID:-}${JOBS_DATAVERSE_SECRET_URI:-}" ]]; then
+            echo "::warning::The Jobs API is deployed. Candidate storage awaits Dynamics setup."
+            echo "Jobs: protected route verified, Dynamics storage awaiting configuration." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::Jobs storage failed the production read check (HTTP $jobs_status)."
+            exit 1
+          fi
+
+      - name: Verify and repair Academy profile list columns
+        env:
+          GRAPH_TENANT_ID: ${{ env.PORTAL_ENTRA_TENANT_ID }}
+          API_CLIENT_ID: ${{ env.PORTAL_ENTRA_CLIENT_ID }}
+          API_CLIENT_SECRET: ${{ secrets.PORTAL_API_CLIENT_SECRET }}
+          SHAREPOINT_HOSTNAME: ${{ env.PORTAL_SHAREPOINT_HOSTNAME }}
+          SHAREPOINT_SITE_PATH: ${{ env.PORTAL_SHAREPOINT_SITE_PATH }}
+        run: npm run provision:sharepoint -- --profile-schema
