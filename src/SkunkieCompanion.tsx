@@ -3,6 +3,7 @@ import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { apiScope } from "./authConfig";
 import { isJobsPage, selectedPortalAccount } from "./jobs/account";
+import { careerExercises, careerGuideReply } from "./jobs/career-guide";
 import { PortalApiError } from "./api-error";
 import { learningErrorMessage } from "./learning-errors";
 import { SkunkieAvatar } from "./SkunkieAvatar";
@@ -10,11 +11,6 @@ import { readSkunkiePreferences, saveSkunkiePreferences } from "./skunkie-prefer
 import { useSkunkieVoice } from "./useSkunkieVoice";
 import "./skunkie-companion.css";
 
-const careerExercises = {
-  "Tailor my CV": "Pick one requirement from the vacancy. Draft a bullet naming what you did, which skill you used and the outcome. Use a number only when you can substantiate it.",
-  "Practise an interview": "Think of a time you solved a difficult problem. What was the situation, what were you responsible for, what did you do and what changed? Practise your answer aloud in under two minutes.",
-  "Plan a follow-up": "Check the employer’s timeline. In My tracker, record the agreed date and next action. Draft a short note naming the role, thanking the contact and asking about the next step."
-};
 type ChatMessage = { role: "user" | "assistant"; content: string };
 type MonthlyAllowance = { currency: "USD"; limitUsd: 1; remainingUsd: number; resetsAt: string; exhausted: boolean };
 type StatusReason = "not_eligible" | "monthly_limit" | "budget_unavailable";
@@ -80,6 +76,11 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
   const preferenceRef = useRef(preferences); preferenceRef.current = preferences;
   const [serviceState, setServiceState] = useState<"unknown" | "configured" | "ready" | "unavailable">("unknown");
   const [messages, setMessages] = useState<ChatMessage[]>([jobs ? { role: "assistant", content: "What would you like to work on? Choose a career exercise or write a question about your job search." } : greeting]);
+  const [guideMessages, setGuideMessages] = useState<ChatMessage[]>([{ role: "assistant", content: "What are you working on in your job search? Ask about vacancies, CVs, interviews, pay or following up." }]);
+  const [useJobsAi, setUseJobsAi] = useState(false);
+  const canUseJobsAi = (serviceState === "configured" || serviceState === "ready") && !allowance?.exhausted && statusReason !== "not_eligible";
+  const guided = jobs && !useJobsAi;
+  const visibleMessages = guided ? guideMessages : messages;
   const [wave, setWave] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -123,7 +124,7 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
     // Measure after React commits the new reply; instant scrolling respects reduced motion.
     const log = logRef.current;
     log?.scrollTo({ top: log.scrollHeight, behavior: "instant" });
-  }, [messages, open, suppressed]);
+  }, [visibleMessages, open, suppressed]);
 
   useEffect(() => {
     if (!open) return;
@@ -158,10 +159,19 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
     return () => { cancelled = true; controller.abort(); };
   }, [open, account.homeAccountId, instance, statusRequest]);
 
+  function guide(question: string) {
+    voice.stopAudio();
+    const reply = careerGuideReply(question);
+    setGuideMessages(previous => [...previous, { role: "user", content: question }, { role: "assistant", content: reply }]);
+    if (preferenceRef.current.readReplies) voice.speak(reply);
+  }
+
   async function send(event: FormEvent) {
     event.preventDefault();
     const message = input.trim();
-    if (!message || busy || allowance?.exhausted || statusReason === "not_eligible") return;
+    if (!message || busy) return;
+    if (guided) { guide(message); setInput(""); return; }
+    if (allowance?.exhausted || statusReason === "not_eligible") return;
     // A delayed opening-status response must not replace the budget returned by this chat.
     allowanceGeneration.current++; setCheckingAllowance(false);
     voice.stopAudio(); setBusy(true); setChatError("");
@@ -220,12 +230,12 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
       <header className="skunkie__header"><div><strong id="skunkie-title">{companion}</strong><span>{jobs ? "Jobs companion" : "Learning companion"}</span></div>
         <button type="button" ref={closeRef} onClick={close} aria-label={"Close " + companion}>×</button></header>
       <div className="skunkie__messages" ref={logRef} role="log" aria-live="polite" aria-relevant="additions text">
-        {messages.map((item, index) => <div key={`${item.role}-${index}`} className={`skunkie__message skunkie__message--${item.role}`}>{item.content}</div>)}
+        {visibleMessages.map((item, index) => <div key={`${item.role}-${index}`} className={`skunkie__message skunkie__message--${item.role}`}>{item.content}</div>)}
         {busy && <p role="status">Thinking… <button type="button" onClick={cancelRequest}>Cancel response</button></p>}
       </div>
       {chatError && <div className="skunkie__error" role="alert"><p>{chatError}</p><button type="button" onClick={() => setChatError("")}>Dismiss</button></div>}
       {serviceState === "unavailable" && !chatError && !statusError && statusReason !== "not_eligible" && <p className="skunkie__service-notice" role="status">The learning service is currently unavailable. Your question will be retained if sending fails.</p>}
-      {statusError && !chatError && <p className="skunkie__service-notice" role="status">{statusError}</p>}
+      {statusError && !chatError && !guided && <p className="skunkie__service-notice" role="status">{statusError}</p>}
       <div id="skunkie-allowance" className="skunkie__allowance" aria-label="Monthly AI allowance">
         <div role="status" aria-live="polite">
           {statusReason === "not_eligible" ? <p>{jobs ? "Guided career exercises are available. AI chat uses the Academy student allowance." : "Skunky’s monthly AI allowance is available to Student accounts. This account is not eligible."}</p> : allowance ? <>
@@ -236,13 +246,16 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
         </div>
         <button type="button" disabled={busy || checkingAllowance} onClick={() => setStatusRequest(value => value + 1)}>{checkingAllowance ? "Checking allowance…" : "Check allowance"}</button>
       </div>
-      <p id="skunkie-processing" className="skunkie__notice">When you send, Azure AI processes your message, recent chat history and page context globally. Microphone input is a separate browser feature.</p>
-      {jobs && <div className="skunkie__quick-actions" aria-label="Guided career exercises">{Object.entries(careerExercises).map(([label, content]) =>
-        <button type="button" key={label} disabled={busy} onClick={() => setMessages(previous => [...previous, { role: "user", content: label }, { role: "assistant", content }])}>{label}</button>)}</div>}
+      {jobs && (canUseJobsAi || useJobsAi) && <div className="skunkie__quick-actions"><button type="button" disabled={busy} onClick={() => {
+        setUseJobsAi(!useJobsAi); setInput(""); setChatError(""); voice.stopAudio();
+      }}>{guided ? "Switch to Azure AI chat" : "Switch to the career guide"}</button></div>}
+      <p id="skunkie-processing" className="skunkie__notice">{guided ? "Career guide. Your typed questions stay in this browser. Choose an exercise or ask a question below." : "When you send, Azure AI processes your message, recent chat history and page context globally. Microphone input is a separate browser feature."}</p>
+      {guided && <div className="skunkie__quick-actions" aria-label="Guided career exercises">{Object.keys(careerExercises).map(label =>
+        <button type="button" key={label} disabled={busy} onClick={() => guide(label)}>{label}</button>)}</div>}
       {!jobs && <div className="skunkie__quick-actions" aria-label="Suggested prompts">{["Explain this page", "Quiz me", "Give me a hint"].map(prompt => <button key={prompt} type="button" onClick={() => setInput(prompt)}>{prompt}</button>)}</div>}
       <form className="skunkie__form" onSubmit={event => void send(event)}><label htmlFor="skunkie-input" className="sr-only">Ask {companion}</label>
         <textarea id="skunkie-input" value={input} onChange={event => setInput(event.target.value)} aria-describedby="skunkie-allowance skunkie-processing" maxLength={4000} rows={2} placeholder={"Ask " + companion + "…"} />
-        <button type="submit" disabled={busy || !input.trim() || allowance?.exhausted || statusReason === "not_eligible"}>Send</button></form>
+        <button type="submit" disabled={busy || !input.trim() || (!guided && (allowance?.exhausted || statusReason === "not_eligible"))}>Send</button></form>
       <div className="skunkie__voice-controls">
         {voice.canListen ? <button type="button" onClick={voice.starting || voice.listening ? voice.stopListening : voice.startListening} disabled={busy}>{voice.starting ? "Cancel microphone startup" : voice.listening ? "Stop microphone" : "Use microphone"}</button> : <span>{voice.unavailableReason}</span>}
         {voice.canSpeak && <label><input type="checkbox" checked={preferences.readReplies} onChange={event => changePreference({ readReplies: event.target.checked })} /> Read replies aloud</label>}
