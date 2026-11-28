@@ -8,7 +8,7 @@ trap 'rm -f "$headers"' EXIT
 status=$(curl --silent --show-error --max-time 20 -X OPTIONS -D "$headers" -o /dev/null -w '%{http_code}' \
   -H "Origin: $origin" -H 'Access-Control-Request-Method: PATCH' -H 'Access-Control-Request-Headers: authorization,content-type' "$url")
 header() {
-  awk -F ': *' -v key="$1" 'tolower($1) == key {gsub(/\r/,"",$2); print tolower($2)}' "$headers"
+  awk -v key="$1" 'tolower(substr($0,1,length(key)+1)) == key ":" {line=substr($0,length(key)+2); sub(/^[[:blank:]]*/,"",line); sub(/\r$/,"",line); print tolower(line)}' "$headers"
 }
 allowed=$(header access-control-allow-origin)
 methods=$(header access-control-allow-methods)
