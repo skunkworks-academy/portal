@@ -21,8 +21,15 @@ function check(stage: string, profile: PortalProfile | null, expected: PortalPro
   if (!profile?.id || profile.objectId !== principal.subject || profile.email !== principal.email) {
     throw new Error(stage + " did not return the verification profile.");
   }
-  for (const field of ["displayName", "phone", "location", "bio", "portalRole"] as const) {
-    if (profile[field] !== expected[field]) throw new Error(stage + " did not preserve " + field + ".");
+  const fields = ["displayName", "phone", "location", "bio", "portalRole"] as const;
+  const mismatches = fields.filter(field => profile[field] !== expected[field]);
+  if (mismatches.length) {
+    const details = mismatches.map(field => {
+      const actual = profile[field];
+      const shape = !actual ? "empty" : /^\s*</.test(actual) ? "markup" : "length " + actual.length;
+      return field + " (" + shape + ")";
+    });
+    throw new Error(stage + " did not preserve " + details.join(", ") + ".");
   }
   console.log("Verified " + stage + ".");
 }

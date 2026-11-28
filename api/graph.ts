@@ -5,6 +5,7 @@ import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSessi
 import { portalRoleFromPrincipal, type Principal } from "./auth.js";
 
 const graphRoot = "https://graph.microsoft.com/v1.0";
+const profileFields = "fields($select=Title,ObjectId,DisplayName,Email,PortalRole,Phone,Location,Bio,CvFileName,CvDocumentUrl)";
 let credential: ClientSecretCredential | undefined;
 let siteIdCache: string | undefined;
 const listIdCache = new Map<string, string>();
@@ -58,12 +59,12 @@ async function driveId(displayName: string) {
   return drive.id;
 }
 
-async function listItems(listName: string, filter?: string) {
+async function listItems(listName: string, filter?: string, expand = "fields") {
   const site = await siteId();
   const list = await listId(listName);
   const query = filter ? `&$filter=${encodeURIComponent(filter)}` : "";
   return graph<{ value: Array<{ id: string; fields: Record<string, unknown> }> }>(
-    `/sites/${site}/lists/${list}/items?expand=fields${query}`,
+    `/sites/${site}/lists/${list}/items?$expand=${expand}${query}`,
     filter ? { headers: { Prefer: "HonorNonIndexedQueriesWarningMayFailRandomly" } } : {}
   );
 }
@@ -77,14 +78,14 @@ async function createItem(listName: string, fields: Record<string, unknown>) {
   });
 }
 
-async function patchItem(listName: string, id: string, fields: Record<string, unknown>) {
+async function patchItem(listName: string, id: string, fields: Record<string, unknown>, expand = "fields") {
   const site = await siteId();
   const list = await listId(listName);
   await graph(`/sites/${site}/lists/${list}/items/${id}/fields`, {
     method: "PATCH",
     body: JSON.stringify(fields)
   });
-  return graph<{ id: string; fields: Record<string, unknown> }>(`/sites/${site}/lists/${list}/items/${id}?expand=fields`);
+  return graph<{ id: string; fields: Record<string, unknown> }>(`/sites/${site}/lists/${list}/items/${id}?$expand=${expand}`);
 }
 
 function text(value: unknown) {
@@ -195,7 +196,8 @@ function toPortalProfile(item: { id: string; fields: Record<string, unknown> }):
   return {
     id: item.id,
     objectId: text(fields.ObjectId),
-    displayName: text(fields.DisplayName),
+    // Portal writes store the editable display name in the standard SharePoint Title column.
+    displayName: text(fields.Title) || text(fields.DisplayName),
     email: text(fields.Email),
     portalRole: (text(fields.PortalRole) || "Student") as PortalProfile["portalRole"],
     phone: text(fields.Phone),
@@ -410,14 +412,14 @@ export async function updateTask(id: string, input: Partial<OnboardingTask>, pri
 }
 
 export async function getMyProfile(principal: Principal) {
-  const result = await listItems("PortalProfiles", `fields/ObjectId eq '${escapeOData(principal.subject)}'`);
+  const result = await listItems("PortalProfiles", `fields/ObjectId eq '${escapeOData(principal.subject)}'`, profileFields);
   const existing = result.value[0];
   if (existing) return toPortalProfile(existing);
   return null;
 }
 
 export async function getProfiles(role?: PortalRole) {
-  const result = await listItems("PortalProfiles", role ? `fields/PortalRole eq '${escapeOData(role)}'` : undefined);
+  const result = await listItems("PortalProfiles", role ? `fields/PortalRole eq '${escapeOData(role)}'` : undefined, profileFields);
   return result.value.map(toPortalProfile);
 }
 
@@ -443,14 +445,14 @@ export async function upsertMyProfile(input: PortalProfileInput, principal: Prin
 
   let item;
   if (existing) {
-    item = await patchItem("PortalProfiles", existing.id, fields);
+    item = await patchItem("PortalProfiles", existing.id, fields, profileFields);
   } else {
     const created = await createItem("PortalProfiles", fields);
     // Graph can acknowledge creation with just the list item identifier.
     const site = await siteId();
     const list = await listId("PortalProfiles");
     item = await graph<{ id: string; fields: Record<string, unknown> }>(
-      `/sites/${site}/lists/${list}/items/${created.id}?$expand=fields`);
+      `/sites/${site}/lists/${list}/items/${created.id}?$expand=${profileFields}`);
   }
   await audit("ProfileUpdated", principal, item.id);
   return toPortalProfile(item);
