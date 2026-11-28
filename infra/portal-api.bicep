@@ -28,8 +28,10 @@ param sharePointHostname string
 @description('Server-relative SharePoint site path used for learner-enrolment records.')
 param sharePointSitePath string = '/sites/InstructorPortal'
 
-param jobsDataverseUrl string = ''
+param jobsDataverseUrl string = 'https://sw.crm14.dynamics.com'
 param jobsDataversePrefix string = ''
+param jobsDataverseClientId string = ''
+param jobsDataverseSecretUri string = ''
 
 var requestedAllowedOrigins = [for origin in split(allowedOrigins, ','): trim(origin)]
 var parsedAllowedOrigins = union(requestedAllowedOrigins, [
@@ -170,6 +172,18 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'JOBS_DATAVERSE_PREFIX'
           value: jobsDataversePrefix
+        }
+        {
+          name: 'JOBS_DATAVERSE_CLIENT_ID'
+          value: jobsDataverseClientId
+        }
+        {
+          name: 'JOBS_DATAVERSE_CLIENT_SECRET'
+          value: empty(jobsDataverseSecretUri) ? '' : '@Microsoft.KeyVault(SecretUri=${jobsDataverseSecretUri})'
+        }
+        {
+          name: 'JOBS_HOST_TENANT_ID'
+          value: tenant().tenantId
         }
         {
           name: 'LMS_COSMOS_ENDPOINT'

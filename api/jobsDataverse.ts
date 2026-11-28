@@ -1,4 +1,4 @@
-import { ManagedIdentityCredential } from "@azure/identity";
+import { ClientSecretCredential, ManagedIdentityCredential } from "@azure/identity";
 import { HttpError } from "./http.js";
 
 export type Table = "jobprofile" | "jobvacancy" | "jobentry";
@@ -6,6 +6,28 @@ export type Row = Record<string, unknown>;
 type Metadata = { EntitySetName: string; PrimaryIdAttribute: string; ManyToOneRelationships?: Array<{ ReferencingAttribute: string; ReferencingEntityNavigationPropertyName: string }> };
 type TokenSource = (scope: string) => Promise<{ token: string }>;
 const unavailable = () => new HttpError(503, "The jobs database is unavailable. Please try again later.");
+
+const dynamicsOrigin = "https://sw.crm14.dynamics.com";
+const dynamicsTenant = "972e8de4-e365-43a3-99ec-c86a0cc249e8";
+const uuid = /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i;
+
+export class JobsSetupRequired extends HttpError {
+  constructor() { super(503, "The Academy is connecting its Jobs database."); }
+}
+
+export function jobsConnection(env: NodeJS.ProcessEnv) {
+  const origin = (env.JOBS_DATAVERSE_URL || dynamicsOrigin).replace(/\/$/, "");
+  const prefix = env.JOBS_DATAVERSE_PREFIX || "";
+  if (origin !== dynamicsOrigin || !/^[a-z][a-z0-9]{0,7}$/.test(prefix)) throw new JobsSetupRequired();
+  const clientId = env.JOBS_DATAVERSE_CLIENT_ID;
+  const secret = env.JOBS_DATAVERSE_CLIENT_SECRET;
+  if (clientId || secret) {
+    if (!clientId || !uuid.test(clientId) || !secret || secret.startsWith("@Microsoft.KeyVault(")) throw new JobsSetupRequired();
+    return { origin, prefix, credential: new ClientSecretCredential(dynamicsTenant, clientId, secret) };
+  }
+  if (env.JOBS_HOST_TENANT_ID?.toLowerCase() !== dynamicsTenant) throw new JobsSetupRequired();
+  return { origin, prefix, credential: new ManagedIdentityCredential() };
+}
 
 export class JobsDataverse {
   private readonly metadata = new Map<Table, Promise<Metadata>>();
@@ -74,6 +96,17 @@ export class JobsDataverse {
     try { return await (await this.call(meta.EntitySetName + "(" + id + ")?" + query)).json() as Row; }
     catch (error) { if (error instanceof HttpError && error.status === 404) return null; throw error; }
   }
+  // Test authenticated reads without requesting any applicant data.
+  async verifyReads() {
+    const tables: Table[] = ["jobprofile", "jobentry", "jobvacancy"];
+    await Promise.all(tables.map(async table => {
+      const meta = await this.describe(table);
+      const query = new URLSearchParams({ "$select": meta.PrimaryIdAttribute, "$filter": meta.PrimaryIdAttribute + " eq null", "$top": "1" });
+      const response = await this.call(meta.EntitySetName + "?" + query);
+      const page = await response.json() as { value?: unknown };
+      if (!Array.isArray(page.value) || page.value.length !== 0) throw unavailable();
+    }));
+  }
   // The vacancy check and insertion are one transaction. Closing a vacancy concurrently
   // invalidates the ETag, and a second application from the same person cannot be inserted.
   async submit(vacancyId: string, vacancyVersion: string, entryId: string, data: Row) {
@@ -102,7 +135,7 @@ export class JobsDataverse {
 let database: JobsDataverse | undefined;
 export function jobsDatabase() {
   if (database) return database;
-  const identity = new ManagedIdentityCredential();
-  database = new JobsDataverse((process.env.JOBS_DATAVERSE_URL || "").replace(/\/$/, ""), process.env.JOBS_DATAVERSE_PREFIX || "", scope => identity.getToken(scope));
+  const { origin, prefix, credential } = jobsConnection(process.env);
+  database = new JobsDataverse(origin, prefix, scope => credential.getToken(scope));
   return database;
 }

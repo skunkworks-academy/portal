@@ -441,9 +441,17 @@ export async function upsertMyProfile(input: PortalProfileInput, principal: Prin
     UpdatedAt: new Date().toISOString()
   };
 
-  const item = existing
-    ? await patchItem("PortalProfiles", existing.id, fields)
-    : await createItem("PortalProfiles", fields);
+  let item;
+  if (existing) {
+    item = await patchItem("PortalProfiles", existing.id, fields);
+  } else {
+    const created = await createItem("PortalProfiles", fields);
+    // Graph can acknowledge creation with just the list item identifier.
+    const site = await siteId();
+    const list = await listId("PortalProfiles");
+    item = await graph<{ id: string; fields: Record<string, unknown> }>(
+      `/sites/${site}/lists/${list}/items/${created.id}?$expand=fields`);
+  }
   await audit("ProfileUpdated", principal, item.id);
   return toPortalProfile(item);
 }

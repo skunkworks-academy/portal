@@ -31,6 +31,10 @@ function confirmedProfile(value: unknown): value is PortalProfile {
   return Boolean(fieldsFrom(value) && profile && typeof profile.id === "string" && profile.id && roles.includes(profile.portalRole));
 }
 
+function matchesEdits(profile: unknown, fields: EditableProfile): profile is PortalProfile {
+  return confirmedProfile(profile) && (Object.keys(fields) as (keyof EditableProfile)[]).every(key => profile[key] === fields[key]);
+}
+
 /** Own-profile requests are injected so tests never contact the real account service. */
 export class AccountProfileController {
   private state: ProfileState;
@@ -110,10 +114,15 @@ export class AccountProfileController {
     const revision = this.revision;
     this.update({ saving: true, error: "", notice: "", draftStored: this.rememberDraft(fields) });
     try {
-      const saved = await this.service.save({ ...fields, portalRole: this.serverRole });
+      let saved: PortalProfile | null;
+      try { saved = await this.service.save({ ...fields, portalRole: this.serverRole }); }
+      catch { saved = null; }
       if (!this.active || generation !== this.generation) return;
-      if (!confirmedProfile(saved) || Object.keys(fields).some(key => saved[key as keyof EditableProfile] !== fields[key as keyof EditableProfile])) {
-        throw new Error("Profile service did not confirm the submitted fields");
+      if (!matchesEdits(saved, fields)) {
+        // A write can commit before its response or the following audit operation fails.
+        saved = await this.service.load();
+        if (!this.active || generation !== this.generation) return;
+        if (!matchesEdits(saved, fields)) throw new Error("Profile changes could not be verified");
       }
       this.serverRole = saved.portalRole;
       if (revision !== this.revision) {

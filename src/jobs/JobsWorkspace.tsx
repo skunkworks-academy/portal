@@ -11,8 +11,13 @@ type Write = (route: string, method: string, body: object, success: string) => P
 const directory = "https://jobs.skunkworksacademy.com/";
 const value = (form: FormData, key: string) => String(form.get(key) ?? "");
 const dateLabel = (day: string) => new Intl.DateTimeFormat("en-ZA", { day: "numeric", month: "short", year: "numeric" }).format(new Date(day + "T12:00:00"));
-function problem(error: unknown) {
+function problem(error: unknown, loading = false) {
   const status = (error as { status?: number })?.status;
+  if (status === 503 && error instanceof Error && error.message.includes('"jobs_setup_required"')) {
+    return "The Academy is connecting its Jobs database. You can use Skunkie and browse the jobs directory in the meantime.";
+  }
+  if (status === 503 || (loading && status === 404)) return "Jobs data is temporarily unavailable. You can still use Skunkie and browse the jobs directory.";
+  if (status === 404) return "This vacancy or tracker entry is no longer available. Refresh to see your current records.";
   if (status === 409) return "This record changed. Refresh and check the latest version before trying again.";
   if (status === 401 || status === 403) return "Your account could not access this operation. Check the account you used to sign in.";
   if (status === 400) return "Check the information you entered and try again.";
@@ -133,7 +138,7 @@ export function JobsWorkspace({ auth, onSignOut }: { auth: Auth; onSignOut: () =
           const hr = await get<RecruitmentDashboard>("/recruitment", c.signal);
           if (!c.signal.aborted) setHiring(hr);
         } else setHiring(null);
-      } catch (e) { if (!c.signal.aborted) { setData(null); setHiring(null); setError(problem(e)); } }
+      } catch (e) { if (!c.signal.aborted) { setData(null); setHiring(null); setError(problem(e, true)); } }
       finally { if (!c.signal.aborted) setBusy(false); }
     }
     void reload(); return () => c.abort();

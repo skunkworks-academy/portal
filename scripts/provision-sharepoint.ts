@@ -189,6 +189,10 @@ const classSeeds = [
 
 async function main() {
   const site = await graph<{ id: string }>(`/sites/${hostname}:${sitePath}`);
+  if (process.argv.includes("--profile-schema")) {
+    await ensureProfileSchema(site.id);
+    return;
+  }
   const existingLists = await graph<{ value: Array<{ displayName: string }> }>(`/sites/${site.id}/lists?$select=displayName`);
   const existingNames = new Set(existingLists.value.map((list) => list.displayName));
 
@@ -225,6 +229,53 @@ async function main() {
 
   await seedList(site.id, "Courses", courseSeeds);
   await seedList(site.id, "ClassSessions", classSeeds);
+}
+
+async function schemaCollection<T>(path: string): Promise<T[]> {
+  const values: T[] = [];
+  let next: string | undefined = path;
+  while (next) {
+    const page: { value: T[]; "@odata.nextLink"?: string } = await graph(next);
+    values.push(...page.value);
+    next = undefined;
+    if (page["@odata.nextLink"]) {
+      const target = new URL(page["@odata.nextLink"]);
+      if (target.origin !== "https://graph.microsoft.com" || target.pathname !== "/v1.0" + path.split("?")[0]) throw new Error("Unexpected schema page");
+      next = target.pathname.slice("/v1.0".length) + target.search;
+    }
+  }
+  return values;
+}
+
+/** Maintain only the two lists used by a profile save. Do not read or seed any list items. */
+async function ensureProfileSchema(siteId: string) {
+  const root = `/sites/${siteId}/lists`;
+  const available = await schemaCollection<{ id: string; displayName: string }>(root + "?$select=id,displayName");
+  for (const definition of lists.filter(list => ["PortalProfiles", "AuditEvents"].includes(list.displayName))) {
+    const matches = available.filter(list => list.displayName === definition.displayName);
+    if (matches.length > 1) throw new Error("Ambiguous profile list: " + definition.displayName);
+    const existing = matches[0] ?? await graph<{ id: string }>(root, {
+      method: "POST", body: JSON.stringify({ displayName: definition.displayName, list: { template: "genericList" }, columns: definition.columns })
+    });
+    const path = root + "/" + existing.id + "/columns";
+    const readColumns = async () => {
+      const visible = await schemaCollection<{ name: string; readOnly?: boolean }>(path + "?$select=name,readOnly");
+      return new Map(visible.map(column => [column.name, column]));
+    };
+    const found = await readColumns();
+    for (const spec of definition.columns) {
+      if (found.has(spec.name)) continue;
+      try { await graph(path, { method: "POST", body: JSON.stringify(spec) }); }
+      catch (error) { if (!(await readColumns()).has(spec.name)) throw error; }
+      console.log("Provisioned profile schema column " + definition.displayName + "." + spec.name);
+    }
+    const verified = await readColumns();
+    for (const spec of definition.columns) {
+      const column = verified.get(spec.name);
+      if (!column || column.readOnly) throw new Error("Unavailable profile column: " + definition.displayName + "." + spec.name);
+    }
+    console.log("Verified profile schema for " + definition.displayName);
+  }
 }
 
 async function seedList(siteId: string, displayName: string, rows: Array<Record<string, unknown>>) {

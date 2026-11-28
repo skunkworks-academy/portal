@@ -86,6 +86,16 @@ describe("own Academy profile persistence", () => {
     expect(controller.getSnapshot().error).toContain("could not be confirmed");
   });
 
+  it("confirms a committed write by reading the same account after a lost save response", async () => {
+    const persisted = { ...saved, bio: "Changed" };
+    const api = service({ save: vi.fn().mockRejectedValue(new Error("Lost response")), load: vi.fn().mockResolvedValueOnce(saved).mockResolvedValueOnce(persisted) });
+    const controller = new AccountProfileController("A", "Test", "Staff", api, storage());
+    controller.start(); await tick(); controller.edit("bio", "Changed"); await controller.save();
+    expect(api.save).toHaveBeenCalledTimes(1); expect(api.load).toHaveBeenCalledTimes(2);
+    expect(controller.getSnapshot().notice).toContain("saved to your Academy account");
+    expect(controller.getSnapshot().dirty).toBe(false);
+  });
+
   it("remains editable when draft storage is blocked and reports its actual scope", async () => {
     const blocked = storage(); blocked.setItem = () => { throw new Error("blocked"); };
     const controller = new AccountProfileController("A", "Name", "Staff", service(), blocked);
