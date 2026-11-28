@@ -37,6 +37,8 @@ on:
       - infra/**
       - scripts/bootstrap-azure-oidc.ps1
       - scripts/verify-protected-api-route.sh
+      - scripts/check-portal-profile-route.sh
+      - scripts/provision-sharepoint.ts
       - scripts/verify-skunkie-activation.py
       - .github/workflows/deploy-azure-function.yml
 
@@ -459,6 +461,9 @@ jobs:
             echo "::error::Jobs storage failed the production read check (HTTP $jobs_status)."
             exit 1
           fi
+
+      - name: Verify the Academy profile browser route
+        run: bash scripts/check-portal-profile-route.sh
 
       - name: Verify and repair Academy profile list columns
         env:

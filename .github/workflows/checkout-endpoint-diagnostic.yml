@@ -51,6 +51,12 @@ jobs:
           probe azure_staff_applications 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/staff/applications'
           probe azure_me_profile 'https://skunkworks-academy-portal-api-za.azurewebsites.net/api/me/profile'
 
+      - uses: actions/checkout@v4
+      - name: Check the Academy profile browser route
+        run: bash scripts/check-portal-profile-route.sh
+      - name: Report the currently deployed Jobs route
+        run: curl --silent --show-error --max-time 20 -o /dev/null -w 'Unauthenticated Jobs workspace HTTP %{http_code}\n' https://api.skunkworksacademy.com/api/jobs-workspace
+
       - name: Require public Portal API health
         shell: bash
         run: |
