@@ -21,6 +21,7 @@ function check(stage: string, profile: PortalProfile | null, expected: PortalPro
   if (!profile?.id || profile.objectId !== principal.subject || profile.email !== principal.email) {
     throw new Error(stage + " did not return the verification profile.");
   }
+  if (!profile.updatedAt || !Number.isFinite(Date.parse(profile.updatedAt))) throw new Error(stage + " did not return the saved timestamp.");
   const fields = ["displayName", "phone", "location", "bio", "portalRole"] as const;
   const mismatches = fields.filter(field => profile[field] !== expected[field]);
   if (mismatches.length) {

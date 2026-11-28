@@ -5,7 +5,7 @@ import type { ApplicationRecord, ClassInput, ClassRegistrationRecord, ClassSessi
 import { portalRoleFromPrincipal, type Principal } from "./auth.js";
 
 const graphRoot = "https://graph.microsoft.com/v1.0";
-const profileFields = "fields($select=Title,ObjectId,DisplayName,Email,PortalRole,Phone,Location,Bio,CvFileName,CvDocumentUrl)";
+const profileFields = "fields($select=Title,ObjectId,DisplayName,Email,PortalRole,Phone,Location,Bio,CvFileName,CvDocumentUrl,UpdatedAt)";
 let credential: ClientSecretCredential | undefined;
 let siteIdCache: string | undefined;
 const listIdCache = new Map<string, string>();
