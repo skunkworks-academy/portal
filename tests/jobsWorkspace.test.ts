@@ -72,6 +72,7 @@ describe("Jobs candidate and recruiter boundaries", () => {
     rows.set("jobprofile" + candidateId, {});
     await service.track(candidate, draft); await service.track(candidate, draft);
     expect(rows.size).toBe(2);
+    await expect(service.track(candidate, { ...draft, title: "Different role" })).rejects.toMatchObject({ status: 409 });
     const { requestId: _id, ...update } = draft;
     await expect(service.track(second, { ...update, version: ver }, entry)).rejects.toMatchObject({ status: 404 });
     await expect(service.track(candidate, { ...update, version: 'W/"2"' }, entry)).rejects.toMatchObject({ status: 409 });

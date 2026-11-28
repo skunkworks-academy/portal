@@ -88,7 +88,10 @@ export class JobsWorkspace {
   private async createOnce(table: Table, id: string, data: Row) {
     try { await this.db.write(table, id, data, null); }
     catch (error) {
-      if (!(error instanceof HttpError) || error.status !== 409 || !await this.db.get(table, id, [])) throw error;
+      if (!(error instanceof HttpError) || error.status !== 409) throw error;
+      const columns = Object.keys(data).filter(key => !key.endsWith("@odata.bind"));
+      const existing = await this.db.get(table, id, columns);
+      if (!existing || columns.some(key => (existing[key] ?? "") !== (data[key] ?? ""))) throw error;
     }
   }
   async track(person: Principal, input: Row, entryId?: string) {
