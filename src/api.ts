@@ -100,6 +100,10 @@ type LmsAuth = { instance: IPublicClientApplication; account: AccountInfo };
 export type AcademyBeginnerAward={version:1;certificateId:string;courseId:string;learnerName:string;issuedAt:string;knowledgeCorrect:number;capstoneScore:number;criticalSafetyPassed:true;approvedBy:string;issuer:string;certificateSvg:string;badgeSvg:string};
 export type AcademyEnrolment={id:string;courseId:string;courseTitle:string;learnerName:string;learnerEmail:string;status:string};
 
+export function jobsRequest<T>(path: string, options: RequestInit, auth: LmsAuth) {
+  return request<T>("/jobs-workspace" + path, options, auth);
+}
+
 export const portalApi = {
   contactEnquiries: (auth: { instance: IPublicClientApplication; account: AccountInfo }) => request<Array<{ id: string; name: string; email: string; topic: string; message: string; createdAt: string }>>("/staff/contact-enquiries", { cache: "no-store" }, auth),
   skunkieBindCurriculum: (courseId: string, binding: Omit<CurriculumBinding, "courseId">, auth: LmsAuth) => request<CurriculumBinding>(`/staff/skunkie/curriculum/${encodeURIComponent(courseId)}`, { method: "PUT", body: JSON.stringify(binding) }, auth),

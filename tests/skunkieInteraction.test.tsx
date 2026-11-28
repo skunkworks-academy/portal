@@ -11,7 +11,7 @@ vi.mock("../src/skunkie-motion-renderer", async importOriginal => ({
 }));
 import { LearnerOnboardingGate } from "../src/LearnerOnboardingGate";
 import { readSkunkiePreferences, saveSkunkiePreferences } from "../src/skunkie-preferences";
-const auth = vi.hoisted(() => ({ accounts: [{ homeAccountId: "account-a" }], instance: { acquireTokenSilent: vi.fn() } }));
+const auth = vi.hoisted(() => ({ accounts: [{ homeAccountId: "account-a" }], instance: { acquireTokenSilent: vi.fn(), getActiveAccount: vi.fn() } }));
 const api = vi.hoisted(() => ({ mySkunkieAssessment: vi.fn() }));
 vi.mock("@azure/msal-react", () => ({ useMsal: () => auth }));
 vi.mock("../src/api", () => ({ portalApi: api }));
@@ -35,6 +35,31 @@ beforeEach(() => {
   host = document.createElement("div"); document.body.append(host); root = createRoot(host);
 });
 afterEach(() => { act(() => root.unmount()); host.remove(); vi.restoreAllMocks(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.useRealTimers(); });
+
+describe("signed-in jobs companion", () => {
+  beforeEach(() => history.replaceState({}, "", "/?workspace=jobs"));
+  afterEach(() => history.replaceState({}, "", "/"));
+
+  it.each([true, false])("answers locally and isolates the guide from Azure AI when eligible=%s", async eligible => {
+    const fetch = vi.fn(async (url: string, _init?: RequestInit) => new Response(JSON.stringify(url.endsWith("/status")
+      ? { available: eligible, reason: eligible ? undefined : "not_eligible" } : { reply: "Test AI reply" })));
+    vi.stubGlobal("fetch", fetch);
+    await render(<SkunkieCompanion />);
+    await act(async () => { window.dispatchEvent(new Event("academy:open-jobs-companion")); });
+    enter("Compare salary in my private search"); await submit();
+    expect(host.querySelector('[role="log"]')?.textContent).toContain("base pay and benefits");
+    expect(fetch.mock.calls.filter(([url]) => url.endsWith("/chat"))).toHaveLength(0);
+    if (eligible) {
+      click("Switch to Azure AI chat"); enter("Prepare interview questions"); await submit();
+      const chat = fetch.mock.calls.find(([url]) => url.endsWith("/chat"));
+      expect(chat?.[1]?.body).toContain("Prepare interview questions");
+      expect(chat?.[1]?.body).not.toContain("my private search");
+      expect(host.querySelector('[role="log"]')?.textContent).toContain("Test AI reply");
+    } else {
+      expect(host.textContent).not.toContain("Switch to Azure AI chat");
+    }
+  });
+});
 
 describe("avatar-first Skunky", () => {
   it("discloses global message processing separately from browser microphone access before sending", async () => {

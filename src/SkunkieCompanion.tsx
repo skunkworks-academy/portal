@@ -2,6 +2,8 @@ import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from
 import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
 import { apiScope } from "./authConfig";
+import { isJobsPage, selectedPortalAccount } from "./jobs/account";
+import { careerExercises, careerGuideReply } from "./jobs/career-guide";
 import { PortalApiError } from "./api-error";
 import { learningErrorMessage } from "./learning-errors";
 import { SkunkieAvatar } from "./SkunkieAvatar";
@@ -35,7 +37,7 @@ function apiBaseUrl() {
 }
 
 export function SkunkieCompanion() {
-  const { accounts } = useMsal();
+  const { accounts, instance } = useMsal();
   const [onboarding, setOnboarding] = useState(() => typeof document !== "undefined" && document.body.hasAttribute("data-portal-onboarding"));
   useEffect(() => {
     const update = (event: Event) => setOnboarding((event as CustomEvent<{ active: boolean }>).detail?.active === true);
@@ -44,14 +46,22 @@ export function SkunkieCompanion() {
     setOnboarding(document.body.hasAttribute("data-portal-onboarding"));
     return () => window.removeEventListener("skunkworksacademy:onboarding-state", update);
   }, []);
-  const account = accounts[0];
+  const account = selectedPortalAccount(accounts, instance);
   // Keying destroys all conversation/voice/request state before another account renders.
   return account ? <AccountSkunkie key={account.homeAccountId} account={account} suppressed={onboarding} /> : null;
 }
 
 function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppressed: boolean }) {
   const { instance } = useMsal();
+  const jobs = isJobsPage();
+  const companion = jobs ? "Skunkie" : "Skunky";
   const [open, setOpen] = useState(false);
+  useEffect(() => {
+    if (!jobs || suppressed) return;
+    const show = () => setOpen(true);
+    window.addEventListener("academy:open-jobs-companion", show);
+    return () => window.removeEventListener("academy:open-jobs-companion", show);
+  }, [jobs, suppressed]);
   const [busy, setBusy] = useState(false);
   const [input, setInput] = useState("");
   const [chatError, setChatError] = useState("");
@@ -65,7 +75,12 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
   const [preferences, setPreferences] = useState(() => readSkunkiePreferences(account.homeAccountId));
   const preferenceRef = useRef(preferences); preferenceRef.current = preferences;
   const [serviceState, setServiceState] = useState<"unknown" | "configured" | "ready" | "unavailable">("unknown");
-  const [messages, setMessages] = useState<ChatMessage[]>([greeting]);
+  const [messages, setMessages] = useState<ChatMessage[]>([jobs ? { role: "assistant", content: "What would you like to work on? Choose a career exercise or write a question about your job search." } : greeting]);
+  const [guideMessages, setGuideMessages] = useState<ChatMessage[]>([{ role: "assistant", content: "What are you working on in your job search? Ask about vacancies, CVs, interviews, pay or following up." }]);
+  const [useJobsAi, setUseJobsAi] = useState(false);
+  const canUseJobsAi = (serviceState === "configured" || serviceState === "ready") && !allowance?.exhausted && statusReason !== "not_eligible";
+  const guided = jobs && !useJobsAi;
+  const visibleMessages = guided ? guideMessages : messages;
   const [wave, setWave] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -74,13 +89,17 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
   const generation = useRef(0);
   const allowanceGeneration = useRef(0);
   const voice = useSkunkieVoice(account.homeAccountId, open && !suppressed, text => setInput(current => `${current}${current.trim() ? " " : ""}${text}`.slice(0, 4000)));
-  const pageContext = useMemo(() => ({ title: document.title, path: window.location.pathname, heading: document.querySelector("h1")?.textContent?.trim() || undefined }), [open]);
+  const pageContext = useMemo(() => jobs ? { mode: "jobs", title: "Academy Jobs", path: "/", heading: "Career workspace" } : ({ title: document.title, path: window.location.pathname, heading: document.querySelector("h1")?.textContent?.trim() || undefined }), [open, jobs]);
 
   function cancelRequest() {
     if (requestRef.current) setAllowanceStale(true);
     generation.current++; requestRef.current?.abort(); requestRef.current = null; setBusy(false);
   }
-  function close() { cancelRequest(); voice.stopAudio(); setOpen(false); launcherRef.current?.focus({ preventScroll: true }); }
+  function close() {
+    cancelRequest(); voice.stopAudio(); setOpen(false);
+    const trigger = jobs ? document.getElementById("jobs-open-skunkie") : launcherRef.current;
+    trigger?.focus({ preventScroll: true });
+  }
   function changePreference(change: Partial<typeof preferences>) {
     const next = { ...preferences, ...change }; setPreferences(next);
     setPreferenceNotice(saveSkunkiePreferences(account.homeAccountId, next) ? "" : "This browser cannot remember the choice. It still applies for this session.");
@@ -105,7 +124,7 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
     // Measure after React commits the new reply; instant scrolling respects reduced motion.
     const log = logRef.current;
     log?.scrollTo({ top: log.scrollHeight, behavior: "instant" });
-  }, [messages, open, suppressed]);
+  }, [visibleMessages, open, suppressed]);
 
   useEffect(() => {
     if (!open) return;
@@ -140,10 +159,19 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
     return () => { cancelled = true; controller.abort(); };
   }, [open, account.homeAccountId, instance, statusRequest]);
 
+  function guide(question: string) {
+    voice.stopAudio();
+    const reply = careerGuideReply(question);
+    setGuideMessages(previous => [...previous, { role: "user", content: question }, { role: "assistant", content: reply }]);
+    if (preferenceRef.current.readReplies) voice.speak(reply);
+  }
+
   async function send(event: FormEvent) {
     event.preventDefault();
     const message = input.trim();
-    if (!message || busy || allowance?.exhausted || statusReason === "not_eligible") return;
+    if (!message || busy) return;
+    if (guided) { guide(message); setInput(""); return; }
+    if (allowance?.exhausted || statusReason === "not_eligible") return;
     // A delayed opening-status response must not replace the budget returned by this chat.
     allowanceGeneration.current++; setCheckingAllowance(false);
     voice.stopAudio(); setBusy(true); setChatError("");
@@ -196,21 +224,21 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
   }
 
   const activity = voice.listening ? "listening" : voice.speaking ? "speaking" : busy ? "thinking" : wave ? "wave" : "idle";
-  if (suppressed) return null;
-  return <aside className={`skunkie ${open ? "skunkie--open" : ""} ${preferences.showAvatar ? "" : "skunkie--chat-only"}`} aria-label="Skunky AI learning companion">
+  if (suppressed || (jobs && !open)) return null;
+  return <aside className={`skunkie ${open ? "skunkie--open" : ""} ${preferences.showAvatar ? "" : "skunkie--chat-only"}`} aria-label={companion + " AI learning companion"}>
     {open && <section id="skunkie-panel" className="skunkie__panel" role="dialog" aria-modal="false" aria-labelledby="skunkie-title">
-      <header className="skunkie__header"><div><strong id="skunkie-title">Skunky</strong><span>Learning companion</span></div>
-        <button type="button" ref={closeRef} onClick={close} aria-label="Close Skunky">×</button></header>
+      <header className="skunkie__header"><div><strong id="skunkie-title">{companion}</strong><span>{jobs ? "Jobs companion" : "Learning companion"}</span></div>
+        <button type="button" ref={closeRef} onClick={close} aria-label={"Close " + companion}>×</button></header>
       <div className="skunkie__messages" ref={logRef} role="log" aria-live="polite" aria-relevant="additions text">
-        {messages.map((item, index) => <div key={`${item.role}-${index}`} className={`skunkie__message skunkie__message--${item.role}`}>{item.content}</div>)}
+        {visibleMessages.map((item, index) => <div key={`${item.role}-${index}`} className={`skunkie__message skunkie__message--${item.role}`}>{item.content}</div>)}
         {busy && <p role="status">Thinking… <button type="button" onClick={cancelRequest}>Cancel response</button></p>}
       </div>
       {chatError && <div className="skunkie__error" role="alert"><p>{chatError}</p><button type="button" onClick={() => setChatError("")}>Dismiss</button></div>}
       {serviceState === "unavailable" && !chatError && !statusError && statusReason !== "not_eligible" && <p className="skunkie__service-notice" role="status">The learning service is currently unavailable. Your question will be retained if sending fails.</p>}
-      {statusError && !chatError && <p className="skunkie__service-notice" role="status">{statusError}</p>}
+      {statusError && !chatError && !guided && <p className="skunkie__service-notice" role="status">{statusError}</p>}
       <div id="skunkie-allowance" className="skunkie__allowance" aria-label="Monthly AI allowance">
         <div role="status" aria-live="polite">
-          {statusReason === "not_eligible" ? <p>Skunky’s monthly AI allowance is available to Student accounts. This account is not eligible.</p> : allowance ? <>
+          {statusReason === "not_eligible" ? <p>{jobs ? "Guided career exercises are available. AI chat uses the Academy student allowance." : "Skunky’s monthly AI allowance is available to Student accounts. This account is not eligible."}</p> : allowance ? <>
             <p><strong>{allowanceStale ? "Last confirmed allowance" : "Monthly AI allowance"}:</strong> {allowanceAmount(allowance.remainingUsd)} of US$1.00 available.</p>
             <p>Available allowance excludes pending reply reservations. Resets <time dateTime={allowance.resetsAt}>{allowanceReset(allowance.resetsAt)}</time>.</p>
             {allowance.exhausted && <p>You cannot start another reply under this month’s allowance. You can keep editing your question.</p>}
@@ -218,11 +246,16 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
         </div>
         <button type="button" disabled={busy || checkingAllowance} onClick={() => setStatusRequest(value => value + 1)}>{checkingAllowance ? "Checking allowance…" : "Check allowance"}</button>
       </div>
-      <p id="skunkie-processing" className="skunkie__notice">When you send, Azure AI processes your message, recent chat history and page context globally. Microphone input is a separate browser feature.</p>
-      <div className="skunkie__quick-actions" aria-label="Suggested prompts">{["Explain this page", "Quiz me", "Give me a hint"].map(prompt => <button key={prompt} type="button" onClick={() => setInput(prompt)}>{prompt}</button>)}</div>
-      <form className="skunkie__form" onSubmit={event => void send(event)}><label htmlFor="skunkie-input" className="sr-only">Ask Skunky</label>
-        <textarea id="skunkie-input" value={input} onChange={event => setInput(event.target.value)} aria-describedby="skunkie-allowance skunkie-processing" maxLength={4000} rows={2} placeholder="Ask Skunky…" />
-        <button type="submit" disabled={busy || !input.trim() || allowance?.exhausted || statusReason === "not_eligible"}>Send</button></form>
+      {jobs && (canUseJobsAi || useJobsAi) && <div className="skunkie__quick-actions"><button type="button" disabled={busy} onClick={() => {
+        setUseJobsAi(!useJobsAi); setInput(""); setChatError(""); voice.stopAudio();
+      }}>{guided ? "Switch to Azure AI chat" : "Switch to the career guide"}</button></div>}
+      <p id="skunkie-processing" className="skunkie__notice">{guided ? "Career guide. Your typed questions stay in this browser. Choose an exercise or ask a question below." : "When you send, Azure AI processes your message, recent chat history and page context globally. Microphone input is a separate browser feature."}</p>
+      {guided && <div className="skunkie__quick-actions" aria-label="Guided career exercises">{Object.keys(careerExercises).map(label =>
+        <button type="button" key={label} disabled={busy} onClick={() => guide(label)}>{label}</button>)}</div>}
+      {!jobs && <div className="skunkie__quick-actions" aria-label="Suggested prompts">{["Explain this page", "Quiz me", "Give me a hint"].map(prompt => <button key={prompt} type="button" onClick={() => setInput(prompt)}>{prompt}</button>)}</div>}
+      <form className="skunkie__form" onSubmit={event => void send(event)}><label htmlFor="skunkie-input" className="sr-only">Ask {companion}</label>
+        <textarea id="skunkie-input" value={input} onChange={event => setInput(event.target.value)} aria-describedby="skunkie-allowance skunkie-processing" maxLength={4000} rows={2} placeholder={"Ask " + companion + "…"} />
+        <button type="submit" disabled={busy || !input.trim() || (!guided && (allowance?.exhausted || statusReason === "not_eligible"))}>Send</button></form>
       <div className="skunkie__voice-controls">
         {voice.canListen ? <button type="button" onClick={voice.starting || voice.listening ? voice.stopListening : voice.startListening} disabled={busy}>{voice.starting ? "Cancel microphone startup" : voice.listening ? "Stop microphone" : "Use microphone"}</button> : <span>{voice.unavailableReason}</span>}
         {voice.canSpeak && <label><input type="checkbox" checked={preferences.readReplies} onChange={event => changePreference({ readReplies: event.target.checked })} /> Read replies aloud</label>}
@@ -233,10 +266,10 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
       {(voice.notice || preferenceNotice) && <p role="status" className="skunkie__notice">{voice.notice || preferenceNotice}</p>}
       <div className="skunkie__preferences"><button type="button" onClick={() => changePreference({ showAvatar: !preferences.showAvatar })}>{preferences.showAvatar ? "Hide avatar · chat only" : "Show Skunky avatar"}</button><small>AI can make mistakes. Verify important information.</small></div>
     </section>}
-    <button type="button" className="skunkie__launcher" ref={launcherRef} onClick={() => open ? close() : setOpen(true)} aria-expanded={open} aria-controls="skunkie-panel" aria-label={open ? "Close Skunky AI learning companion" : "Open Skunky AI learning companion"}>
+    <button type="button" className="skunkie__launcher" ref={launcherRef} onClick={() => open ? close() : setOpen(true)} aria-expanded={open} aria-controls="skunkie-panel" aria-label={(open ? "Close " : "Open ") + companion + " AI learning companion"}>
       {preferences.showAvatar && <SkunkieAvatar activity={activity} />}
       <span className={`skunkie__status skunkie__status--${serviceState}`} aria-hidden="true" />
-      <span className="skunkie__label">{voice.listening ? "Listening…" : voice.speaking ? "Speaking…" : busy ? "Thinking…" : open ? "Skunky" : "Ask Skunky"}</span>
+      <span className="skunkie__label">{voice.listening ? "Listening…" : voice.speaking ? "Speaking…" : busy ? "Thinking…" : open ? companion : "Ask " + companion}</span>
     </button>
   </aside>;
 }

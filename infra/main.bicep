@@ -33,6 +33,12 @@ param sharePointHostname string = '202025721807skunkworks.sharepoint.com'
 @description('Server-relative SharePoint site path used for learner-enrolment records.')
 param sharePointSitePath string = '/sites/InstructorPortal'
 
+@description('Dataverse environment origin for the Jobs workspace.')
+param jobsDataverseUrl string = ''
+
+@description('Publisher prefix of the installed Jobs solution.')
+param jobsDataversePrefix string = ''
+
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
   location: location
@@ -52,6 +58,8 @@ module portalApi './portal-api.bicep' = {
     allowedOrigins: allowedOrigins
     sharePointHostname: sharePointHostname
     sharePointSitePath: sharePointSitePath
+    jobsDataverseUrl: jobsDataverseUrl
+    jobsDataversePrefix: jobsDataversePrefix
   }
 }
 

@@ -33,6 +33,7 @@ on:
       - package.json
       - package-lock.json
       - tsconfig.api.json
+      - src/jobs/model.ts
       - infra/**
       - scripts/bootstrap-azure-oidc.ps1
       - scripts/verify-protected-api-route.sh
@@ -84,6 +85,8 @@ jobs:
       PORTAL_ALLOWED_ORIGINS: ${{ vars.PORTAL_ALLOWED_ORIGINS || 'https://portal.skunkworksacademy.com,http://localhost:5173' }}
       PORTAL_SHAREPOINT_HOSTNAME: ${{ vars.PORTAL_SHAREPOINT_HOSTNAME || '202025721807skunkworks.sharepoint.com' }}
       PORTAL_SHAREPOINT_SITE_PATH: ${{ vars.PORTAL_SHAREPOINT_SITE_PATH || '/sites/InstructorPortal' }}
+      JOBS_DATAVERSE_URL: ${{ vars.JOBS_DATAVERSE_URL }}
+      JOBS_DATAVERSE_PREFIX: ${{ vars.JOBS_DATAVERSE_PREFIX }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -165,7 +168,9 @@ jobs:
                 apiScope="$PORTAL_API_SCOPE" \
                 allowedOrigins="$PORTAL_ALLOWED_ORIGINS" \
                 sharePointHostname="$PORTAL_SHAREPOINT_HOSTNAME" \
-                sharePointSitePath="$PORTAL_SHAREPOINT_SITE_PATH"
+                sharePointSitePath="$PORTAL_SHAREPOINT_SITE_PATH" \
+                jobsDataverseUrl="$JOBS_DATAVERSE_URL" \
+                jobsDataversePrefix="$JOBS_DATAVERSE_PREFIX"
 
       - name: Restore protected API credential
         uses: azure/cli@v2

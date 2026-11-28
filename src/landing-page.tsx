@@ -4,13 +4,14 @@ import "./landing-page.css";
 type PortalLandingProps = {
   onSignIn: () => Promise<void> | void;
   startupNotice?: string;
+  jobs?: boolean;
 };
 
 /**
  * The anonymous portal entry deliberately renders no workspace navigation,
  * dashboards, module previews, record counts or authenticated UI.
  */
-export function PortalLanding({ onSignIn, startupNotice = "" }: PortalLandingProps) {
+export function PortalLanding({ onSignIn, startupNotice = "", jobs = false }: PortalLandingProps) {
   const [signInError, setSignInError] = useState("");
   const [redirecting, setRedirecting] = useState(false);
 
@@ -44,8 +45,8 @@ export function PortalLanding({ onSignIn, startupNotice = "" }: PortalLandingPro
       <main className="academy-login-main" id="main" tabIndex={-1}>
         <div className="academy-login-stage">
           <div className="academy-login-intro">
-            <h1>Academy portal</h1>
-            <p>Access your courses, learning records and Academy profile.</p>
+            <h1>{jobs ? "Academy Jobs" : "Academy portal"}</h1>
+            <p>{jobs ? "Track your applications, find vacancies and prepare with Skunkie." : "Access your courses, learning records and Academy profile."}</p>
           </div>
 
           <section className="academy-login-card" aria-labelledby="academy-login-title">
@@ -58,7 +59,7 @@ export function PortalLanding({ onSignIn, startupNotice = "" }: PortalLandingPro
                 <path d="M4 12h15m-6-6 6 6-6 6" />
               </svg>
             </button>
-            <p className="academy-login-first-visit">On your first sign-in, we’ll set up your Academy learner profile.</p>
+            <p className="academy-login-first-visit">{jobs ? "You choose which details to save in your jobs profile." : "On your first sign-in, we’ll set up your Academy learner profile."}</p>
             <details className="academy-login-help">
               <summary>Having trouble signing in?</summary>
               <p>If you opened the portal inside another app, open it directly in Safari or Chrome and try again.</p>
