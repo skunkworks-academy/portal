@@ -22,7 +22,8 @@
       "Portal.Instructor",
       "Portal.Staff",
       "Portal.Admin",
-      "Portal.Automation"
+      "Portal.Automation",
+      "Jobs.Recruiter"
     ],
     "microsoftGraph": {
       "delegated": [
@@ -41,7 +42,8 @@
     "Portal.Student": "Skunkworks Academy Portal - Learners",
     "Portal.Instructor": "Skunkworks Academy Portal - Instructors",
     "Portal.Staff": "Skunkworks Academy Portal - Operations",
-    "Portal.Admin": "Skunkworks Academy Portal - Administrators"
+    "Portal.Admin": "Skunkworks Academy Portal - Administrators",
+    "Jobs.Recruiter": "Skunkworks Academy Jobs - Recruiters"
   },
   "github": {
     "repository": "skunkworks-academy/portal",

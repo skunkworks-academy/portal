@@ -1,5 +1,6 @@
 import { NotificationBell } from "./NotificationBell";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { isJobsPage, selectedPortalAccount } from "./jobs/account";
+import { lazy, Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
 import { ContactInbox } from "./ContactInbox";
 import { useMsal } from "@azure/msal-react";
 import type { AccountInfo } from "@azure/msal-browser";
@@ -43,6 +44,8 @@ import type {
 } from "./types";
 
 const PORTAL_URL = "https://portal.skunkworksacademy.com/";
+
+const JobsWorkspace = lazy(() => import("./jobs/JobsWorkspace").then(module => ({ default: module.JobsWorkspace })));
 
 const emptyJob: JobInput = {
   title: "",
@@ -130,17 +133,19 @@ function formatRole(profile: UserProfile | null, selectedRole: PortalRole) {
 }
 
 export function App({ startupNotice = "" }: { startupNotice?: string }) {
-  const { accounts } = useMsal();
-  const accountKey = accounts[0]?.homeAccountId ?? "signed-out";
-  return <><AccountPreferences accountId={accounts[0]?.homeAccountId ?? null} /><PortalContent key={accountKey} startupNotice={startupNotice} /></>;
+  const { accounts, instance } = useMsal();
+  const account = selectedPortalAccount(accounts, instance);
+  return <><AccountPreferences accountId={account?.homeAccountId ?? null} /><PortalContent key={account?.homeAccountId ?? "signed-out"} startupNotice={startupNotice} /></>;
 }
 
 function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
   const { instance, accounts } = useMsal();
-  const account = accounts[0];
+  const account = selectedPortalAccount(accounts, instance);
   const profile = useMemo(() => getProfile(account), [account]);
   const requestedAccountPage = new URLSearchParams(window.location.search).get("account");
   const accountPage = requestedAccountPage === "profile" || requestedAccountPage === "settings" ? requestedAccountPage : null;
+  const jobsPage = isJobsPage();
+  const independentPage = Boolean(accountPage || jobsPage);
   const [selectedRole, setSelectedRole] = useState<PortalRole>(() => {
     const stored = localStorage.getItem("portalRoleOverride");
     return stored === "Instructor" || stored === "Staff" || stored === "Student" ? stored : "Student";
@@ -212,7 +217,7 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
 
   useEffect(() => {
     // Do not request workspace records before a Microsoft session exists.
-    if (!account || accountPage) {
+    if (!account || independentPage) {
       setServices(loadingServices);
       return;
     }
@@ -247,11 +252,11 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
     return () => {
       cancelled = true;
     };
-  }, [account?.homeAccountId, refreshServices, accountPage]);
+  }, [account?.homeAccountId, refreshServices, independentPage]);
 
   useEffect(() => {
     // Account pages load their own profile and write only on explicit Save.
-    if (!auth || !profile || accountPage) return;
+    if (!auth || !profile || independentPage) return;
     let cancelled = false;
     void run(async () => {
       const existingProfile = await portalApi.myProfile(auth);
@@ -283,30 +288,30 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
       );
     });
     return () => { cancelled = true; };
-  }, [account?.homeAccountId, accountPage]);
+  }, [account?.homeAccountId, independentPage]);
 
   useEffect(() => {
-    if (!auth || accountPage || activeRole !== "Student") return;
+    if (!auth || independentPage || activeRole !== "Student") return;
     void run(async () => {
       setRegistrations(await portalApi.myClasses(auth));
     });
-  }, [account?.homeAccountId, activeRole, accountPage]);
+  }, [account?.homeAccountId, activeRole, independentPage]);
 
   useEffect(() => {
-    if (!auth || accountPage || activeRole !== "Instructor") return;
+    if (!auth || independentPage || activeRole !== "Instructor") return;
     void run(async () => {
       setApplications(await portalApi.myApplications(auth));
     });
-  }, [account?.homeAccountId, activeRole, accountPage]);
+  }, [account?.homeAccountId, activeRole, independentPage]);
 
   useEffect(() => {
-    if (!auth || accountPage || !profile?.isAdmin) return;
+    if (!auth || independentPage || !profile?.isAdmin) return;
     void run(async () => {
       const [nextApplications, nextProfiles] = await Promise.all([portalApi.adminApplications(auth), portalApi.adminProfiles(auth)]);
       setAdminApplications(nextApplications);
       setAdminProfiles(nextProfiles);
     });
-  }, [account?.homeAccountId, profile?.isAdmin, accountPage]);
+  }, [account?.homeAccountId, profile?.isAdmin, independentPage]);
 
   async function registerForClass(classId: string) {
     if (!auth) {
@@ -460,8 +465,10 @@ function PortalContent({ startupNotice = "" }: { startupNotice?: string }) {
   }, [activeRole, profile?.name, account?.homeAccountId, instance, availableRoles.join(",")]);
 
   if (!profile) {
-    return <PortalLanding startupNotice={startupNotice} onSignIn={() => signIn("Student")} />;
+    return <PortalLanding jobs={jobsPage} startupNotice={startupNotice} onSignIn={() => jobsPage ? instance.loginRedirect({ ...loginRequest, redirectStartPage: window.location.origin + "/?workspace=jobs" }) : signIn("Student")} />;
   }
+
+  if (jobsPage && auth) return <Suspense fallback={<main id="main" role="status">Opening your career workspace…</main>}><JobsWorkspace auth={auth} onSignOut={() => void signOut()} /></Suspense>;
 
   const notifications = auth ? <NotificationBell key={account?.homeAccountId} auth={auth} isStaff={Boolean(profile.isAdmin)} loadEvents={Boolean(availableRoles.includes("Student") && (accountPage || activeRole !== "Student"))} classes={classes} registrations={registrations} /> : null;
   if (accountPage && auth) return <PortalAccountLayout>{notifications}<AccountPages page={accountPage} auth={auth} profile={profile} activeRole={activeRole} /></PortalAccountLayout>;

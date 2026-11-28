@@ -91,6 +91,12 @@ $PortalRoles = @(
         allowedMemberTypes = @("User")
     },
     [ordered]@{
+        value = "Jobs.Recruiter"
+        displayName = "Jobs Recruiter"
+        description = "Publish Academy vacancies and review submitted applications."
+        allowedMemberTypes = @("User")
+    },
+    [ordered]@{
         value = "Portal.Automation"
         displayName = "Portal Automation"
         description = "Application access for trusted portal automation."
@@ -102,7 +108,8 @@ $RoleGroups = @(
     [ordered]@{ displayName = "Skunkworks Academy Portal - Learners"; mailNickname = "skw-portal-learners"; role = "Portal.Student" },
     [ordered]@{ displayName = "Skunkworks Academy Portal - Instructors"; mailNickname = "skw-portal-instructors"; role = "Portal.Instructor" },
     [ordered]@{ displayName = "Skunkworks Academy Portal - Operations"; mailNickname = "skw-portal-operations"; role = "Portal.Staff" },
-    [ordered]@{ displayName = "Skunkworks Academy Portal - Administrators"; mailNickname = "skw-portal-administrators"; role = "Portal.Admin" }
+    [ordered]@{ displayName = "Skunkworks Academy Portal - Administrators"; mailNickname = "skw-portal-administrators"; role = "Portal.Admin" },
+    [ordered]@{ displayName = "Skunkworks Academy Jobs - Recruiters"; mailNickname = "skw-jobs-recruiters"; role = "Jobs.Recruiter" }
 )
 
 function Require-Command {

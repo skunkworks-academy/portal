@@ -28,6 +28,9 @@ param sharePointHostname string
 @description('Server-relative SharePoint site path used for learner-enrolment records.')
 param sharePointSitePath string = '/sites/InstructorPortal'
 
+param jobsDataverseUrl string = ''
+param jobsDataversePrefix string = ''
+
 var requestedAllowedOrigins = [for origin in split(allowedOrigins, ','): trim(origin)]
 var parsedAllowedOrigins = union(requestedAllowedOrigins, [
   'https://www.skunkworksacademy.com'
@@ -160,6 +163,14 @@ resource functionApp 'Microsoft.Web/sites@2023-12-01' = {
         supportCredentials: false
       }
       appSettings: [
+        {
+          name: 'JOBS_DATAVERSE_URL'
+          value: jobsDataverseUrl
+        }
+        {
+          name: 'JOBS_DATAVERSE_PREFIX'
+          value: jobsDataversePrefix
+        }
         {
           name: 'LMS_COSMOS_ENDPOINT'
           value: lmsAccount.properties.documentEndpoint

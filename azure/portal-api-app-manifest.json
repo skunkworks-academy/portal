@@ -93,6 +93,16 @@
       "isEnabled": true,
       "origin": "Application",
       "value": "Portal.Automation"
+    },
+    {
+      "allowedMemberTypes": [
+        "User"
+      ],
+      "description": "Publish Academy vacancies and review applications explicitly submitted to Academy recruitment.",
+      "displayName": "Jobs Recruiter",
+      "id": "1c78571c-36c5-429e-aa13-0b029a1f44fe",
+      "isEnabled": true,
+      "value": "Jobs.Recruiter"
     }
   ],
   "requiredResourceAccess": [
