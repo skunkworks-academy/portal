@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import type { AccountInfo, IPublicClientApplication } from "@azure/msal-browser";
 import { jobsRequest } from "../api";
+import { SKUNKIE_STILL_SRC } from "../SkunkieAvatar";
 import { activeStage, localDateKey, metrics, reviewStages, trackerStages, type CareerProfile, type JobEntry, type JobsDashboard, type RecruitmentDashboard, type Vacancy } from "./model";
 import "./workspace.css";
 
@@ -151,6 +152,11 @@ export function JobsWorkspace({ auth, onSignOut }: { auth: Auth; onSignOut: () =
   if (data?.recruiter) tabs.push("Recruitment");
   return <main className="jobs-workspace" id="main"><div className="jw-intro"><div><a href={directory}>Academy Jobs</a><h1>Career workspace</h1><p>{account.name ? "Signed in as " + account.name : "Your signed-in jobs dashboard"}</p></div>
     <button className="jw-neutral" onClick={onSignOut}>Sign out</button></div>
+    <aside className="jw-coach">
+      <img src={SKUNKIE_STILL_SRC} width="64" height="84" alt="" />
+      <div><h2>Skunkie AI learning companion</h2><p>Practise an interview, tailor your CV or plan your next follow-up.</p></div>
+      <button id="jobs-open-skunkie" aria-haspopup="dialog" onClick={() => window.dispatchEvent(new Event("academy:open-jobs-companion"))}>Ask Skunkie</button>
+    </aside>
     <nav aria-label="Career workspace" className="jw-tabs">{tabs.map(item => <button key={item} aria-current={item === tab ? "page" : undefined} onClick={() => { setTab(item); setEdit(null); }}>{item}</button>)}</nav>
     {notice && <p className="jw-notice" role="status">{notice}</p>}{error && <div className="jw-error" role="alert">{error} <button className="jw-neutral" onClick={() => { setEdit(null); setRevision(n => n+1); }}>Refresh</button></div>}
     {busy && <p role="status">Updating your workspace…</p>}
@@ -167,8 +173,6 @@ export function JobsWorkspace({ auth, onSignOut }: { auth: Auth; onSignOut: () =
           <span>{e.stage}</span>{!e.vacancyId && <button className="jw-neutral" onClick={() => setEdit(e)}>Edit<span className="sr-only"> {e.title}</span></button>}</div>)}</section>}
       {tab === "Recruitment" && data.recruiter && hiring && <Hiring data={hiring} write={write} />}
     </fieldset>}
-    <aside className="jw-coach"><div><h2>Skunkie AI learning companion</h2><p>Practise an interview, tailor your CV or plan your next follow-up.</p></div>
-      <button onClick={() => window.dispatchEvent(new Event("academy:open-jobs-companion"))}>Ask Skunkie</button></aside>
     <footer className="jw-footer"><a href={directory + "workspace/#career-tools"}>Career tools and pay research</a><a href="https://www.skunkworksacademy.com/privacy.html">Privacy and data requests</a></footer>
   </main>;
 }

@@ -94,7 +94,11 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
     if (requestRef.current) setAllowanceStale(true);
     generation.current++; requestRef.current?.abort(); requestRef.current = null; setBusy(false);
   }
-  function close() { cancelRequest(); voice.stopAudio(); setOpen(false); launcherRef.current?.focus({ preventScroll: true }); }
+  function close() {
+    cancelRequest(); voice.stopAudio(); setOpen(false);
+    const trigger = jobs ? document.getElementById("jobs-open-skunkie") : launcherRef.current;
+    trigger?.focus({ preventScroll: true });
+  }
   function changePreference(change: Partial<typeof preferences>) {
     const next = { ...preferences, ...change }; setPreferences(next);
     setPreferenceNotice(saveSkunkiePreferences(account.homeAccountId, next) ? "" : "This browser cannot remember the choice. It still applies for this session.");
@@ -210,7 +214,7 @@ function AccountSkunkie({ account, suppressed }: { account: AccountInfo; suppres
   }
 
   const activity = voice.listening ? "listening" : voice.speaking ? "speaking" : busy ? "thinking" : wave ? "wave" : "idle";
-  if (suppressed) return null;
+  if (suppressed || (jobs && !open)) return null;
   return <aside className={`skunkie ${open ? "skunkie--open" : ""} ${preferences.showAvatar ? "" : "skunkie--chat-only"}`} aria-label={companion + " AI learning companion"}>
     {open && <section id="skunkie-panel" className="skunkie__panel" role="dialog" aria-modal="false" aria-labelledby="skunkie-title">
       <header className="skunkie__header"><div><strong id="skunkie-title">{companion}</strong><span>{jobs ? "Jobs companion" : "Learning companion"}</span></div>
